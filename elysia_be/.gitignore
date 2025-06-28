@@ -1,0 +1,79 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Build outputs
+build/
+dist/
+*.tsbuildinfo
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+*.local
+.secrets
+
+# Database
+dump.rdb
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+logs/
+*.log
+trace/
+heap.json
+
+# Runtime and cache
+.cache/
+.tmp/
+.temp/
+server
+
+# Framework specific
+.elysia/
+.wrangler/
+
+# Testing and analysis
+.scannerwork/
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+
+# OS generated
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor and IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Security and credentials
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+auth.json
+credentials.json
+service-account*.json
+
+# Backup files
+*.bak
+*.backup
+*.old
