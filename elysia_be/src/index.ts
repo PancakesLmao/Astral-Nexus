@@ -10,7 +10,7 @@ import { appConfig } from "./config/app";
 import { appRouter } from "./trpc/router";
 
 // Import routes
-import { authRoutes, userRoutes, appRoutes } from "./routes";
+import { authRoutes, userRoutes, appRoutes, commentRoutes } from "./routes";
 
 // Import middleware
 import {
@@ -31,7 +31,7 @@ const app = new Elysia({ adapter: node() })
       path: appConfig.api.swagger.path,
       documentation: {
         info: {
-          title: "Elysian Realm API Documentation",
+          title: "Honkai Blog API Documentation",
           version: appConfig.api.version,
           description: "A well-organized Elysia.js API with tRPC integration",
         },
@@ -47,6 +47,10 @@ const app = new Elysia({ adapter: node() })
           {
             name: "Users",
             description: "User management endpoints",
+          },
+          {
+            name: "Comments",
+            description: "Blog comment management endpoints",
           },
           {
             name: "tRPC",
@@ -74,6 +78,7 @@ const app = new Elysia({ adapter: node() })
   .use(appRoutes)
   .use(authRoutes)
   .use(userRoutes)
+  .use(commentRoutes)
 
   .listen(appConfig.port, ({ hostname, port }) => {
     console.log(`🦊 Elysia server is running at http://${hostname}:${port}`);

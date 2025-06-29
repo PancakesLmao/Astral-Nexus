@@ -42,7 +42,7 @@ export const appRoutes = new Elysia()
     () => {
       return {
         version: "1.0.0",
-        name: "Elysian Realm API",
+        name: "Honkai Blog API",
         build: Date.now().toString(),
       };
     },
