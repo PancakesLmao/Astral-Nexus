@@ -31,9 +31,9 @@ const app = new Elysia({ adapter: node() })
       path: appConfig.api.swagger.path,
       documentation: {
         info: {
-          title: "Honkai Blog API Documentation",
+          title: "Astral Nexus API Documentation",
           version: appConfig.api.version,
-          description: "A well-organized Elysia.js API with tRPC integration",
+          description: "API documentation for the Astral Nexus backend",
         },
         tags: [
           {

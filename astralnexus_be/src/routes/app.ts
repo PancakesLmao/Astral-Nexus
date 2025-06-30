@@ -6,7 +6,7 @@ export const appRoutes = new Elysia()
     "/",
     () => {
       return {
-        message: "Hello from Elysian Realm",
+        message: "Hello from Astral Nexus",
         version: "1.0.0",
         timestamp: new Date().toISOString(),
       };
@@ -42,7 +42,7 @@ export const appRoutes = new Elysia()
     () => {
       return {
         version: "1.0.0",
-        name: "Honkai Blog API",
+        name: "Astral Nexus API",
         build: Date.now().toString(),
       };
     },
