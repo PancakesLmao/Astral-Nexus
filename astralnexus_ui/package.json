@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "echo \"Starting development server...\" && echo \"Root: http://localtest.me:3000\" && echo \"Blog: http://blog.localtest.me:3000\" && echo \"Admin: http://admin.localtest.me:3000\" && vite",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "test:unit": "vitest",
