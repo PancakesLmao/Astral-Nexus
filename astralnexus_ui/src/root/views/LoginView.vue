@@ -13,44 +13,13 @@
         </router-link>
       </div>
       <div class="card-header text-center">
-
         <h1 class="card-title bg-light">
-          {{ isSignUp ? languageStore.t('createAccount') : languageStore.t('welcomeBack') }}
+          {{ languageStore.t('welcomeBack') }}
         </h1>
-
-        <!-- Mode Toggle Buttons -->
-        <div class="mode-toggle">
-          <button
-            class="toggle-btn"
-            :class="{ 'active': !isSignUp }"
-            @click="isSignUp = false"
-          >
-            {{ languageStore.t('signIn') }}
-          </button>
-          <button
-            class="toggle-btn"
-            :class="{ 'active': isSignUp }"
-            @click="isSignUp = true"
-          >
-            {{ languageStore.t('signUp') }}
-          </button>
-        </div>
       </div>
 
       <div class="card-body">
-        <form @submit.prevent="handleSubmit" class="auth-form d-flex flex-column">
-          <div v-if="isSignUp" class="form-group d-flex flex-column">
-            <label class="form-label">{{ languageStore.t('username') }}</label>
-            <input
-              v-model="formData.username"
-              type="text"
-              class="form-control"
-              :placeholder="languageStore.t('usernamePlaceholder')"
-              required
-            >
-          </div>
-
-          <!-- Email -->
+        <!-- <form @submit.prevent="handleSubmit" class="auth-form d-flex flex-column">
           <div class="form-group">
             <label class="form-label">{{ languageStore.t('email') }}</label>
             <input
@@ -62,7 +31,6 @@
             >
           </div>
 
-          <!-- Password -->
           <div class="form-group">
             <label class="form-label">{{ languageStore.t('password') }}</label>
             <input
@@ -74,47 +42,34 @@
             >
           </div>
 
-          <!-- Confirm Password (Sign Up only) -->
-          <div v-if="isSignUp" class="form-group">
-            <label class="form-label">{{ languageStore.t('confirmPassword') }}</label>
-            <input
-              v-model="formData.confirmPassword"
-              type="password"
-              class="form-control"
-              :placeholder="languageStore.t('confirmPasswordPlaceholder')"
-              required
-            >
-          </div>
-
-          <!-- Forgot Password (Sign In only) -->
-          <div v-if="!isSignUp" class="form-group text-end">
+          <div class="form-group text-end">
             <a href="#" class="forgot-password">
               {{ languageStore.t('forgotPassword') }}
             </a>
           </div>
 
-          <!-- Submit Button -->
           <button type="submit" class="auth-btn position-relative d-flex align-items-center justify-content-center">
             <svg>
               <rect x="0" y="0" fill="none" width="100%" height="100%"/>
             </svg>
-            {{ isSignUp ? languageStore.t('signUp') : languageStore.t('signIn') }}
+            {{ languageStore.t('signIn') }}
           </button>
         </form>
 
-        <!-- Switch Mode Text -->
-        <div class="switch-mode text-center">
-          <span class="switch-text">
-            {{ isSignUp ? languageStore.t('alreadyHaveAccount') : languageStore.t('dontHaveAccount') }}
-          </span>
-          <button
-            class="switch-btn"
-            @click="isSignUp = !isSignUp"
-          >
-            {{ isSignUp ? languageStore.t('signIn') : languageStore.t('signUp') }}
-          </button>
-        </div>
+        <div class="divider">
+          <span class="divider-text position-relative">{{ languageStore.t('orContinueWith') }}</span>
+        </div> -->
 
+        <!-- Google Sign In Button -->
+        <button @click="handleGoogleSignIn" class="google-btn position-relative d-flex align-items-center justify-content-center">
+          <svg class="google-icon" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+          {{ languageStore.t('signInWithGoogle') }}
+        </button>
       </div>
 
     </div>
@@ -129,53 +84,42 @@ import { useLanguageStore } from '@/shared/stores/language';
 
 const languageStore = useLanguageStore();
 const router = useRouter();
+const loading = ref(false);
 
 // Initialize language on component mount
 onMounted(() => {
   languageStore.initializeLanguage();
 });
 
-const isSignUp = ref(false);
-const formData = ref({
-  username: '',
-  email: '',
-  password: '',
-  confirmPassword: ''
-});
+// const formData = ref({
+//   email: '',
+//   password: ''
+// });
 
 // Form submission handler
-const handleSubmit = () => {
-  if (isSignUp.value) {
-    if (formData.value.password !== formData.value.confirmPassword) {
-      alert('Passwords do not match!');
-      return;
-    }
-    console.log('Sign up data:', formData.value);
-    // TODO: Implement actual sign up API call
-  } else {
-    // Sign in logic
-    console.log('Sign in data:', {
-      email: formData.value.email,
-      password: formData.value.password
-    });
-    // TODO: Implement actual sign in API call
+// const handleSubmit = () => {
+//   console.log('Sign in data:', formData.value);
+//   // TODO: Implement actual sign in API call
+// };
+
+// Google Sign In handler
+const handleGoogleSignIn = async (response: any): Promise<void> => {
+  // console.log('Google Sign In clicked');
+  const res = await fetch('api/auth', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: response.credential })
+  });
+  const data = await res.json();
+  if (data.success) {
+    // Handle successful sign in
+  }
+  else {
+    // Handle sign in error
+    console.error('Sign in failed:', data.message);
   }
 };
 
-const resetForm = () => {
-  formData.value = {
-    username: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
-  };
-};
-
-// Watch for mode changes to reset form
-import { watch } from 'vue';
-watch(isSignUp, () => {
-  resetForm();
-});
 </script>
 
 <style scoped>
@@ -219,37 +163,6 @@ watch(isSignUp, () => {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-}
-
-.mode-toggle {
-  display: flex;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 0.75rem;
-  padding: 0.25rem;
-  gap: 0.25rem;
-}
-
-.toggle-btn {
-  flex: 1;
-  padding: 0.75rem 1rem;
-  background: transparent;
-  border: none;
-  color: rgba(255, 255, 255, 0.6);
-  border-radius: 0.5rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-weight: 500;
-}
-
-.toggle-btn.active {
-  background: rgba(184, 175, 247, 0.2);
-  color: #B8AFF7;
-  font-weight: 600;
-}
-
-.toggle-btn:hover:not(.active) {
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.8);
 }
 
 .auth-form {
@@ -345,30 +258,53 @@ watch(isSignUp, () => {
   transition: all 1.35s cubic-bezier(0.19, 1, 0.22, 1);
 }
 
-.switch-mode {
-  margin-top: 1.5rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+.divider {
+  margin: 2rem 0;
+  position: relative;
+  text-align: center;
 }
 
-.switch-text {
-  color: rgba(255, 255, 255, 0.7);
+.divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.divider-text {
+  background: #24252A;
+  padding: 0 1rem;
+  color: rgba(255, 255, 255, 0.6);
   font-size: 0.9rem;
 }
 
-.switch-btn {
-  background: none;
-  border: none;
-  color: #B8AFF7;
-  cursor: pointer;
+.google-btn {
+  width: 100%;
+  padding: 1rem 2rem;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.5rem;
+  color: #374151;
   font-weight: 600;
-  margin-left: 0.5rem;
-  text-decoration: underline;
-  transition: color 0.3s ease;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  gap: 0.75rem;
 }
 
-.switch-btn:hover {
-  color: #D1EAFD;
+.google-btn:hover {
+  background: rgba(255, 255, 255, 1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.google-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
 }
 
 .back-to-home {
