@@ -2,7 +2,7 @@
   <div class="">
     <Header></Header>
     <section
-      class="hero d-flex flex-column justify-content-center align-items-center position-relative"
+      class="hero min-vh-100 d-flex flex-column justify-content-center align-items-center position-relative"
     >
       <!-- Dark overlay -->
       <div class="hero-overlay position-absolute"></div>
@@ -87,11 +87,17 @@
 </template>
 
 <script lang="ts" setup>
+import { onMounted } from 'vue'
 import Header from '@/shared/components/Header.vue'
 import Footer from '@/shared/components/Footer.vue'
 import { useLanguageStore } from '@/shared/stores/language'
 
 const languageStore = useLanguageStore()
+
+// Initialize language on component mount
+onMounted(() => {
+  languageStore.initializeLanguage()
+})
 </script>
 
 <style scoped>
@@ -103,7 +109,6 @@ const languageStore = useLanguageStore()
   border-radius: 10px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   padding: 2rem;
-  height: 100vh;
 }
 
 /* Overlay */

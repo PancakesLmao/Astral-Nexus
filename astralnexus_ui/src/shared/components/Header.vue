@@ -162,7 +162,6 @@ onUnmounted(() => {
 .language-btn:hover {
   background: rgba(184, 175, 247, 0.2);
   border-color: rgba(184, 175, 247, 0.5);
-  transform: translateY(-1px);
 }
 
 .language-flag {
@@ -234,15 +233,13 @@ onUnmounted(() => {
 
 .github-logo {
   display: inline-block;
-  color: #B8AFF7;
-  fill: #B8AFF7;
+  background-clip: text;
   transition: all 0.3s ease;
 }
 
 .github-logo:hover {
   background: rgba(88, 101, 242, 0.2);
   box-shadow: 0 4px 12px rgba(88, 101, 242, 0.3);
-  transform: translateY(-2px);
 }
 
 @media (max-width: 575.98px) {

@@ -18,7 +18,11 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(88, 101, 242, 0.1);
+  color: #B8AFF7;
+  background: linear-gradient(135deg, #D1EAFD, #B8AFF7);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .gradient-link:hover {
