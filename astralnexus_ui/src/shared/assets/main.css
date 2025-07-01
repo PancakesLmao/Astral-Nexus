@@ -1,1 +1,27 @@
 @import './base.css';
+
+html {
+  scroll-behavior: smooth;
+}
+
+html, body {
+  background-color: #0A0B0F;
+  color: #E0E0E0;
+}
+
+.gradient-link {
+  color: #B8AFF7;
+  text-decoration: none;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(88, 101, 242, 0.1);
+}
+
+.gradient-link:hover {
+  background: rgba(88, 101, 242, 0.2);
+  box-shadow: 0 4px 12px rgba(88, 101, 242, 0.3);
+}
