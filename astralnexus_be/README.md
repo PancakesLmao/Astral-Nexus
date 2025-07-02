@@ -1,4 +1,8 @@
-# Elysian Realm API
+# Astral Nexus Backend 
+
+<div align="center">
+    <img src="https://elysiajs.com/assets/elysia.svg" height="45" alt="elysia logo" />
+</div>
 
 A well-organized Elysia.js API with tRPC integration, featuring modular architecture, comprehensive documentation, and type safety.
 
@@ -28,7 +32,7 @@ elysia_be/
 └── README.md
 ```
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -49,20 +53,22 @@ elysia_be/
    pnpm install
    ```
 
-3. Set up environment variables (optional):
+3. Set up environment variables (recommended):
 
    ```bash
-   cp .env.example .env
+   cp .env
    ```
 
    Configure the following variables:
 
    ```env
-   PORT=3000
+   PORT=3001
    HOST=localhost
    NODE_ENV=development
-   JWT_SECRET=your-super-secret-key
-   CORS_ORIGIN=*
+   CORS_ORIGIN=<replace with you frontend endpoint>
+   # Google OAuth
+   GOOGLE_CLIENT_ID=your_google_client_id
+   GOOGLE_CLIENT_SECRET=your_google_client_secret
    ```
 
 ### Running the Application
@@ -82,7 +88,7 @@ pnpm start
 
 ## 📡 API Endpoints
 
-### Base URL: `http://localhost:3000`
+### Base URL: `http://localhost:3001`
 
 ### Application Endpoints (`/`)
 
@@ -92,24 +98,7 @@ pnpm start
 
 ### Authentication Endpoints (`/auth`)
 
-- **POST** `/auth/login` - User login
-
-  ```json
-  {
-    "username": "admin",
-    "password": "password"
-  }
-  ```
-
-- **POST** `/auth/register` - User registration
-
-  ```json
-  {
-    "username": "newuser",
-    "email": "user@example.com",
-    "password": "securepassword"
-  }
-  ```
+- **POST** `/auth/oauth` - User authentication
 
 - **POST** `/auth/logout` - User logout
 
@@ -118,12 +107,6 @@ pnpm start
 - **GET** `/users/profile/:id` - Get user profile by ID
 - **PUT** `/users/profile/:id` - Update user profile
 - **GET** `/users?page=1&limit=10` - Get paginated users list
-
-## 🔗 tRPC Integration
-
-### Base URL: `http://localhost:3000/trpc`
-
-tRPC provides end-to-end type safety and better developer experience.
 
 #### Available Procedures
 
@@ -135,38 +118,14 @@ tRPC provides end-to-end type safety and better developer experience.
 ##### Mutations (POST/PUT/DELETE operations)
 
 - `auth.login` - User authentication
-- `auth.register` - User registration
 - `auth.logout` - User logout
 - `users.updateProfile` - Update user information
-
-#### Example tRPC Usage
-
-```typescript
-// Client-side usage (with @trpc/client)
-import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
-import type { AppRouter } from "./path/to/server/trpc/router";
-
-const trpc = createTRPCProxyClient<AppRouter>({
-  links: [
-    httpBatchLink({
-      url: "http://localhost:3000/trpc",
-    }),
-  ],
-});
-
-// Use the procedures
-const greeting = await trpc.hello.query("World");
-const user = await trpc.auth.login.mutate({
-  username: "admin",
-  password: "password",
-});
-```
 
 ## 📚 API Documentation
 
 Interactive API documentation is available via Swagger UI:
 
-**URL**: `http://localhost:3000/swagger`
+**URL**: `http://localhost:3001/swagger`
 
 The documentation includes:
 
@@ -180,7 +139,7 @@ The documentation includes:
 
 ### Configuration (`/config`)
 
-- **app.ts**: Application settings, API configuration, CORS, JWT settings
+- **app.ts**: Application settings, API configuration, CORS settings
 - **database.ts**: Database connection configuration
 
 ### Middleware (`/middleware`)
@@ -203,7 +162,7 @@ The documentation includes:
 
 ### Utilities (`/utils`)
 
-- **auth.ts**: JWT utilities, password hashing, validation helpers
+- **auth.ts**: Authentication utilities (hashing, token generation)
 - **helpers.ts**: Response formatting, date/string utilities
 
 ## 🔒 Security Features
@@ -221,15 +180,15 @@ To test the API endpoints:
 
    ```bash
    # Health check
-   curl http://localhost:3000/health
+   curl http://localhost:3001/health
 
    # Login
-   curl -X POST http://localhost:3000/auth/login \
+   curl -X POST http://localhost:3001/auth/signin \
      -H "Content-Type: application/json" \
      -d '{"username":"admin","password":"password"}'
    ```
 
-2. **Using the Swagger UI**: Visit `http://localhost:3000/swagger`
+2. **Using the Swagger UI**: Visit `http://localhost:3001/swagger`
 
 3. **Using tRPC endpoints**: Send POST requests to `/trpc/[procedure-name]`
 
@@ -249,7 +208,6 @@ The application supports various environment configurations through the `/config
 - Server settings (port, host)
 - Database connections
 - CORS policies
-- JWT configuration
 - API versioning
 
 ## 📈 Performance
@@ -273,4 +231,4 @@ This project is part of the COS30043 Interface Design course at Swinburne Univer
 
 ## Open API documentation
 
-Open your browser and navigate to `http://localhost:3000/swagger` to access the API documentation.
+Open your browser and navigate to `http://localhost:3001/swagger` to access the API documentation.

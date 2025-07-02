@@ -1,13 +1,12 @@
+import "dotenv/config"; // Load environment variables from .env file
 import { Elysia } from "elysia";
 import { node } from "@elysiajs/node";
 import { swagger } from "@elysiajs/swagger";
-import { trpc } from "@elysiajs/trpc";
+import { cors } from "@elysiajs/cors";
+import { cookie } from "@elysiajs/cookie";
 
 // Import configuration
 import { appConfig } from "./config/app";
-
-// Import tRPC router
-import { appRouter } from "./trpc/router";
 
 // Import routes
 import { authRoutes, userRoutes, appRoutes, commentRoutes } from "./routes";
@@ -17,6 +16,7 @@ import {
   loggerMiddleware,
   corsMiddleware,
   errorMiddleware,
+  authMiddleware,
 } from "./middleware";
 
 const app = new Elysia({ adapter: node() })
@@ -24,6 +24,8 @@ const app = new Elysia({ adapter: node() })
   .use(loggerMiddleware)
   .use(corsMiddleware)
   .use(errorMiddleware)
+  .use(authMiddleware)
+  .use(cookie())
 
   // Swagger documentation
   .use(
@@ -42,7 +44,7 @@ const app = new Elysia({ adapter: node() })
           },
           {
             name: "Auth",
-            description: "Authentication endpoints (login, register, logout)",
+            description: "Authentication endpoints (sign-in, logout)",
           },
           {
             name: "Users",
@@ -52,10 +54,6 @@ const app = new Elysia({ adapter: node() })
             name: "Comments",
             description: "Blog comment management endpoints",
           },
-          {
-            name: "tRPC",
-            description: "tRPC endpoints with type safety",
-          },
         ],
         servers: [
           {
@@ -64,13 +62,6 @@ const app = new Elysia({ adapter: node() })
           },
         ],
       },
-    })
-  )
-
-  // tRPC integration
-  .use(
-    trpc(appRouter, {
-      endpoint: appConfig.api.trpc.path,
     })
   )
 
@@ -85,8 +76,5 @@ const app = new Elysia({ adapter: node() })
     console.log(
       `📚 API Documentation: http://${hostname}:${port}${appConfig.api.swagger.path}`
     );
-    console.log(
-      `📡 tRPC endpoint: http://${hostname}:${port}${appConfig.api.trpc.path}`
-    );
-    console.log(`🌟 Environment: ${appConfig.environment}`);
+    console.log(`Environment: ${appConfig.environment}`);
   });

@@ -3,7 +3,7 @@ import { Elysia, t } from "elysia";
 // Authentication routes
 export const authRoutes = new Elysia({ prefix: "/auth" })
   .post(
-    "/login",
+    "/signin",
     ({ body, set }) => {
       // Mock login logic
       const { username, password } = body as {

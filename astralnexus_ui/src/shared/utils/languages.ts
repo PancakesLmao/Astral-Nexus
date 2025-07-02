@@ -42,6 +42,14 @@ export const translations = {
     usernamePlaceholder: 'Enter your username',
     orContinueWith: 'Or continue with',
     signInWithGoogle: 'Sign in with Google',
+    signInWithDiscord: 'Sign in with Discord',
+    // Dashboard
+    welcomeToDashboard: 'Welcome to Dashboard',
+    hello: 'Hello',
+    logout: 'Logout',
+    loading: 'Loading...',
+    error: 'Error',
+    backToLogin: 'Back to Login',
   },
   vn: {
     welcome: 'Chào mừng đến với',
@@ -52,7 +60,7 @@ export const translations = {
     about: 'Giới Thiệu',
     contact: 'Liên Hệ',
     // Auth
-    welcomeBack: 'Đang Nhập Để Tiếp Tục',
+    welcomeBack: 'Đăng Nhập Để Tiếp Tục',
     signIn: 'Đăng Nhập',
     email: 'Email',
     password: 'Mật Khẩu',
@@ -66,6 +74,14 @@ export const translations = {
     usernamePlaceholder: 'Nhập tên người dùng',
     orContinueWith: 'Hoặc tiếp tục với',
     signInWithGoogle: 'Đăng nhập với Google',
+    signInWithDiscord: 'Đăng nhập với Discord',
+    // Dashboard
+    welcomeToDashboard: 'Chào mừng đến Dashboard',
+    hello: 'Xin chào',
+    logout: 'Đăng Xuất',
+    loading: 'Đang tải...',
+    error: 'Lỗi',
+    backToLogin: 'Quay lại Đăng Nhập',
   },
 }
 

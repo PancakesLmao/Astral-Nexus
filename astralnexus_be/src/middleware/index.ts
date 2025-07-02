@@ -1,4 +1,5 @@
 import { Elysia } from "elysia";
+import { authMiddleware } from "./auth";
 
 // Middleware for logging requests
 export const loggerMiddleware = new Elysia({ name: "logger" }).onRequest(
@@ -18,6 +19,9 @@ export const corsMiddleware = new Elysia({ name: "cors" }).onRequest(
     set.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization";
   }
 );
+
+// Export auth middleware
+export { authMiddleware };
 
 // Middleware for error handling
 export const errorMiddleware = new Elysia({ name: "error" }).onError(
