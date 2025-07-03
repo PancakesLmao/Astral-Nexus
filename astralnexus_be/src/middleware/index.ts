@@ -1,4 +1,6 @@
 import { Elysia } from "elysia";
+import { cors } from "@elysiajs/cors";
+import { appConfig } from "../config/app";
 import { authMiddleware } from "./auth";
 
 // Middleware for logging requests
@@ -10,14 +12,16 @@ export const loggerMiddleware = new Elysia({ name: "logger" }).onRequest(
   }
 );
 
-// Middleware for CORS
-export const corsMiddleware = new Elysia({ name: "cors" }).onRequest(
-  ({ set }) => {
-    set.headers["Access-Control-Allow-Origin"] = "*";
-    set.headers["Access-Control-Allow-Methods"] =
-      "GET, POST, PUT, DELETE, OPTIONS";
-    set.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization";
-  }
+// Middleware for CORS using Elysia CORS plugin
+export const corsMiddleware = new Elysia({ name: "cors" }).use(
+  cors({
+    origin: appConfig.cors.origin
+      ? appConfig.cors.origin.split(",").map((origin) => origin.trim())
+      : ["http://localtest.me:3000"],
+    credentials: appConfig.cors.credentials,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Cookie", "X-Session-ID"],
+  })
 );
 
 // Export auth middleware

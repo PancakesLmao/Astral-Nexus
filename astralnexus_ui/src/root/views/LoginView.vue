@@ -100,6 +100,16 @@
           </svg>
           {{ languageStore.t('signInWithDiscord') }}
         </button>
+
+        <!-- Test Login Button (Development Only) -->
+        <button
+          @click="handleTestLogin"
+          class="test-btn position-relative d-flex align-items-center justify-content-center mt-3"
+          style="background: #ff6b35; border: none;"
+        >
+          🧪 Test Login (Dev)
+        </button>
+        <!-- REMOVE AFTER COMPLETE SIGN-IN -->
       </div>
     </div>
   </div>
@@ -110,26 +120,15 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft } from 'lucide-vue-next'
 import { useLanguageStore } from '@/shared/stores/language'
+import { API_BASE_URL } from '@/shared/api'
 
 const languageStore = useLanguageStore()
-const router = useRouter()
 const loading = ref(false)
 
 // Initialize language on component mount
 onMounted(() => {
   languageStore.initializeLanguage()
 })
-
-// const formData = ref({
-//   email: '',
-//   password: ''
-// });
-
-// Form submission handler
-// const handleSubmit = () => {
-//   console.log('Sign in data:', formData.value);
-//   // TODO: Implement actual sign in API call
-// };
 
 // Google Sign In handler
 const handleGoogleSignIn = async (): Promise<void> => {
@@ -138,7 +137,7 @@ const handleGoogleSignIn = async (): Promise<void> => {
     console.log('Initiating Google Sign In...')
 
     // Redirect to Google OAuth endpoint
-    window.location.href = 'http://localhost:3001/auth/google'
+    window.location.href = `${API_BASE_URL}/auth/google`
   } catch (error) {
     console.error('Google Sign In error:', error)
     loading.value = false
@@ -152,9 +151,23 @@ const handleDiscordSignIn = async (): Promise<void> => {
     console.log('Initiating Discord Sign In...')
 
     // Redirect to Discord OAuth endpoint
-    window.location.href = 'http://localhost:3001/auth/discord'
+    window.location.href = `${API_BASE_URL}/auth/discord`
   } catch (error) {
     console.error('Discord Sign In error:', error)
+    loading.value = false
+  }
+}
+
+// Test Login handler (Development only)
+const handleTestLogin = async (): Promise<void> => {
+  try {
+    loading.value = true
+    console.log('Initiating Test Login...')
+
+    // Redirect to test login endpoint
+    window.location.href = `${API_BASE_URL}/auth/test-login`
+  } catch (error) {
+    console.error('Test Login error:', error)
     loading.value = false
   }
 }
@@ -372,6 +385,29 @@ const handleDiscordSignIn = async (): Promise<void> => {
   height: 20px;
   margin-right: 12px;
 }
+/* REMOVE AFTER COMPLETE SIGN-IN */
+.test-btn {
+  background: #ff6b35;
+  color: white;
+  border: 2px solid #ff6b35;
+  border-radius: 15px;
+  padding: 1rem 2rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  font-size: 1rem;
+  width: 100%;
+  box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+}
+
+.test-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(255, 107, 53, 0.4);
+  background: #e55a2b;
+  border-color: #e55a2b;
+  color: white;
+}
+/* REMOVE AFTER COMPLETE SIGN-IN */
 
 .back-to-home {
   margin-bottom: 1.5rem;

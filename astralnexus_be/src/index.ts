@@ -2,7 +2,6 @@ import "dotenv/config"; // Load environment variables from .env file
 import { Elysia } from "elysia";
 import { node } from "@elysiajs/node";
 import { swagger } from "@elysiajs/swagger";
-import { cors } from "@elysiajs/cors";
 import { cookie } from "@elysiajs/cookie";
 
 // Import configuration
@@ -71,7 +70,7 @@ const app = new Elysia({ adapter: node() })
   .use(userRoutes)
   .use(commentRoutes)
 
-  .listen(appConfig.port, ({ hostname, port }) => {
+  .listen(appConfig.port || 3001, ({ hostname, port }) => {
     console.log(`🦊 Elysia server is running at http://${hostname}:${port}`);
     console.log(
       `📚 API Documentation: http://${hostname}:${port}${appConfig.api.swagger.path}`

@@ -1,4 +1,4 @@
-# Development Guide - Elysian Realm API
+# Development Guide - Astral Nexus API
 
 ## 📋 Quick Reference
 
@@ -6,16 +6,16 @@
 
 - **Development URL**: `http://localhost:3001`
 - **Swagger Documentation**: `http://localhost:3001/swagger`
-- **tRPC Endpoint**: `http://localhost:3001/trpc`
+- **OAuth Endpoints**: `http://localhost:3001/auth/oauth`
 
 ### Project Status
 
 ✅ **Organized folder structure**
-✅ **tRPC integration with type safety**
 ✅ **Swagger documentation with tags**
 ✅ **Modular route architecture**
 ✅ **Middleware implementation**
 ✅ **Configuration management**
+✅ **OAuth2 integration with Arctic**
 ✅ **Utility functions**
 
 ## 🎯 What You Have Now
@@ -27,39 +27,77 @@ src/
 ├── config/     → Application & database configuration
 ├── middleware/ → CORS, logging, error handling
 ├── routes/     → Modular REST API endpoints
-├── trpc/       → Type-safe RPC procedures
 ├── utils/      → Helper functions & utilities
 └── index.ts    → Main application entry
 ```
 
 ### 2. **REST API Endpoints**
 
-| Method | Endpoint             | Description            | Tag   |
-| ------ | -------------------- | ---------------------- | ----- |
-| GET    | `/`                  | API welcome message    | App   |
-| GET    | `/health`            | Health check           | App   |
-| GET    | `/version`           | Version info           | App   |
-| POST   | `/auth/login`        | User authentication    | Auth  |
-| POST   | `/auth/register`     | User registration      | Auth  |
-| POST   | `/auth/logout`       | User logout            | Auth  |
-| GET    | `/users/profile/:id` | Get user profile       | Users |
-| PUT    | `/users/profile/:id` | Update user profile    | Users |
-| GET    | `/users`             | List users (paginated) | Users |
+| Method | Endpoint                         | Description            | Tag   |
+| ------ | -------------------------------- | ---------------------- | ----- |
+| GET    | `/`                              | API welcome message    | App   |
+| GET    | `/health`                        | Health check           | App   |
+| GET    | `/version`                       | Version info           | App   |
+| GET    | `/auth/oauth/:provider`          | OAuth login            | Auth  |
+| GET    | `/auth/oauth/:provider/callback` | OAuth callback         | Auth  |
+| POST   | `/auth/logout`                   | User logout            | Auth  |
+| GET    | `/users/profile/:id`             | Get user profile       | Users |
+| PUT    | `/users/profile/:id`             | Update user profile    | Users |
+| GET    | `/users`                         | List users (paginated) | Users |
 
-### 3. **tRPC Procedures**
+### 3. **OAuth2 Integration**
 
-| Type     | Procedure             | Description         |
-| -------- | --------------------- | ------------------- |
-| Query    | `hello`               | Simple greeting     |
-| Mutation | `auth.login`          | User login          |
-| Mutation | `auth.register`       | User registration   |
-| Mutation | `auth.logout`         | User logout         |
-| Query    | `users.getProfile`    | Get user profile    |
-| Mutation | `users.updateProfile` | Update user profile |
+**Supported Providers:**
 
-## 🚀 How to Use This Setup
+- Google OAuth2
+- GitHub OAuth2
+- Discord OAuth2
+- Twitter OAuth2
+- Facebook OAuth2
 
-### 1. **Testing the API**
+**OAuth Flow:**
+
+1. User visits `/auth/oauth/google` (or other provider)
+2. Redirects to provider's authorization page
+3. User authorizes application
+4. Provider redirects to `/auth/oauth/google/callback`
+5. Backend exchanges code for access token
+6. User profile is fetched and user is authenticated
+
+## How to Use This Setup
+
+### 1. **OAuth Configuration**
+
+#### Environment Variables
+
+Add OAuth credentials to your `.env` file:
+
+````env
+# Google OAuth
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+
+# GitHub OAuth
+GITHUB_CLIENT_ID=your_github_client_id
+GITHUB_CLIENT_SECRET=your_github_client_secret
+
+# Discord OAuth
+DISCORD_CLIENT_ID=your_discord_client_id
+DISCORD_CLIENT_SECRET=your_discord_client_secret
+
+# OAuth Redirect URL
+OAUTH_REDIRECT_URL=http://localhost:3001/auth/oauth
+
+#### Provider Setup (Where to get your CLIENT_ID and SECRET )
+For Google OAuth Setup:
+
+Go to Google Cloud Console
+Create a new project or select existing
+Enable Google+ API
+Create OAuth 2.0 credentials
+Set redirect URI: http://localhost:3001/auth/oauth/google/callback
+
+### 2. **Testing the API**
 
 #### Using Swagger UI
 
@@ -80,23 +118,9 @@ curl -X POST http://localhost:3001/auth/login \
 
 # Get user profile
 curl http://localhost:3001/users/profile/1
-```
+````
 
-#### Using tRPC
-
-```bash
-# Hello query
-curl -X POST http://localhost:3001/trpc/hello \
-  -H "Content-Type: application/json" \
-  -d '{"input":"World"}'
-
-# Auth login mutation
-curl -X POST http://localhost:3001/trpc/auth.login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"password"}'
-```
-
-### 2. **Adding New Features**
+### 3. **Adding New Features**
 
 #### Adding a New REST Endpoint
 
@@ -118,35 +142,19 @@ curl -X POST http://localhost:3001/trpc/auth.login \
 })
 ```
 
-#### Adding a New tRPC Procedure
-
-1. Open `src/trpc/router.ts`
-2. Add to the appropriate router:
-
-```typescript
-newProcedure: publicProcedure
-  .input(
-    z.object({
-      // Your input schema
-    })
-  )
-  .mutation(({ input }) => {
-    // Your logic here
-    return { success: true };
-  });
-```
-
-### 3. **Configuration**
+### 4. **Configuration**
 
 #### Environment Variables
 
-Create `.env` file based on `.env.example`:
+Create `.env` file:
 
 ```env
 PORT=3001
 NODE_ENV=development
-JWT_SECRET=your-secret-key
 CORS_ORIGIN=*
+# Google OAuth
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
 ```
 
 #### App Configuration
@@ -156,96 +164,228 @@ Modify `src/config/app.ts` for:
 - Server settings
 - API paths
 - CORS policies
-- JWT settings
 
 ## 🔧 Development Workflow
 
-### 1. **Start Development**
+### 1. **Setup OAuth2.0 Environment**
+
+Before starting development, create a `.env` file in the backend directory:
 
 ```bash
-cd elysia_be
+cd astralnexus_be
+cp .env.example .env
+```
+
+Update the `.env` file with your Google OAuth2.0 credentials:
+
+```env
+# Server Configuration
+PORT=3001
+NODE_ENV=development
+
+# CORS Configuration
+CORS_ORIGIN=http://localhost:5173,http://localhost:5174,http://localhost:5175
+
+# Google OAuth2.0 (Required)
+GOOGLE_CLIENT_ID=your_google_client_id_here
+GOOGLE_CLIENT_SECRET=your_google_client_secret_here
+
+# OAuth2.0 Redirect URIs
+OAUTH_REDIRECT_URI=http://localhost:3001/auth/google/callback
+FRONTEND_SUCCESS_REDIRECT=http://localhost:5173/dashboard
+FRONTEND_ERROR_REDIRECT=http://localhost:5173/login?error=oauth_failed
+
+# Session/JWT Configuration
+JWT_SECRET=your_super_secure_jwt_secret_here
+SESSION_SECRET=your_session_secret_here
+```
+
+### 2. **Get Google OAuth2.0 Credentials**
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select an existing one
+3. Enable the **Google+ API** or **Google Identity API**
+4. Go to **Credentials** → **Create Credentials** → **OAuth 2.0 Client IDs**
+5. Set **Application type** to **Web application**
+6. Add **Authorized redirect URIs**:
+   - `http://localhost:3001/auth/google/callback`
+   - `http://localhost:3001/auth/google/callback` (for production, use your domain)
+7. Copy the **Client ID** and **Client Secret** to your `.env` file
+
+### 3. **Start Development Servers**
+
+```bash
+# Start Backend (Terminal 1)
+cd astralnexus_be
+pnpm dev
+
+# Start Frontend (Terminal 2)
+cd astralnexus_ui
 pnpm dev
 ```
 
-### 2. **Check API Documentation**
+### 4. **Test OAuth2.0 Flow**
 
-Visit `http://localhost:3001/swagger`
+1. Open `http://localhost:5173/login`
+2. Click **"Sign in with Google"**
+3. Complete Google OAuth flow
+4. Should redirect to `http://localhost:5173/dashboard`
+5. User info should be displayed on dashboard
 
-### 3. **Test Endpoints**
+### 5. **Development URLs**
 
-- Use Swagger UI for interactive testing
-- Use curl/Postman for manual testing
-- Write unit tests for automated testing
+- **Frontend (Root)**: `http://localhost:5173`
+- **Backend API**: `http://localhost:3001`
+- **Swagger Docs**: `http://localhost:3001/swagger`
+- **OAuth Login**: `http://localhost:3001/auth/google`
+- **Dashboard**: `http://localhost:5173/dashboard`
 
-### 4. **Monitor Logs**
+## 🔐 OAuth2.0 Integration Deep Dive
 
-The server logs all requests and responses in the terminal.
+### **Implementation Details**
 
-## 🎨 Customization
+The OAuth2.0 implementation uses:
 
-### 1. **Swagger Tags**
+- **elysia-oauth2**: OAuth2.0 plugin for Elysia
+- **Arctic**: Multi-provider OAuth2.0 client library
+- **Session Management**: Cookie-based sessions with secure configuration
 
-Add new tags in `src/index.ts`:
+### **OAuth2.0 Flow Explanation**
 
-```typescript
-tags: [{ name: "NewFeature", description: "New feature endpoints" }];
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant Backend
+    participant Google
+
+    User->>Frontend: Click "Sign in with Google"
+    Frontend->>Backend: GET /auth/google
+    Backend->>Backend: Generate state & code_verifier
+    Backend->>Google: Redirect to Google OAuth
+    Google->>User: Show consent screen
+    User->>Google: Authorize application
+    Google->>Backend: Callback with code & state
+    Backend->>Google: Exchange code for tokens
+    Google->>Backend: Return access_token
+    Backend->>Google: Fetch user profile
+    Google->>Backend: Return user data
+    Backend->>Backend: Create session & set cookie
+    Backend->>Frontend: Redirect to dashboard
+    Frontend->>Backend: GET /auth/me (with session cookie)
+    Backend->>Frontend: Return user data
 ```
 
-### 2. **Middleware**
+### **Security Features**
 
-Add custom middleware in `src/middleware/index.ts`:
+1. **PKCE (Proof Key for Code Exchange)**
+
+   - Uses `code_verifier` and `code_challenge`
+   - Prevents authorization code interception attacks
+
+2. **State Parameter**
+
+   - Prevents CSRF attacks
+   - Validates OAuth callback authenticity
+
+3. **Secure Cookies**
+
+   - `HttpOnly`: Prevents XSS access to session cookies
+   - `Secure`: HTTPS only in production
+   - `SameSite`: CSRF protection
+
+4. **Session Management**
+   - Server-side session storage
+   - Automatic session cleanup
+   - Configurable session expiration
+
+### **API Endpoints Reference**
+
+| Endpoint                | Method | Description            | Authentication |
+| ----------------------- | ------ | ---------------------- | -------------- |
+| `/auth/<provider>`          | GET    | Initiate Google OAuth  | None           |
+| `/auth/<provider>/callback` | GET    | OAuth callback handler | None           |
+| `/auth/me`              | GET    | Get current user       | Session Cookie |
+| `/auth/logout`          | POST   | Logout user            | Session Cookie |
+
+### **Frontend Integration**
 
 ```typescript
-export const customMiddleware = new Elysia({ name: "custom" }).onRequest(
-  ({ request }) => {
-    // Your custom logic
+// Redirect to OAuth login
+const handleGoogleSignIn = () => {
+  window.location.href = "http://localhost:3001/auth/<provider>";
+};
+
+// Check authentication status
+const checkAuth = async () => {
+  const response = await fetch("http://localhost:3001/auth/me", {
+    credentials: "include", // Important for cookies
+  });
+
+  if (response.ok) {
+    const data = await response.json();
+    return data.user;
   }
-);
+  return null;
+};
+
+// Logout
+const logout = async () => {
+  await fetch("http://localhost:3001/auth/logout", {
+    method: "POST",
+    credentials: "include",
+  });
+  // Redirect to login page
+};
 ```
 
-### 3. **Utilities**
+### **Environment Variables Explained**
 
-Add helper functions in `src/utils/`:
+```env
+# Google OAuth2.0 Credentials
+GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=xxx-xxx
 
-- `auth.ts` for authentication utilities
-- `helpers.ts` for general utilities
-- Create new files for specific features
+# Must match Google Console redirect URI exactly
+OAUTH_REDIRECT_URI=http://localhost:3001/auth/google/callback
 
-## 🚦 Next Steps
+# Where to redirect after successful/failed OAuth
+FRONTEND_SUCCESS_REDIRECT=http://localhost:5173/dashboard
+FRONTEND_ERROR_REDIRECT=http://localhost:5173/login?error=oauth_failed
 
-### Immediate Tasks
+### **Troubleshooting OAuth2.0**
 
-1. **Database Integration**: Set up your preferred database (PostgreSQL, MongoDB, etc.)
-2. **Authentication**: Implement real JWT tokens and password hashing
-3. **Validation**: Enhance input validation and error messages
-4. **Testing**: Add unit and integration tests
+**Common Issues:**
 
-### Advanced Features
+1. **"redirect_uri_mismatch"**
 
-1. **Rate Limiting**: Implement API rate limiting
-2. **Caching**: Add Redis for caching
-3. **File Upload**: Implement file upload endpoints
-4. **Real-time**: Add WebSocket support
-5. **Monitoring**: Add logging and metrics
+   - Ensure `OAUTH_REDIRECT_URI` matches Google Console exactly
 
-### Frontend Integration
+2. **"invalid_client"**
 
-1. **tRPC Client**: Set up tRPC client in your Vue.js frontend
-2. **Type Safety**: Share types between frontend and backend
-3. **API Client**: Create typed API client for REST endpoints
+   - Verify `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`
+   - Ensure OAuth consent screen is configured
 
-## 📞 Support
+3. **Session not persisting**
 
-### Common Issues
+   - Check if `credentials: 'include'` is set in frontend requests
+   - Verify CORS settings allow credentials
 
-1. **Port in use**: Change port in `src/config/app.ts`
-2. **CORS errors**: Update CORS settings in middleware
-3. **Type errors**: Check TypeScript configuration
+4. **"State parameter mismatch"**
+   - Usually indicates server restart during OAuth flow
+   - Clear browser storage and try again
+
+**Debug Commands:**
+
+```bash
+# Check environment variables are loaded
+curl http://localhost:3001/health
+
+# Test OAuth redirect (should redirect to Google)
+curl -I http://localhost:3001/auth/google
+
+# Check session endpoint (with cookie)
+curl -H "Cookie: session=your-session-id" http://localhost:3001/auth/me
+```
 
 ### Resources
-
-- [Elysia Documentation](https://elysiajs.com/)
-- [tRPC Documentation](https://trpc.io/)
-- [Swagger/OpenAPI](https://swagger.io/)
-
-Your API is now well-organized, documented, and ready for development! 🎉

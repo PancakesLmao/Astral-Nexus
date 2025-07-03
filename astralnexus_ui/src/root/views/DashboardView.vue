@@ -61,6 +61,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { LogOut } from 'lucide-vue-next'
 import Header from '@/shared/components/Header.vue'
 import { useLanguageStore } from '@/shared/stores/language'
+import { API_BASE_URL } from '@/shared/api'
 
 const languageStore = useLanguageStore()
 const router = useRouter()
@@ -73,8 +74,54 @@ const error = ref<string | null>(null)
 // Fetch current user info
 const fetchUser = async () => {
   try {
-    const response = await fetch('http://localhost:3001/auth/me', {
+    // Check if session ID is in URL (from OAuth redirect)
+    const urlParams = new URLSearchParams(window.location.search)
+    const sessionFromUrl = urlParams.get('session')
+
+    console.log('=== Dashboard Debug ===')
+    console.log('Current URL:', window.location.href)
+    console.log('URL Search params:', window.location.search)
+    console.log('Session from URL:', sessionFromUrl)
+
+    if (sessionFromUrl) {
+      console.log('Setting session cookie:', sessionFromUrl)
+      // Set session cookie for this domain - use same name as backend expects
+      document.cookie = `astral_session=${sessionFromUrl}; path=/; max-age=${24 * 60 * 60}; SameSite=Lax`
+
+      // Also store in localStorage as fallback for cross-domain requests
+      localStorage.setItem('astral_session', sessionFromUrl)
+
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname)
+      console.log('URL cleaned up')
+    } else {
+      console.log('No session parameter found in URL')
+      // Check if we have a session in localStorage
+      const storedSession = localStorage.getItem('astral_session')
+      if (storedSession) {
+        console.log('Found session in localStorage:', storedSession)
+        // Set cookie from localStorage
+        document.cookie = `astral_session=${storedSession}; path=/; max-age=${24 * 60 * 60}; SameSite=Lax`
+      }
+    }
+
+    console.log('Making API call to /auth/me...')
+
+    // Get session from localStorage as fallback
+    const sessionId = sessionFromUrl || localStorage.getItem('astral_session')
+    console.log('Using session ID for request:', sessionId)
+
+    const headers: Record<string, string> = {}
+    if (sessionId) {
+      // Add session as Authorization header as fallback
+      headers['Authorization'] = `Bearer ${sessionId}`
+      // Also add as custom header
+      headers['X-Session-ID'] = sessionId
+    }
+
+    const response = await fetch(`${API_BASE_URL}/auth/me`, {
       credentials: 'include', // Important for cookies
+      headers,
     })
 
     if (response.ok) {
@@ -82,6 +129,15 @@ const fetchUser = async () => {
       user.value = data.user
     } else {
       const errorData = await response.json()
+      console.log('Auth error:', errorData)
+
+      // If no session found and we're not coming from OAuth, redirect to login
+      if (errorData.error === 'No session found' || errorData.error === 'Invalid session') {
+        console.log('No valid session, redirecting to login...')
+        router.push('/login')
+        return
+      }
+
       error.value = errorData.error || 'Failed to fetch user info'
     }
   } catch (err) {
@@ -97,12 +153,23 @@ const logout = async () => {
   try {
     loading.value = true
 
-    const response = await fetch('http://localhost:3001/auth/logout', {
+    // Get session for logout request
+    const sessionId = localStorage.getItem('astral_session')
+    const headers: Record<string, string> = {}
+    if (sessionId) {
+      headers['Authorization'] = `Bearer ${sessionId}`
+      headers['X-Session-ID'] = sessionId
+    }
+
+    const response = await fetch(`${API_BASE_URL}/auth/logout`, {
       method: 'POST',
       credentials: 'include',
+      headers,
     })
 
     if (response.ok) {
+      // Clear localStorage
+      localStorage.removeItem('astral_session')
       // Redirect to login page
       router.push('/login')
     } else {

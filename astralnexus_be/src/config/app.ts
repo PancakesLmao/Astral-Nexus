@@ -25,7 +25,6 @@ export const appConfig = {
     // Session cookie settings
     session: {
       name: "astral_session",
-      domain: ".localtest.me",
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax" as "lax",
@@ -35,7 +34,6 @@ export const appConfig = {
     // User preferences cookie settings
     preferences: {
       name: "user_lang",
-      domain: ".localtest.me",
       httpOnly: false, // Frontend needs to read this
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax" as "lax",
