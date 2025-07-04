@@ -50,6 +50,12 @@ export const translations = {
     loading: 'Loading...',
     error: 'Error',
     backToLogin: 'Back to Login',
+    // Sidebar
+    home: 'Home',
+    myposts: 'My Posts',
+    events: 'Events',
+    profile: 'Profile',
+    language: 'Language',
   },
   vn: {
     welcome: 'Chào mừng đến với',
@@ -82,6 +88,12 @@ export const translations = {
     loading: 'Đang tải...',
     error: 'Lỗi',
     backToLogin: 'Quay lại Đăng Nhập',
+    // Sidebar
+    home: 'Trang Chủ',
+    myposts: 'Bài Viết Của Tôi',
+    events: 'Sự Kiện',
+    profile: 'Tài Khoản',
+    language: 'Ngôn Ngữ',
   },
 }
 

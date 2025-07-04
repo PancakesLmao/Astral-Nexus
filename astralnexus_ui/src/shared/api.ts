@@ -7,3 +7,6 @@ export class ApiClient {
 
   // API methods will be implemented here
 }
+
+// Export a default instance
+export const apiClient = new ApiClient()

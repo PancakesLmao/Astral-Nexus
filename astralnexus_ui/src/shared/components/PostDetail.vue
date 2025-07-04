@@ -6,4 +6,5 @@
 </template>
 
 <script lang="ts" setup>
+import { MessageSquareMore, ThumbsUp, Ellipsis, Repeat2 } from 'lucide-vue-next';
 </script>

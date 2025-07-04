@@ -105,7 +105,6 @@
         <button
           @click="handleTestLogin"
           class="test-btn position-relative d-flex align-items-center justify-content-center mt-3"
-          style="background: #ff6b35; border: none;"
         >
           🧪 Test Login (Dev)
         </button>
@@ -117,7 +116,6 @@
 
 <script lang="ts" setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { ArrowLeft } from 'lucide-vue-next'
 import { useLanguageStore } from '@/shared/stores/language'
 import { API_BASE_URL } from '@/shared/api'
@@ -136,8 +134,12 @@ const handleGoogleSignIn = async (): Promise<void> => {
     loading.value = true
     console.log('Initiating Google Sign In...')
 
-    // Redirect to Google OAuth endpoint
-    window.location.href = `${API_BASE_URL}/auth/google`
+    // Get current language preference to pass to OAuth
+    const currentLang = languageStore.currentLanguage
+    console.log('Passing language to Google OAuth:', currentLang)
+
+    // Redirect to Google OAuth endpoint with language preference
+    window.location.href = `${API_BASE_URL}/auth/google?lang=${currentLang}`
   } catch (error) {
     console.error('Google Sign In error:', error)
     loading.value = false
@@ -150,8 +152,12 @@ const handleDiscordSignIn = async (): Promise<void> => {
     loading.value = true
     console.log('Initiating Discord Sign In...')
 
-    // Redirect to Discord OAuth endpoint
-    window.location.href = `${API_BASE_URL}/auth/discord`
+    // Get current language preference to pass to OAuth
+    const currentLang = languageStore.currentLanguage
+    console.log('Passing language to Discord OAuth:', currentLang)
+
+    // Redirect to Discord OAuth endpoint with language preference
+    window.location.href = `${API_BASE_URL}/auth/discord?lang=${currentLang}`
   } catch (error) {
     console.error('Discord Sign In error:', error)
     loading.value = false
@@ -164,8 +170,12 @@ const handleTestLogin = async (): Promise<void> => {
     loading.value = true
     console.log('Initiating Test Login...')
 
-    // Redirect to test login endpoint
-    window.location.href = `${API_BASE_URL}/auth/test-login`
+    // Get current language preference to pass to test login
+    const currentLang = languageStore.currentLanguage
+    console.log('Passing language to Test Login:', currentLang)
+
+    // Redirect to test login endpoint with language preference
+    window.location.href = `${API_BASE_URL}/auth/test-login?lang=${currentLang}`
   } catch (error) {
     console.error('Test Login error:', error)
     loading.value = false
@@ -388,6 +398,7 @@ const handleTestLogin = async (): Promise<void> => {
 /* REMOVE AFTER COMPLETE SIGN-IN */
 .test-btn {
   background: #ff6b35;
+  border: none;
   color: white;
   border: 2px solid #ff6b35;
   border-radius: 15px;

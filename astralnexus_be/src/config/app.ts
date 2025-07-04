@@ -30,15 +30,17 @@ export const appConfig = {
       sameSite: "lax" as "lax",
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       path: "/",
+      domain: ".localtest.me", // Allow cross-subdomain sharing
     },
     // User preferences cookie settings
     preferences: {
-      name: "user_lang",
+      name: "preferred-language",
       httpOnly: false, // Frontend needs to read this
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax" as "lax",
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
       path: "/",
+      domain: ".localtest.me", // Allow cross-subdomain sharing
     },
     // OAuth state cookie settings
     oauthState: {

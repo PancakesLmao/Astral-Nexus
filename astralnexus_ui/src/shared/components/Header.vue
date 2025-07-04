@@ -118,21 +118,6 @@ onUnmounted(() => {
   z-index: 1;
 }
 
-.navbar-brand {
-  text-decoration: none;
-  color: #E0E0E0 !important;
-  font-weight: 700;
-  font-size: 1.5rem;
-  transition: color 0.3s ease;
-}
-
-.brand-text {
-  background: linear-gradient(135deg, #D1EAFD, #B8AFF7, #B8AFF7);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
 .nav-actions {
   display: flex;
   align-items: center;

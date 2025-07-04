@@ -22,3 +22,13 @@ export interface User {
   role: 'user' | 'admin'
   createdAt: Date
 }
+
+export interface CookieOptions {
+  domain?: string
+  path?: string
+  maxAge?: number
+  expires?: Date
+  secure?: boolean
+  sameSite?: 'Strict' | 'Lax' | 'None'
+  httpOnly?: boolean
+}

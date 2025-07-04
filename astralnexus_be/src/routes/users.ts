@@ -1,4 +1,5 @@
 import { Elysia, t } from "elysia";
+import { appConfig } from "../config/app";
 
 // User management routes
 export const userRoutes = new Elysia({ prefix: "/users" })
@@ -77,6 +78,48 @@ export const userRoutes = new Elysia({ prefix: "/users" })
           limit: parseInt(limit),
           total: 100,
           totalPages: Math.ceil(100 / parseInt(limit)),
+        },
+      };
+    },
+    {
+      query: t.Object({
+        page: t.Optional(t.String()),
+        limit: t.Optional(t.String()),
+      }),
+      detail: {
+        tags: ["Users"],
+        summary: "Get users list",
+        description: "Get paginated list of users",
+      },
+    }
+  )
+  .get(
+    "/list",
+    ({ query }) => {
+      const { page = "1", limit = "10" } = query;
+      const pageNum = parseInt(page);
+      const limitNum = parseInt(limit);
+
+      return {
+        users: [
+          {
+            id: "1",
+            username: "testuser1",
+            email: "test1@example.com",
+            createdAt: new Date().toISOString(),
+          },
+          {
+            id: "2",
+            username: "testuser2",
+            email: "test2@example.com",
+            createdAt: new Date().toISOString(),
+          },
+        ],
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total: 2,
+          pages: 1,
         },
       };
     },

@@ -22,8 +22,14 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
   // Google OAuth2.0 login
   .get(
     "/google",
-    ({ oauth2 }: { oauth2: any }) => {
-      return oauth2.redirect("Google", ["openid", "profile", "email"]);
+    ({ oauth2, query }: { oauth2: any; query: any }) => {
+      // Store language preference in state parameter for OAuth flow
+      const language = query.lang || "en";
+      console.log("Google OAuth initiated with language:", language);
+
+      return oauth2.redirect("Google", ["openid", "profile", "email"], {
+        state: `lang=${language}`,
+      });
     },
     {
       detail: {
@@ -37,7 +43,17 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
   // Google OAuth2.0 callback
   .get(
     "/google/callback",
-    async ({ oauth2, set, query }: { oauth2: any; set: any; query: any }) => {
+    async ({
+      oauth2,
+      set,
+      query,
+      headers,
+    }: {
+      oauth2: any;
+      set: any;
+      query: any;
+      headers: any;
+    }) => {
       try {
         // Check if user denied authorization
         if (query.error === "access_denied") {
@@ -93,11 +109,33 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
           },
         };
 
-        // Redirect to frontend success page with session ID
+        // Extract language preference from state parameter or cookie
+        let language = query.state?.includes("lang=")
+          ? query.state.split("lang=")[1]?.split("&")[0] || "en"
+          : "en";
+
+        // Check if user has a current language preference in cookie (override state)
+        const cookieName = appConfig.cookies.preferences.name;
+        if (headers.cookie) {
+          const match = headers.cookie.match(
+            new RegExp(`${cookieName}=([^;]+)`)
+          );
+          if (match) {
+            language = match[1];
+            console.log(
+              "Using current language preference from cookie:",
+              language
+            );
+          }
+        }
+
+        console.log("Final language for redirect:", language);
+
+        // Redirect to frontend success page with session ID and language
         const redirectUrl =
           process.env.FRONTEND_SUCCESS_REDIRECT ||
           "http://localtest.me:3000/dashboard";
-        const redirectWithSession = `${redirectUrl}?session=${sessionId}`;
+        const redirectWithSession = `${redirectUrl}?session=${sessionId}&lang=${language}`;
         console.log("Redirecting to:", redirectWithSession);
         console.log("Session cookie set:", sessionId);
 
@@ -131,8 +169,14 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
   // Discord OAuth2.0 login
   .get(
     "/discord",
-    ({ oauth2 }: { oauth2: any }) => {
-      return oauth2.redirect("Discord", ["identify", "email"]);
+    ({ oauth2, query }: { oauth2: any; query: any }) => {
+      // Store language preference in state parameter for OAuth flow
+      const language = query.lang || "en";
+      console.log("Discord OAuth initiated with language:", language);
+
+      return oauth2.redirect("Discord", ["identify", "email"], {
+        state: `lang=${language}`,
+      });
     },
     {
       detail: {
@@ -146,7 +190,17 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
   // Discord OAuth2.0 callback
   .get(
     "/discord/callback",
-    async ({ oauth2, set, query }: { oauth2: any; set: any; query: any }) => {
+    async ({
+      oauth2,
+      set,
+      query,
+      headers,
+    }: {
+      oauth2: any;
+      set: any;
+      query: any;
+      headers: any;
+    }) => {
       try {
         // Check if user denied authorization
         if (query.error === "access_denied") {
@@ -204,11 +258,33 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
           },
         };
 
-        // Redirect to frontend success page with session ID
+        // Extract language preference from state parameter or cookie
+        let language = query.state?.includes("lang=")
+          ? query.state.split("lang=")[1]?.split("&")[0] || "en"
+          : "en";
+
+        // Check if user has a current language preference in cookie (override state)
+        const cookieName = appConfig.cookies.preferences.name;
+        if (headers.cookie) {
+          const match = headers.cookie.match(
+            new RegExp(`${cookieName}=([^;]+)`)
+          );
+          if (match) {
+            language = match[1];
+            console.log(
+              "Using current language preference from cookie:",
+              language
+            );
+          }
+        }
+
+        console.log("Final language for redirect:", language);
+
+        // Redirect to frontend success page with session ID and language
         const redirectUrl =
           process.env.FRONTEND_SUCCESS_REDIRECT ||
           "http://localtest.me:3000/dashboard";
-        const redirectWithSession = `${redirectUrl}?session=${sessionId}`;
+        const redirectWithSession = `${redirectUrl}?session=${sessionId}&lang=${language}`;
         console.log("Redirecting to:", redirectWithSession);
         console.log("Session cookie set:", sessionId);
 
@@ -350,43 +426,10 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
     }
   )
 
-  // Set user language preference
-  .post(
-    "/language",
-    ({ body, set }: { body: any; set: any }) => {
-      const { language } = body;
-
-      if (!language || !["en", "es", "fr", "de", "zh"].includes(language)) {
-        set.status = 400;
-        return { error: "Invalid language. Supported: en, es, fr, de, zh" };
-      }
-
-      // Set language preference cookie using centralized config
-      set.cookie = {
-        [appConfig.cookies.preferences.name]: {
-          value: language,
-          ...appConfig.cookies.preferences,
-        },
-      };
-
-      return { success: true, language, message: "Language preference saved" };
-    },
-    {
-      body: t.Object({
-        language: t.String(),
-      }),
-      detail: {
-        tags: ["Auth"],
-        summary: "Set user language preference",
-        description: "Set user language preference via cookie",
-      },
-    }
-  )
-
   // Test endpoint for development - simulates successful OAuth login
   .get(
     "/test-login",
-    ({ set }: { set: any }) => {
+    ({ set, query, headers }: { set: any; query: any; headers: any }) => {
       // Create test user session
       const sessionId =
         Math.random().toString(36).substring(2) + Date.now().toString(36);
@@ -408,13 +451,30 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
         },
       };
 
-      // Redirect to frontend dashboard with session ID
-      const redirectUrl = "http://localtest.me:3000/dashboard";
-      const redirectWithSession = `${redirectUrl}?session=${sessionId}`;
+      // Extract language preference from query parameter or cookie
+      let language = query.lang || "en";
+
+      // Check if user has a current language preference in cookie (override query)
+      const cookieName = appConfig.cookies.preferences.name;
+      if (headers.cookie) {
+        const match = headers.cookie.match(new RegExp(`${cookieName}=([^;]+)`));
+        if (match) {
+          language = match[1];
+          console.log(
+            "Test login: Using current language preference from cookie:",
+            language
+          );
+        }
+      }
+
+      console.log("Test login: Final language for redirect:", language);
+
+      // Redirect to frontend success page with session ID and language
+      const redirectUrl = "http://blog.localtest.me:3000";
+      const redirectWithSession = `${redirectUrl}?session=${sessionId}&lang=${language}`;
       console.log("Test login - redirecting to:", redirectWithSession);
       console.log("Test login - session cookie set:", sessionId);
 
-      // Use Elysia's redirect
       set.status = 302;
       set.headers["Location"] = redirectWithSession;
       return;
