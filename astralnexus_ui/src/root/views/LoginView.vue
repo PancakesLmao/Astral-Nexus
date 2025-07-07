@@ -357,7 +357,6 @@ const handleTestLogin = async (): Promise<void> => {
 }
 
 .google-btn:hover {
-  transform: translateY(-3px);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
   border-color: #4285f4;
 }
@@ -383,7 +382,6 @@ const handleTestLogin = async (): Promise<void> => {
 }
 
 .discord-btn:hover {
-  transform: translateY(-3px);
   box-shadow: 0 8px 25px rgba(88, 101, 242, 0.4);
   background: #4752c4;
   border-color: #4752c4;
@@ -412,7 +410,6 @@ const handleTestLogin = async (): Promise<void> => {
 }
 
 .test-btn:hover {
-  transform: translateY(-3px);
   box-shadow: 0 8px 25px rgba(255, 107, 53, 0.4);
   background: #e55a2b;
   border-color: #e55a2b;

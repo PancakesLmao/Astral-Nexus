@@ -1,0 +1,92 @@
+name: astral-nexus-dev
+
+services:
+  astralnexus_ui:
+    build:
+      context: ./astralnexus_ui
+      dockerfile: Dockerfile
+      target: build  # Use build stage for development
+    ports:
+      - "3000:3000"
+      - "24678:24678"  # Vite HMR port
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:3001}
+    volumes:
+      - ./astralnexus_ui:/usr/src/app
+      - /usr/src/app/node_modules
+    command: pnpm run dev
+    networks:
+      - astral_network
+    depends_on:
+      - astralnexus_be
+    restart: unless-stopped
+    env_file:
+      - .env
+
+  astralnexus_be:
+    build:
+      context: ./astralnexus_be
+      dockerfile: Dockerfile
+      target: base  # Use base stage for development
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - PORT=${PORT:-3001}
+      - DATABASE_URL=${DATABASE_URL}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
+      - DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID}
+      - DISCORD_CLIENT_SECRET=${DISCORD_CLIENT_SECRET}
+      - DISCORD_REDIRECT_URI=${DISCORD_REDIRECT_URI}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - SESSION_DOMAIN=${SESSION_DOMAIN:-localhost}
+      - SESSION_SECURE=${SESSION_SECURE:-false}
+      - SESSION_SAME_SITE=${SESSION_SAME_SITE:-lax}
+      - SESSION_HTTP_ONLY=${SESSION_HTTP_ONLY:-true}
+      - CORS_ORIGIN=${CORS_ORIGIN}
+    volumes:
+      - ./astralnexus_be:/usr/src/app
+      - /usr/src/app/node_modules
+    command: bun run dev
+    networks:
+      - astral_network
+    depends_on:
+      astralnexus_db:
+        condition: service_healthy
+    restart: unless-stopped
+    env_file:
+      - .env
+
+  astralnexus_db:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"  # Expose database port for development tools
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
+      - POSTGRES_DB=${POSTGRES_DB:-astralnexus}
+      - POSTGRES_LOG_STATEMENT=${POSTGRES_LOG_STATEMENT:-all}
+      - POSTGRES_INITDB_ARGS=${POSTGRES_INITDB_ARGS}
+    volumes:
+      - astralnexus_db_data:/var/lib/postgresql/data
+      - ./astralnexus_be/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - astral_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-astralnexus}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  astralnexus_db_data:
+    driver: local
+
+networks:
+  astral_network:
+    driver: bridge

@@ -133,8 +133,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
 
         // Redirect to frontend success page with session ID and language
         const redirectUrl =
-          process.env.FRONTEND_SUCCESS_REDIRECT ||
-          "http://localtest.me:3000/dashboard";
+          process.env.FRONTEND_SUCCESS_REDIRECT;
         const redirectWithSession = `${redirectUrl}?session=${sessionId}&lang=${language}`;
         console.log("Redirecting to:", redirectWithSession);
         console.log("Session cookie set:", sessionId);
@@ -282,8 +281,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
 
         // Redirect to frontend success page with session ID and language
         const redirectUrl =
-          process.env.FRONTEND_SUCCESS_REDIRECT ||
-          "http://localtest.me:3000/dashboard";
+          process.env.FRONTEND_SUCCESS_REDIRECT
         const redirectWithSession = `${redirectUrl}?session=${sessionId}&lang=${language}`;
         console.log("Redirecting to:", redirectWithSession);
         console.log("Session cookie set:", sessionId);
