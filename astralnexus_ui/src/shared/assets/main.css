@@ -1,30 +1,33 @@
 @import './base.css';
 
+/* Tailwind compatible custom styles */
 html {
-  scroll-behavior: smooth;
+  scroll-behavior: smooth !important;
 }
 
-html, body {
-  background-color: #0A0B0F;
-  color: #E0E0E0;
+html,
+body {
+  background-color: #0a0b0f;
+  color: #e0e0e0;
 }
+
 .navbar-brand {
   text-decoration: none;
-  color: #E0E0E0 !important;
+  color: #e0e0e0 !important;
   font-weight: 700;
   font-size: 1.5rem;
   transition: color 0.3s ease;
 }
 
 .brand-text {
-  background: linear-gradient(135deg, #D1EAFD, #B8AFF7, #B8AFF7);
+  background: linear-gradient(135deg, #d1eafd, #b8aff7, #b8aff7);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .gradient-link {
-  color: #B8AFF7;
+  color: #b8aff7;
   text-decoration: none;
   padding: 0.5rem;
   border-radius: 0.5rem;
@@ -32,14 +35,13 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #B8AFF7;
-  background: linear-gradient(135deg, #D1EAFD, #B8AFF7);
+  background: linear-gradient(135deg, #d1eafd, #b8aff7);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .gradient-link:hover {
-  background: rgba(88, 101, 242, 0.2);
-  box-shadow: 0 4px 12px rgba(88, 101, 242, 0.3);
+  background: rgba(184, 175, 247, 0.2);
+  box-shadow: 0 4px 12px rgba(184, 175, 247, 0.3);
 }

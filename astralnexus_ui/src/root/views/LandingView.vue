@@ -1,16 +1,14 @@
 <template>
   <div class="">
     <Header></Header>
-    <section
-      class="hero min-vh-100 d-flex flex-column justify-content-center align-items-center position-relative"
-    >
+    <section class="hero min-h-screen flex flex-col justify-center items-center relative">
       <!-- Dark overlay -->
-      <div class="hero-overlay position-absolute"></div>
+      <div class="hero-overlay absolute inset-0"></div>
 
-      <div class="hero-content position-relative">
-        <h1 class="text-center">{{ languageStore.t('welcome') }}</h1>
-        <h1 class="display-4 text-center mb-4">{{ languageStore.t('appName') }}</h1>
-        <p class="lead text-center">{{ languageStore.t('description') }}</p>
+      <div class="hero-content relative z-10">
+        <h1 class="text-center text-4xl font-bold mb-2">{{ languageStore.t('welcome') }}</h1>
+        <h1 class="text-6xl text-center mb-6 font-bold">{{ languageStore.t('appName') }}</h1>
+        <p class="text-xl text-center mb-8 leading-relaxed">{{ languageStore.t('description') }}</p>
         <div class="text-center">
           <router-link to="/login" class="get-started-btn">
             <svg>
@@ -106,19 +104,15 @@ onMounted(() => {
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  border-radius: 10px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
   padding: 2rem;
 }
 
 /* Overlay */
 .hero-overlay {
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
   background: rgba(0, 0, 0, 0.7);
-  border-radius: 10px;
+  border-radius: 0.5rem;
   z-index: 1;
 }
 
@@ -133,13 +127,14 @@ onMounted(() => {
 }
 
 .hero-content p {
-  color: #e0e0e0;
+  color: #e5e7eb;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
+
 /* Button */
 .get-started-btn {
   position: relative;
-  display: inline-block;
+  display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
@@ -148,7 +143,7 @@ onMounted(() => {
   font-weight: 600;
   border-radius: 0.5rem;
   background: transparent;
-  transition: all 0.35s ease;
+  transition: all 0.3s ease;
   overflow: visible;
   z-index: 1;
 }
@@ -185,10 +180,6 @@ onMounted(() => {
   stroke-dasharray: 15, 285;
   stroke-dashoffset: 30;
   transition: all 1.35s cubic-bezier(0.19, 1, 0.22, 1);
-}
-
-.get-started-btn:hover .arrow-icon {
-  transform: translateX(4px);
 }
 
 /* Logo Gallery*/

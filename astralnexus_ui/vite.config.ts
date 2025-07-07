@@ -3,6 +3,7 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
 import vueDevTools from 'vite-plugin-vue-devtools'
+import tailwindcss from '@tailwindcss/vite'
 
 // Custom plugin to handle subdomain routing
 const subdomainPlugin = () => ({
@@ -46,7 +47,7 @@ const subdomainPlugin = () => ({
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [vue(), vueJsx(), vueDevTools(), subdomainPlugin()],
+  plugins: [vue(), vueJsx(), vueDevTools(), tailwindcss(), subdomainPlugin()],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

@@ -1,1 +1,13 @@
 @import 'bootstrap/dist/css/bootstrap.min.css';
+@import 'tailwindcss';
+
+/* Custom base styles that work with Tailwind */
+html {
+  scroll-behavior: smooth !important;
+}
+
+html,
+body {
+  background-color: #0a0b0f;
+  color: #e0e0e0;
+}
