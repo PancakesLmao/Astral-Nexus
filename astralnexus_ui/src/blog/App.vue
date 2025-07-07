@@ -4,6 +4,7 @@
     <div class="main-content my-4">
       <router-view />
     </div>
+    <TrendingBar></TrendingBar>
   </div>
 </template>
 
@@ -11,6 +12,7 @@
 import { onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Sidebar from '@/shared/components/Sidebar.vue'
+import TrendingBar from '@/shared/components/TrendingBar.vue'
 import { useLanguageStore } from '@/shared/stores/language'
 
 const route = useRoute()
@@ -45,7 +47,7 @@ onMounted(() => {
 <style>
 .main-content {
   margin-left: 280px; /* Match sidebar width */
-  width: calc(100vw - 280px);
+  width: calc(100vw - 100px - 20rem); /* Subtract sidebar + trending bar widths */
   min-height: 100vh;
 }
 

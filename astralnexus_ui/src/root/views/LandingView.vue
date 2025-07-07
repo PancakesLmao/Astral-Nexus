@@ -10,8 +10,8 @@
         <h1 class="text-6xl text-center mb-6 font-bold">{{ languageStore.t('appName') }}</h1>
         <p class="text-xl text-center mb-8 leading-relaxed">{{ languageStore.t('description') }}</p>
         <div class="text-center">
-          <router-link to="/login" class="get-started-btn">
-            <svg>
+          <router-link to="/login" class="get-started-btn relative inline-flex items-center">
+            <svg class="absolute">
               <rect x="0" y="0" fill="none" width="100%" height="100%" />
             </svg>
             <span>{{ languageStore.t('getStarted') }}</span>
@@ -133,9 +133,6 @@ onMounted(() => {
 
 /* Button */
 .get-started-btn {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
   color: #b8aff7;
@@ -149,7 +146,6 @@ onMounted(() => {
 }
 
 .get-started-btn svg {
-  position: absolute;
   top: 0;
   left: 0;
   width: 100%;

@@ -1,5 +1,5 @@
 <template>
-  <div class="sidebar d-flex flex-column px-5">
+  <div class="sidebar flex flex-column px-5 fixed bg-[#0a0b0f]">
     <div class="sidebar-header d-flex align-items-start justify-content-center flex-column">
       <router-link class="navbar-brand my-4" to="/">
         <span class="brand-text">AstralNexus</span>
@@ -158,13 +158,11 @@ onUnmounted(() => {
 
 <style scoped>
 .sidebar {
-  position: fixed;
   top: 0;
   left: 0;
   width: 280px;
-  background-color: #0a0b0f;
   height: 100vh;
-  border-right: #542f87 1px solid;
+  border-right: rgba(255, 255, 255, 0.1) 1px solid;
   z-index: 1000;
 }
 
