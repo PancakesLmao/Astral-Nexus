@@ -104,13 +104,6 @@ onUnmounted(() => {
   transition: background 0.3s ease;
 }
 
-/* Show background when scroll */
-.header-container.scrolled::before {
-  background: rgba(10, 11, 15, 0.8);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
-
 /* Navbar Section*/
 .navbar {
   padding: 1rem 0;

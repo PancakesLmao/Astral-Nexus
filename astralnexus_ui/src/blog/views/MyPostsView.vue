@@ -2,7 +2,9 @@
   <div id="my-posts" class="px-5 py-0">
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-2xl font-bold text-foreground">My Posts</h1>
-      <button class="px-4 py-2 bg-accent text-dark-900 rounded-lg hover:bg-accent-light transition-colors font-medium">
+      <button
+        class="px-4 py-2 bg-accent text-dark-900 rounded-lg hover:bg-accent-light transition-colors font-medium"
+      >
         Create New Post
       </button>
     </div>
@@ -40,10 +42,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import PostList from '@/shared/components/PostList.vue';
-import PostDetail from '@/shared/components/PostDetail.vue';
-import type { Post, Comment, User } from '@/shared/types';
+import { ref, onMounted } from 'vue'
+import PostList from '@/shared/components/PostList.vue'
+import PostDetail from '@/shared/components/PostDetail.vue'
+import type { Post, Comment, User } from '@/shared/types'
 
 // Sample current user (you'll get this from your auth system)
 const currentUser = ref<User>({
@@ -53,7 +55,7 @@ const currentUser = ref<User>({
   email: 'test@example.com',
   avatar: undefined,
   bio: 'Just a test user exploring the platform',
-  created_at: '2024-01-01T00:00:00Z'
+  created_at: '2024-01-01T00:00:00Z',
 })
 
 // Sample user's posts
@@ -91,11 +93,11 @@ I'm still learning, but I'm absolutely hooked! If you have any beginner tips, pl
     tags: ['honkai-impact-3rd', 'beginner', 'guide', 'tips'],
     is_liked: false,
     is_bookmarked: false,
-    visibility: 'public'
+    visibility: 'public',
   },
   {
     id: 5,
-    title: "Thoughts on the Latest Genshin Impact Event",
+    title: 'Thoughts on the Latest Genshin Impact Event',
     content: `The current event in Genshin Impact has been quite the experience! Here are my thoughts:
 
 **What I Loved:**
@@ -125,40 +127,42 @@ What did you think of the event? Are you planning to complete all the challenges
     tags: ['genshin-impact', 'event', 'review', 'f2p'],
     is_liked: false,
     is_bookmarked: false,
-    visibility: 'public'
-  }
+    visibility: 'public',
+  },
 ])
 
 // Sample comments for the user's posts
 const postComments = ref<Comment[]>([
   {
     id: 3,
-    content: "Great guide! I wish I had this when I started playing. The Lightning Empress tip is spot on!",
+    content:
+      'Great guide! I wish I had this when I started playing. The Lightning Empress tip is spot on!',
     author: {
       id: 203,
       username: 'veteran_captain',
       name: 'Mike Johnson',
-      created_at: '2024-01-01T00:00:00Z'
+      created_at: '2024-01-01T00:00:00Z',
     },
     post_id: 4,
     created_at: '2024-01-12T15:30:00Z',
     likes_count: 2,
-    is_liked: false
+    is_liked: false,
   },
   {
     id: 4,
-    content: "Thanks for sharing your experience! The armada tip is really important for new players.",
+    content:
+      'Thanks for sharing your experience! The armada tip is really important for new players.',
     author: {
       id: 204,
       username: 'helpful_senpai',
       name: 'Anna Lee',
-      created_at: '2024-01-01T00:00:00Z'
+      created_at: '2024-01-01T00:00:00Z',
     },
     post_id: 4,
     created_at: '2024-01-12T17:00:00Z',
     likes_count: 1,
-    is_liked: true
-  }
+    is_liked: true,
+  },
 ])
 
 // Component state
@@ -185,8 +189,8 @@ const closePostDetail = () => {
 const loadComments = async (postId: number | string) => {
   loadingComments.value = true
   try {
-    await new Promise(resolve => setTimeout(resolve, 500))
-    const filteredComments = postComments.value.filter(comment => comment.post_id === postId)
+    await new Promise((resolve) => setTimeout(resolve, 500))
+    const filteredComments = postComments.value.filter((comment) => comment.post_id === postId)
     postComments.value = filteredComments
   } finally {
     loadingComments.value = false
@@ -194,7 +198,7 @@ const loadComments = async (postId: number | string) => {
 }
 
 const handleLike = (post: Post) => {
-  const postIndex = myPosts.value.findIndex(p => p.id === post.id)
+  const postIndex = myPosts.value.findIndex((p) => p.id === post.id)
   if (postIndex !== -1) {
     myPosts.value[postIndex].is_liked = !myPosts.value[postIndex].is_liked
     myPosts.value[postIndex].likes_count = myPosts.value[postIndex].is_liked
@@ -230,12 +234,12 @@ const submitComment = async (content: string, postId: number | string) => {
     post_id: postId,
     created_at: new Date().toISOString(),
     likes_count: 0,
-    is_liked: false
+    is_liked: false,
   }
 
   postComments.value.push(newComment)
 
-  const postIndex = myPosts.value.findIndex(p => p.id === postId)
+  const postIndex = myPosts.value.findIndex((p) => p.id === postId)
   if (postIndex !== -1) {
     myPosts.value[postIndex].comments_count = (myPosts.value[postIndex].comments_count || 0) + 1
   }
@@ -246,7 +250,7 @@ const handleReply = (comment: Comment) => {
 }
 
 const handleCommentLike = (comment: Comment) => {
-  const commentIndex = postComments.value.findIndex(c => c.id === comment.id)
+  const commentIndex = postComments.value.findIndex((c) => c.id === comment.id)
   if (commentIndex !== -1) {
     postComments.value[commentIndex].is_liked = !postComments.value[commentIndex].is_liked
     postComments.value[commentIndex].likes_count = postComments.value[commentIndex].is_liked
