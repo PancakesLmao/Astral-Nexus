@@ -11,6 +11,14 @@
         <span class="nav-label">{{ languageStore.t('myposts') }}</span>
       </router-link>
 
+      <!-- Create Post Button -->
+      <div class="bottom-nav-item create-post-btn" @click="openCreatePostDialog">
+        <div class="create-post-icon">
+          <Plus :size="20" />
+        </div>
+        <span class="nav-label">Post</span>
+      </div>
+
       <router-link to="/events" class="bottom-nav-item">
         <Calendar :size="20" />
         <span class="nav-label">{{ languageStore.t('events') }}</span>
@@ -72,22 +80,33 @@
         </div>
       </div>
     </div>
+
+    <!-- New Post Dialog -->
+    <NewPost
+      :isOpen="isCreatePostDialogOpen"
+      :user="user"
+      @close="isCreatePostDialogOpen = false"
+      @created="handlePostCreated"
+    />
   </nav>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { House, BookOpen, Calendar, User, LogOut, X, ChevronDown } from 'lucide-vue-next'
+import { House, BookOpen, Calendar, User, LogOut, X, ChevronDown, Plus } from 'lucide-vue-next'
 import { useLanguageStore } from '@/shared/stores/language'
 import { API_BASE_URL } from '@/shared/api'
 import { checkUserAuth, redirectToLogin } from '@/shared/utils'
-import { GameCategory } from '@/shared/types/content'
+import NewPost from './NewPost.vue'
+import type { Post } from '@/shared/types'
+import { GameCategory } from '@/shared/types/suggeston'
 
 const languageStore = useLanguageStore()
 const user = ref<any>(null)
 const loading = ref(false)
 const isProfileModalOpen = ref(false)
 const isCategorySelectOpen = ref(false)
+const isCreatePostDialogOpen = ref(false)
 
 // Game categories (same as TopBar)
 const gameCategories = ref<GameCategory[]>([
@@ -116,6 +135,15 @@ const selectCategory = (category: GameCategory) => {
   selectedCategory.value = category
   isCategorySelectOpen.value = false
   console.log('Selected game category (mobile):', category.name)
+}
+
+const openCreatePostDialog = () => {
+  isCreatePostDialogOpen.value = true
+}
+
+const handlePostCreated = (post: Post) => {
+  console.log('New post created from mobile:', post)
+  // You could emit an event to parent component or update some state
 }
 
 const fetchUser = async () => {
@@ -227,6 +255,30 @@ onMounted(() => {
   color: #b8aff7;
   background: rgba(184, 175, 247, 0.2);
   font-weight: 600;
+}
+
+/* Create Post Button */
+.create-post-btn {
+  position: relative;
+}
+
+.create-post-icon {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, #542f87, #b8aff7);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(184, 175, 247, 0.3);
+}
+
+.create-post-btn:hover .create-post-icon {
+  background: linear-gradient(135deg, #6a3ba8, #c9c0ff);
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(184, 175, 247, 0.4);
 }
 
 .nav-label {

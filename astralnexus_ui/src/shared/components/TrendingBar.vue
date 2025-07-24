@@ -6,12 +6,8 @@
     <div class="p-8">
       <!-- Trending Hashtags Section -->
       <div class="mb-8">
-        <div
-          class="trending-card p-6 rounded-xl bg-dark-800/50 backdrop-blur-sm"
-        >
-          <h3
-            class="flex items-center gap-2 text-accent font-semibold text-xl mb-4 pb-2"
-          >
+        <div class="trending-card p-6 rounded-xl bg-dark-800/50 backdrop-blur-sm">
+          <h3 class="flex items-center gap-2 text-accent font-semibold text-xl mb-4 pb-2">
             Trending Hashtags
           </h3>
           <div class="space-y-3">
@@ -37,12 +33,8 @@
 
       <!-- Popular Games Section -->
       <div class="mb-8">
-        <div
-          class="trending-card p-6 rounded-xl bg-dark-800/50 backdrop-blur-sm"
-        >
-          <h3
-            class="flex items-center gap-2 text-accent font-semibold text-xl mb-4 pb-2"
-          >
+        <div class="trending-card p-6 rounded-xl bg-dark-800/50 backdrop-blur-sm">
+          <h3 class="flex items-center gap-2 text-accent font-semibold text-xl mb-4 pb-2">
             Popular Games
           </h3>
           <div class="space-y-3">
@@ -74,7 +66,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import type { TrendingHashtag, SuggestedUser, PopularGame } from '@/shared/types/content'
+import type { TrendingHashtag, SuggestedUser, PopularGame } from '@/shared/types/suggeston'
 
 // Mock data and script remain unchanged
 const trendingHashtags = ref<TrendingHashtag[]>([

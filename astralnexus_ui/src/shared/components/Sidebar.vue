@@ -53,7 +53,7 @@
 
     <!-- Quick Actions -->
     <div class="quick-actions">
-      <button class="action-btn primary" @click="createPost">
+      <button class="action-btn primary" @click="openCreatePostDialog">
         <Plus :size="18" />
         <span>New Post</span>
       </button>
@@ -62,28 +62,39 @@
         <span>Edit Profile</span>
       </button>
     </div>
+
+    <!-- New Post Dialog -->
+    <NewPost
+      :isOpen="isCreatePostDialogOpen"
+      :user="user"
+      @close="isCreatePostDialogOpen = false"
+      @created="handlePostCreated"
+    />
   </div>
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted} from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, Edit, Heart, MessageCircle, BookOpen, Calendar, Award } from 'lucide-vue-next'
+import { Plus, Edit, Heart, MessageCircle, BookOpen, Award } from 'lucide-vue-next'
 import { API_BASE_URL } from '@/shared/api'
 import { useLanguageStore } from '@/shared/stores/language'
 import { checkUserAuth, redirectToLogin } from '@/shared/utils'
 import { UserStats, Activity } from '../types/user'
+import NewPost from './NewPost.vue'
+import type { Post } from '@/shared/types'
 
 const router = useRouter()
 const languageStore = useLanguageStore()
 const user = ref<any>(null)
 const loading = ref(false)
+const isCreatePostDialogOpen = ref(false)
 
 // Mock user stats
 const userStats = ref<UserStats>({
   posts: 42,
   following: 156,
-  followers: 234
+  followers: 234,
 })
 
 // Mock recent activities
@@ -126,7 +137,6 @@ const fetchUser = async () => {
 
     if (sessionFromUrl) {
       console.log('Sidebar: Setting session from URL:', sessionFromUrl)
-      // Set session cookie for this domain
       document.cookie = `astral_session=${sessionFromUrl}; path=/; max-age=${24 * 60 * 60}; SameSite=Lax; Domain=.localtest.me`
       localStorage.setItem('astral_session', sessionFromUrl)
       window.history.replaceState({}, document.title, window.location.pathname)
@@ -183,14 +193,19 @@ const formatTime = (timestamp: string) => {
   }
 }
 
-const createPost = () => {
-  console.log('Create new post')
-  // Navigate to create post page or open modal
-  router.push('/create-post')
+const openCreatePostDialog = () => {
+  console.log('Sidebar: Opening NewPost dialog')
+  isCreatePostDialogOpen.value = true
+}
+
+const handlePostCreated = (post: Post) => {
+  console.log('Sidebar: New post created:', post)
+  // Update stats or activities if needed
+  userStats.value.posts += 1
 }
 
 const editProfile = () => {
-  console.log('Edit profile')
+  console.log('Sidebar: Navigating to edit profile')
   router.push('/profile')
 }
 

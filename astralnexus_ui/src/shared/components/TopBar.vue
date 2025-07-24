@@ -102,7 +102,7 @@ import { ChevronDown, House, BookOpen, Calendar, User, LogOut } from 'lucide-vue
 import { useLanguageStore } from '@/shared/stores/language'
 import { API_BASE_URL } from '@/shared/api'
 import { checkUserAuth, redirectToLogin } from '@/shared/utils'
-import { GameCategory } from '../types/content'
+import { GameCategory } from '../types/suggeston'
 
 const isCategoryDropdownOpen = ref(false)
 const isProfileDropdownOpen = ref(false)
@@ -310,7 +310,6 @@ onUnmounted(() => {
   outline: none;
   box-shadow: 0 0 0 3px rgba(184, 175, 247, 0.2);
   background-color: rgba(10, 11, 15, 0.95);
-  transform: translateY(-1px);
 }
 
 .search-input::placeholder {
@@ -321,7 +320,6 @@ onUnmounted(() => {
 
 .search-input:hover {
   border-color: rgba(184, 175, 247, 0.5);
-  transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(184, 175, 247, 0.1);
 }
 

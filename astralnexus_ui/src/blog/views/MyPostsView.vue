@@ -1,13 +1,6 @@
 <template>
   <div id="my-posts" class="px-5 py-0">
-    <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold text-foreground">My Posts</h1>
-      <button
-        class="px-4 py-2 bg-accent text-dark-900 rounded-lg hover:bg-accent-light transition-colors font-medium"
-      >
-        Create New Post
-      </button>
-    </div>
+    <h1 class="text-2xl font-bold text-foreground">My Posts</h1>
     <p class="text-dark-300 mb-6">Manage your posts and see how they're performing.</p>
 
     <!-- My Posts List -->

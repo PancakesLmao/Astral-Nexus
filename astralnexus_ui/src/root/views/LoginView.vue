@@ -106,7 +106,7 @@
           @click="handleTestLogin"
           class="test-btn position-relative d-flex align-items-center justify-content-center mt-3"
         >
-          🧪 Test Login (Dev)
+          Test Login (Dev)
         </button>
         <!-- REMOVE AFTER COMPLETE SIGN-IN -->
       </div>
