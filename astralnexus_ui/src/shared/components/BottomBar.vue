@@ -277,7 +277,6 @@ onMounted(() => {
 
 .create-post-btn:hover .create-post-icon {
   background: linear-gradient(135deg, #6a3ba8, #c9c0ff);
-  transform: scale(1.1);
   box-shadow: 0 4px 12px rgba(184, 175, 247, 0.4);
 }
 

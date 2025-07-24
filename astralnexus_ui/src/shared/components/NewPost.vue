@@ -21,7 +21,11 @@
         <div class="mb-4">
           <div class="flex items-center justify-between">
             <h3 class="text-lg font-semibold text-accent">Create New Post</h3>
-            <button @click="closeDialog" class="text-gray-400 hover:text-white transition-colors" aria-label="Close dialog">
+            <button
+              @click="closeDialog"
+              class="text-gray-300 hover:text-white transition-colors"
+              aria-label="Close dialog"
+            >
               <X :size="20" />
             </button>
           </div>
@@ -30,15 +34,28 @@
             <label for="visibility" class="block text-sm font-medium text-gray-300 mb-1">
               Visibility
             </label>
-            <select
-              id="visibility"
-              v-model="formData.visibility"
-              class="w-full px-3 py-2 bg-dark-800 border border-accent/30 rounded-lg text-white text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 focus:outline-none transition-colors"
-            >
-              <option value="public">Public</option>
-              <option value="followers">Followers Only</option>
-              <option value="private">Private</option>
-            </select>
+            <div class="custom-dropdown" @click.stop>
+              <button
+                class="dropdown-select"
+                @click="toggleVisibilityDropdown"
+                :aria-expanded="isVisibilityDropdownOpen"
+              >
+                <span>{{ getVisibilityLabel() }}</span>
+                <ChevronDown class="dropdown-icon" :class="{ rotated: isVisibilityDropdownOpen }" />
+              </button>
+
+              <div class="custom-dropdown-menu" v-show="isVisibilityDropdownOpen">
+                <button
+                  v-for="option in visibilityOptions"
+                  :key="option.value"
+                  class="dropdown-option"
+                  :class="{ active: option.value === formData.visibility }"
+                  @click="selectVisibility(option)"
+                >
+                  <span>{{ option.label }}</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -53,7 +70,7 @@
               type="text"
               required
               placeholder="What's your post about?"
-              class="w-full px-3 py-2 bg-dark-800 border border-accent/30 rounded-lg text-white placeholder-gray-400 text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 focus:outline-none transition-colors"
+              class="search-input"
             />
           </div>
 
@@ -64,18 +81,28 @@
               <label for="category" class="block text-sm font-medium text-gray-300 mb-1">
                 Game Category
               </label>
-              <select
-                id="category"
-                v-model="formData.game_category"
-                class="w-full px-3 py-2 bg-dark-800 border border-accent/30 rounded-lg text-white text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 focus:outline-none transition-colors"
-              >
-                <option value="">Select a game</option>
-                <option value="genshin">Genshin Impact</option>
-                <option value="hsr">Honkai Star Rail</option>
-                <option value="zzz">Zenless Zone Zero</option>
-                <option value="hi3">Honkai Impact 3rd</option>
-                <option value="tot">Tears of Themis</option>
-              </select>
+              <div class="custom-dropdown" @click.stop>
+                <button
+                  class="dropdown-select"
+                  @click="toggleCategoryDropdown"
+                  :aria-expanded="isCategoryDropdownOpen"
+                >
+                  <span>{{ getCategoryLabel() }}</span>
+                  <ChevronDown class="dropdown-icon" :class="{ rotated: isCategoryDropdownOpen }" />
+                </button>
+
+                <div class="custom-dropdown-menu" v-show="isCategoryDropdownOpen">
+                  <button
+                    v-for="category in gameCategories.filter((cat) => cat.id !== 'all')"
+                    :key="category.id"
+                    class="dropdown-option"
+                    :class="{ active: category.id === formData.game_category }"
+                    @click="selectCategory(category)"
+                  >
+                    <span>{{ category.name }}</span>
+                  </button>
+                </div>
+              </div>
             </div>
 
             <!-- Post Type Select -->
@@ -83,18 +110,28 @@
               <label for="post_type" class="block text-sm font-medium text-gray-300 mb-1">
                 Post Type
               </label>
-              <select
-                id="post_type"
-                v-model="formData.post_type"
-                class="w-full px-3 py-2 bg-dark-800 border border-accent/30 rounded-lg text-white text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 focus:outline-none transition-colors"
-              >
-                <option value="general">General Discussion</option>
-                <option value="guide">Guide</option>
-                <option value="news">News</option>
-                <option value="fanart">Fan Art</option>
-                <option value="theory">Theory</option>
-                <option value="question">Question</option>
-              </select>
+              <div class="custom-dropdown" @click.stop>
+                <button
+                  class="dropdown-select"
+                  @click="togglePostTypeDropdown"
+                  :aria-expanded="isPostTypeDropdownOpen"
+                >
+                  <span>{{ getPostTypeLabel() }}</span>
+                  <ChevronDown class="dropdown-icon" :class="{ rotated: isPostTypeDropdownOpen }" />
+                </button>
+
+                <div class="custom-dropdown-menu" v-show="isPostTypeDropdownOpen">
+                  <button
+                    v-for="option in postTypeOptions"
+                    :key="option.value"
+                    class="dropdown-option"
+                    :class="{ active: option.value === formData.post_type }"
+                    @click="selectPostType(option)"
+                  >
+                    <span>{{ option.label }}</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -109,7 +146,7 @@
               required
               rows="3"
               placeholder="Share your thoughts..."
-              class="w-full px-3 py-2 bg-dark-800 border border-accent/30 rounded-lg text-white placeholder-gray-400 text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 focus:outline-none transition-colors resize-none"
+              class="search-input"
             ></textarea>
           </div>
 
@@ -123,7 +160,7 @@
               v-model="tagsInput"
               type="text"
               placeholder="gaming, tips, discussion"
-              class="w-full px-3 py-2 bg-dark-800 border border-accent/30 rounded-lg text-white placeholder-gray-400 text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 focus:outline-none transition-colors"
+              class="search-input"
             />
           </div>
 
@@ -132,14 +169,14 @@
             <button
               type="button"
               @click="closeDialog"
-              class="px-4 py-2 text-sm font-medium text-gray-300 bg-dark-700 border border-gray-600 rounded-lg hover:bg-dark-600 hover:text-white transition-colors"
+              class="px-4 py-2 text-sm font-medium text-gray-300 bg-dark-700 border border-gray-600 rounded hover:bg-dark-600 hover:text-white transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               :disabled="isSubmitting || !formData.title || !formData.content"
-              class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-accent-dark to-accent rounded-lg hover:from-accent to-accent-light disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              class="px-4 py-2 text-sm font-medium text-[#b8aff7] bg-gradient-to-r from-accent-dark to-accent rounded-lg hover:from-accent to-accent-light disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             >
               <span v-if="isSubmitting" class="flex items-center">
                 <svg
@@ -172,25 +209,47 @@
     </div>
 
     <!-- Mobile Layout (below sm) -->
-    <div
-      class="mobile-dialog flex sm:hidden profile-modal-overlay"
-      @click="closeDialog"
-    >
+    <div class="mobile-dialog flex sm:hidden profile-modal-overlay" @click="closeDialog">
       <!-- Dialog Panel (Mobile) -->
-      <div
-        class="profile-modal w-full max-w-[400px] overflow-y-auto"
-        @click.stop
-      >
+      <div class="profile-modal w-full max-w-[400px] overflow-y-auto" @click.stop>
         <!-- Dialog Header -->
         <div class="modal-header">
-          <h3 class="text-lg font-semibold text-accent">Create New Post</h3>
+          <h3 class="text-lg font-semibold text-[#b8aff7]">Create New Post</h3>
           <button class="close-btn" @click="closeDialog" aria-label="Close dialog">
-            <X :size="20" />
+            <X :size="18" />
           </button>
         </div>
 
         <!-- Post Form -->
         <form @submit.prevent="handleSubmit" class="space-y-3 px-4 pb-4">
+          <!-- Visibility Select -->
+          <div>
+            <label for="visibility-mobile" class="block text-xs font-medium text-gray-300 mb-1">
+              Visibility
+            </label>
+            <div class="custom-dropdown" @click.stop>
+              <button
+                class="dropdown-select"
+                @click="toggleVisibilityDropdown"
+                :aria-expanded="isVisibilityDropdownOpen"
+              >
+                <span>{{ getVisibilityLabel() }}</span>
+                <ChevronDown class="dropdown-icon" :class="{ rotated: isVisibilityDropdownOpen }" />
+              </button>
+
+              <div class="custom-dropdown-menu" v-show="isVisibilityDropdownOpen">
+                <button
+                  v-for="option in visibilityOptions"
+                  :key="option.value"
+                  class="dropdown-option"
+                  :class="{ active: option.value === formData.visibility }"
+                  @click="selectVisibility(option)"
+                >
+                  <span>{{ option.label }}</span>
+                </button>
+              </div>
+            </div>
+          </div>
           <!-- Title Input -->
           <div>
             <label for="title-mobile" class="block text-xs font-medium text-gray-300 mb-1">
@@ -202,7 +261,7 @@
               type="text"
               required
               placeholder="What's your post about?"
-              class="w-full px-3 py-2 bg-dark-800 border border-accent/30 rounded-lg text-white placeholder-gray-400 text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 focus:outline-none transition-colors"
+              class="search-input"
             />
           </div>
 
@@ -213,18 +272,28 @@
               <label for="category-mobile" class="block text-xs font-medium text-gray-300 mb-1">
                 Game Category
               </label>
-              <select
-                id="category-mobile"
-                v-model="formData.game_category"
-                class="w-full px-3 py-2 bg-dark-800 border border-accent/30 rounded-lg text-white text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 focus:outline-none transition-colors"
-              >
-                <option value="">Select a game</option>
-                <option value="genshin">Genshin Impact</option>
-                <option value="hsr">Honkai Star Rail</option>
-                <option value="zzz">Zenless Zone Zero</option>
-                <option value="hi3">Honkai Impact 3rd</option>
-                <option value="tot">Tears of Themis</option>
-              </select>
+              <div class="custom-dropdown" @click.stop>
+                <button
+                  class="dropdown-select"
+                  @click="toggleCategoryDropdown"
+                  :aria-expanded="isCategoryDropdownOpen"
+                >
+                  <span>{{ getCategoryLabel() }}</span>
+                  <ChevronDown class="dropdown-icon" :class="{ rotated: isCategoryDropdownOpen }" />
+                </button>
+
+                <div class="custom-dropdown-menu" v-show="isCategoryDropdownOpen">
+                  <button
+                    v-for="category in gameCategories.filter((cat) => cat.id !== 'all')"
+                    :key="category.id"
+                    class="dropdown-option"
+                    :class="{ active: category.id === formData.game_category }"
+                    @click="selectCategory(category)"
+                  >
+                    <span>{{ category.name }}</span>
+                  </button>
+                </div>
+              </div>
             </div>
 
             <!-- Post Type Select -->
@@ -232,18 +301,28 @@
               <label for="post_type-mobile" class="block text-xs font-medium text-gray-300 mb-1">
                 Post Type
               </label>
-              <select
-                id="post_type-mobile"
-                v-model="formData.post_type"
-                class="w-full px-3 py-2 bg-dark-800 border border-accent/30 rounded-lg text-white text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 focus:outline-none transition-colors"
-              >
-                <option value="general">General Discussion</option>
-                <option value="guide">Guide</option>
-                <option value="news">News</option>
-                <option value="fanart">Fan Art</option>
-                <option value="theory">Theory</option>
-                <option value="question">Question</option>
-              </select>
+              <div class="custom-dropdown" @click.stop>
+                <button
+                  class="dropdown-select"
+                  @click="togglePostTypeDropdown"
+                  :aria-expanded="isPostTypeDropdownOpen"
+                >
+                  <span>{{ getPostTypeLabel() }}</span>
+                  <ChevronDown class="dropdown-icon" :class="{ rotated: isPostTypeDropdownOpen }" />
+                </button>
+
+                <div class="custom-dropdown-menu" v-show="isPostTypeDropdownOpen">
+                  <button
+                    v-for="option in postTypeOptions"
+                    :key="option.value"
+                    class="dropdown-option"
+                    :class="{ active: option.value === formData.post_type }"
+                    @click="selectPostType(option)"
+                  >
+                    <span>{{ option.label }}</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -258,7 +337,7 @@
               required
               rows="3"
               placeholder="Share your thoughts..."
-              class="w-full px-3 py-2 bg-dark-800 border border-accent/30 rounded-lg text-white placeholder-gray-400 text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 focus:outline-none transition-colors resize-none"
+              class="search-input"
             ></textarea>
           </div>
 
@@ -272,24 +351,8 @@
               v-model="tagsInput"
               type="text"
               placeholder="gaming, tips, discussion"
-              class="w-full px-3 py-2 bg-dark-800 border border-accent/30 rounded-lg text-white placeholder-gray-400 text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 focus:outline-none transition-colors"
+              class="search-input"
             />
-          </div>
-
-          <!-- Visibility Select -->
-          <div>
-            <label for="visibility-mobile" class="block text-xs font-medium text-gray-300 mb-1">
-              Visibility
-            </label>
-            <select
-              id="visibility-mobile"
-              v-model="formData.visibility"
-              class="w-full px-3 py-2 bg-dark-800 border border-accent/30 rounded-lg text-white text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 focus:outline-none transition-colors"
-            >
-              <option value="public">Public</option>
-              <option value="followers">Followers Only</option>
-              <option value="private">Private</option>
-            </select>
           </div>
 
           <!-- Action Buttons -->
@@ -339,10 +402,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
-import { X } from 'lucide-vue-next'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { X, ChevronDown } from 'lucide-vue-next'
 import { usePostsStore } from '@/shared/stores/posts'
 import { CreatePostRequest } from '@/shared/types'
+import { GameCategory } from '@/shared/types/suggeston'
 
 interface Props {
   isOpen: boolean
@@ -361,6 +425,11 @@ const postsStore = usePostsStore()
 const isSubmitting = ref(false)
 const tagsInput = ref('')
 
+// Dropdown states
+const isVisibilityDropdownOpen = ref(false)
+const isCategoryDropdownOpen = ref(false)
+const isPostTypeDropdownOpen = ref(false)
+
 // Form data
 const formData = ref<CreatePostRequest>({
   title: '',
@@ -370,6 +439,88 @@ const formData = ref<CreatePostRequest>({
   tags: [],
   visibility: 'public',
 })
+
+// Game categories (template data)
+const gameCategories = ref<GameCategory[]>([
+  { id: 'all', name: 'All Games', icon: '' },
+  { id: 'genshin', name: 'Genshin Impact', icon: '' },
+  { id: 'hsr', name: 'Honkai Star Rail', icon: '' },
+  { id: 'zzz', name: 'Zenless Zone Zero', icon: '' },
+  { id: 'hi3', name: 'Honkai Impact 3rd', icon: '' },
+])
+
+// Visibility options
+const visibilityOptions = [
+  { value: 'public', label: 'Public' },
+  { value: 'followers', label: 'Followers Only' },
+  { value: 'private', label: 'Private' },
+]
+
+// Post type options
+const postTypeOptions = [
+  { value: 'general', label: 'General Discussion' },
+  { value: 'guide', label: 'Guide' },
+  { value: 'news', label: 'News' },
+  { value: 'fanart', label: 'Fan Art' },
+  { value: 'theory', label: 'Theory' },
+  { value: 'question', label: 'Question' },
+]
+
+// Dropdown handlers
+const toggleVisibilityDropdown = () => {
+  isVisibilityDropdownOpen.value = !isVisibilityDropdownOpen.value
+  if (isVisibilityDropdownOpen.value) {
+    isCategoryDropdownOpen.value = false
+    isPostTypeDropdownOpen.value = false
+  }
+}
+
+const toggleCategoryDropdown = () => {
+  isCategoryDropdownOpen.value = !isCategoryDropdownOpen.value
+  if (isCategoryDropdownOpen.value) {
+    isVisibilityDropdownOpen.value = false
+    isPostTypeDropdownOpen.value = false
+  }
+}
+
+const togglePostTypeDropdown = () => {
+  isPostTypeDropdownOpen.value = !isPostTypeDropdownOpen.value
+  if (isPostTypeDropdownOpen.value) {
+    isVisibilityDropdownOpen.value = false
+    isCategoryDropdownOpen.value = false
+  }
+}
+
+const selectVisibility = (option: { value: string; label: string }) => {
+  formData.value.visibility = option.value as 'public' | 'private' | 'followers'
+  isVisibilityDropdownOpen.value = false
+}
+
+const selectCategory = (category: GameCategory) => {
+  formData.value.game_category = category.id
+  isCategoryDropdownOpen.value = false
+}
+
+const selectPostType = (option: { value: string; label: string }) => {
+  formData.value.post_type = option.value
+  isPostTypeDropdownOpen.value = false
+}
+
+// Get display labels
+const getVisibilityLabel = () => {
+  const option = visibilityOptions.find((opt) => opt.value === formData.value.visibility)
+  return option ? option.label : 'Select visibility'
+}
+
+const getCategoryLabel = () => {
+  const category = gameCategories.value.find((cat) => cat.id === formData.value.game_category)
+  return category ? category.name : 'Select a game'
+}
+
+const getPostTypeLabel = () => {
+  const option = postTypeOptions.find((opt) => opt.value === formData.value.post_type)
+  return option ? option.label : 'Select type'
+}
 
 // Convert tags input to array
 const parsedTags = computed(() => {
@@ -406,10 +557,24 @@ const resetForm = () => {
     visibility: 'public',
   }
   tagsInput.value = ''
+  // Close all dropdowns
+  isVisibilityDropdownOpen.value = false
+  isCategoryDropdownOpen.value = false
+  isPostTypeDropdownOpen.value = false
 }
 
 const closeDialog = () => {
   emit('close')
+}
+
+// Handle click outside dropdowns
+const handleClickOutside = (event: Event) => {
+  const target = event.target as HTMLElement
+  if (!target.closest('.custom-dropdown')) {
+    isVisibilityDropdownOpen.value = false
+    isCategoryDropdownOpen.value = false
+    isPostTypeDropdownOpen.value = false
+  }
 }
 
 const handleSubmit = async () => {
@@ -442,6 +607,11 @@ const handleSubmit = async () => {
 // Debug log on mount to check for duplicate instances
 onMounted(() => {
   console.log('NewPost component mounted, isOpen:', props.isOpen)
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
 })
 </script>
 
@@ -512,8 +682,9 @@ onMounted(() => {
 .modal-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 1rem;
-  padding: 1.5rem 1.5rem 1rem;
+  padding: 1rem 1.5rem 1rem;
   border-bottom: 1px solid rgba(184, 175, 247, 0.2);
 }
 
@@ -521,8 +692,6 @@ onMounted(() => {
   background: rgba(184, 175, 247, 0.1);
   border: 1px solid rgba(184, 175, 247, 0.3);
   border-radius: 50%;
-  width: 32px;
-  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -533,6 +702,118 @@ onMounted(() => {
 
 .close-btn:hover {
   background: rgba(184, 175, 247, 0.2);
+}
+
+/* Input box */
+
+.search-input {
+  width: 100%;
+  padding: 0.5rem 1rem;
+  border: 2px solid rgba(184, 175, 247, 0.3);
+  border-radius: 0.5rem;
+  background-color: rgba(10, 11, 15, 0.8);
+  color: #fff;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.search-input:focus {
+  border-color: #b8aff7;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(184, 175, 247, 0.2);
+  background-color: rgba(10, 11, 15, 0.95);
+}
+
+.search-input::placeholder {
+  color: #b8aff7;
+  opacity: 0.6;
+  transition: all 0.3s ease;
+}
+
+.search-input:hover {
+  border-color: rgba(184, 175, 247, 0.5);
+  box-shadow: 0 2px 8px rgba(184, 175, 247, 0.1);
+}
+
+/* Custom Dropdown */
+.custom-dropdown {
+  position: relative;
+}
+
+.dropdown-select {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: rgba(184, 175, 247, 0.1);
+  border: 1px solid rgba(184, 175, 247, 0.3);
+  border-radius: 0.5rem;
+  color: #b8aff7;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+  font-weight: 500;
+  justify-content: space-between;
+}
+
+.dropdown-select:hover {
+  background: rgba(184, 175, 247, 0.2);
+  border-color: rgba(184, 175, 247, 0.5);
+}
+
+.dropdown-icon {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.3s ease;
+  flex-shrink: 0;
+}
+
+.dropdown-icon.rotated {
+  transform: rotate(180deg);
+}
+
+.custom-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  right: 0;
+  min-width: 160px;
+  background: rgba(10, 11, 15, 0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(184, 175, 247, 0.3);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.dropdown-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: none;
+  color: #e0e0e0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+  text-align: left;
+}
+
+.dropdown-option:hover {
+  background: rgba(184, 175, 247, 0.1);
+  color: #b8aff7;
+}
+
+.dropdown-option.active {
+  background: rgba(184, 175, 247, 0.2);
+  color: #b8aff7;
+  font-weight: 600;
 }
 
 /* Scrollbar for mobile dialog panel */
@@ -574,9 +855,7 @@ onMounted(() => {
     padding: 0;
   }
 
-  input,
-  select,
-  textarea {
+  input, select, textarea {
     font-size: 0.875rem;
     padding: 0.5rem 0.75rem;
   }

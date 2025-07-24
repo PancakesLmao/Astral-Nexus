@@ -36,8 +36,8 @@
         </div>
 
         <div class="nav-actions">
-          <!-- Game Category Selector -->
-          <div class="category-selector" @click.stop>
+          <!-- Game Category Selector (Hidden on mobile) -->
+          <div class="category-selector d-none d-lg-block" @click.stop>
             <button
               class="category-btn"
               @click="toggleCategoryDropdown"
@@ -61,7 +61,11 @@
           </div>
 
           <!-- Profile Icon -->
-          <div class="profile-container" @click="toggleProfileDropdown" v-if="user">
+          <div
+            class="profile-container d-none d-lg-block"
+            @click="toggleProfileDropdown"
+            v-if="user"
+          >
             <div class="profile-btn">
               <img :src="user.picture" :alt="user.name" class="profile-avatar" />
             </div>
@@ -102,7 +106,7 @@ import { ChevronDown, House, BookOpen, Calendar, User, LogOut } from 'lucide-vue
 import { useLanguageStore } from '@/shared/stores/language'
 import { API_BASE_URL } from '@/shared/api'
 import { checkUserAuth, redirectToLogin } from '@/shared/utils'
-import { GameCategory } from '../types/suggeston'
+import { GameCategory } from '@/shared/types/suggeston'
 
 const isCategoryDropdownOpen = ref(false)
 const isProfileDropdownOpen = ref(false)
@@ -274,7 +278,7 @@ onUnmounted(() => {
   gap: 1rem;
 }
 
-/* Navigation Links */
+/* Nav links */
 .nav-links {
   display: flex;
   align-items: center;
@@ -282,7 +286,7 @@ onUnmounted(() => {
   margin: 0 2rem;
 }
 
-/* Search Container */
+/* Search container */
 .search-container {
   flex: 1;
   max-width: 400px;
@@ -581,10 +585,6 @@ onUnmounted(() => {
   .category-btn {
     padding: 0.4rem 0.6rem;
     font-size: 0.8rem;
-  }
-
-  .category-dropdown {
-    min-width: 140px;
   }
 
   .category-option {

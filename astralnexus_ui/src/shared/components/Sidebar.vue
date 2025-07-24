@@ -1,63 +1,63 @@
 <template>
-  <div class="user-sidebar fixed bg-[#0a0b0f] border-r border-white/10">
-    <!-- User Profile Header -->
-    <div class="profile-header" v-if="user">
+  <div class="user-sidebar fixed bg-[#0a0b0f] border-r border-white/10 top-0 left-0 w-[280px] h-screen z-[1000] overflow-y-auto p-6">
+    <!-- Profile header -->
+    <div class="profile-header relative mb-8" v-if="user">
       <div class="profile-background"></div>
-      <div class="profile-content">
-        <div class="profile-avatar-container">
-          <img :src="user.picture" :alt="user.name" class="profile-avatar-large" />
-          <div class="online-indicator"></div>
+      <div class="profile-content relative z-[2] pt-8 text-center">
+        <div class="profile-avatar-container relative inline-block mb-4">
+          <img :src="user.picture" :alt="user.name" class="profile-avatar-large w-20 h-20 rounded-full border-4 border-[#b8aff7] object-cover bg-[#270c3b]" />
+          <div class="online-indicator absolute bottom-1 right-1 w-4 h-4 bg-[#00ff88] border-2 border-[#0a0b0f] rounded-full"></div>
         </div>
-        <div class="profile-info">
-          <h3 class="profile-name">{{ user.name }}</h3>
-          <p class="profile-username">@{{ user.username || 'user' }}</p>
-          <p class="profile-bio" v-if="user.bio">{{ user.bio }}</p>
-          <p class="profile-bio" v-else>Exploring the gaming universe</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- User Statistics -->
-    <div class="user-stats" v-if="user">
-      <div class="stats-grid">
-        <div class="stat-item">
-          <div class="stat-number">{{ userStats.posts }}</div>
-          <div class="stat-label">Posts</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-number">{{ userStats.following }}</div>
-          <div class="stat-label">Following</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-number">{{ userStats.followers }}</div>
-          <div class="stat-label">Followers</div>
+        <div class="profile-info text-white">
+          <h3 class="profile-name text-xl font-semibold text-[#b8aff7] mb-1">{{ user.name }}</h3>
+          <p class="profile-username text-sm text-gray-600 mb-2">@{{ user.username || 'user' }}</p>
+          <p class="profile-bio text-sm text-gray-400 leading-tight" v-if="user.bio">{{ user.bio }}</p>
+          <p class="profile-bio text-sm text-gray-400 leading-tight" v-else>Exploring the gaming universe</p>
         </div>
       </div>
     </div>
 
-    <!-- Recent Activity -->
-    <div class="recent-activity">
-      <h4 class="section-title">Recent Activity</h4>
+    <!-- User stats -->
+    <div class="user-stats mb-8" v-if="user">
+      <div class="stats-grid grid grid-cols-2 gap-4">
+        <div class="stat-item text-center">
+          <div class="stat-number text-3xl font-semibold text-[#b8aff7] leading-none">{{ userStats.posts }}</div>
+          <div class="stat-label text-sm text-gray-600 mt-1 uppercase tracking-wider">Posts</div>
+        </div>
+        <div class="stat-item text-center">
+          <div class="stat-number text-3xl font-semibold text-[#b8aff7] leading-none">{{ userStats.following }}</div>
+          <div class="stat-label text-sm text-gray-600 mt-1 uppercase tracking-wider">Following</div>
+        </div>
+        <div class="stat-item text-center">
+          <div class="stat-number text-3xl font-semibold text-[#b8aff7] leading-none">{{ userStats.followers }}</div>
+          <div class="stat-label text-sm text-gray-600 mt-1 uppercase tracking-wider">Followers</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent activity -->
+    <div class="recent-activity mb-8">
+      <h4 class="section-title text-base font-semibold text-[#b8aff7] mb-4 pb-2 border-b border-[rgba(184,175,247,0.2)]">Recent Activity</h4>
       <div class="activity-list">
-        <div v-for="activity in recentActivities" :key="activity.id" class="activity-item">
-          <div class="activity-icon">
+        <div v-for="activity in recentActivities" :key="activity.id" class="activity-item flex items-start gap-3 p-3 bg-[rgba(39,12,59,0.3)] border border-[rgba(184,175,247,0.1)] rounded-lg mb-3 transition-all duration-300">
+          <div class="activity-icon flex items-center justify-center w-7 h-7 bg-[rgba(184,175,247,0.2)] rounded-full text-[#b8aff7] flex-shrink-0">
             <component :is="getActivityIcon(activity.type)" :size="16" />
           </div>
-          <div class="activity-content">
-            <p class="activity-text">{{ activity.text }}</p>
-            <span class="activity-time">{{ formatTime(activity.timestamp) }}</span>
+          <div class="activity-content flex-1 min-w-0">
+            <p class="activity-text text-sm text-gray-400 mb-1 leading-tight">{{ activity.text }}</p>
+            <span class="activity-time text-xs text-gray-600">{{ formatTime(activity.timestamp) }}</span>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Quick Actions -->
-    <div class="quick-actions">
-      <button class="action-btn primary" @click="openCreatePostDialog">
+    <div class="quick-actions flex flex-col gap-3 mt-auto pt-4">
+      <button class="action-btn primary flex items-center justify-center gap-2 py-3 px-4 rounded font-medium text-sm text-white bg-gradient-to-br from-[#542f87] to-[#b8aff7] cursor-pointer transition-all duration-300" @click="openCreatePostDialog">
         <Plus :size="18" />
         <span>New Post</span>
       </button>
-      <button class="action-btn secondary" @click="editProfile">
+      <button class="action-btn secondary flex items-center justify-center gap-2 py-3 px-4 rounded font-medium text-sm text-[#b8aff7] border border-[rgba(184,175,247,0.3)] bg-[rgba(184,175,247,0.1)] cursor-pointer transition-all duration-300" @click="editProfile">
         <Edit :size="18" />
         <span>Edit Profile</span>
       </button>
@@ -215,22 +215,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.user-sidebar {
-  top: 0;
-  left: 0;
-  width: 280px;
-  height: 100vh;
-  z-index: 1000;
-  overflow-y: auto;
-  padding: 1.5rem;
-}
-
-/* Profile Header */
-.profile-header {
-  position: relative;
-  margin-bottom: 2rem;
-}
-
+/* Profile Background (kept as raw CSS for gradient) */
 .profile-background {
   position: absolute;
   top: 0;
@@ -242,210 +227,25 @@ onMounted(() => {
   opacity: 0.8;
 }
 
-.profile-content {
-  position: relative;
-  z-index: 2;
-  padding-top: 2rem;
-  text-align: center;
-}
-
-.profile-avatar-container {
-  position: relative;
-  display: inline-block;
-  margin-bottom: 1rem;
-}
-
-.profile-avatar-large {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  border: 4px solid #b8aff7;
-  object-fit: cover;
-  background: #270c3b;
-}
-
-.online-indicator {
-  position: absolute;
-  bottom: 4px;
-  right: 4px;
-  width: 16px;
-  height: 16px;
-  background: #00ff88;
-  border: 3px solid #0a0b0f;
-  border-radius: 50%;
-}
-
-.profile-info {
-  color: white;
-}
-
-.profile-name {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #b8aff7;
-  margin: 0 0 0.25rem 0;
-}
-
-.profile-username {
-  font-size: 0.9rem;
-  color: #999;
-  margin: 0 0 0.5rem 0;
-}
-
-.profile-bio {
-  font-size: 0.85rem;
-  color: #ccc;
-  margin: 0;
-  line-height: 1.4;
-}
-
-/* User Statistics */
-.user-stats {
-  margin-bottom: 2rem;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-}
-
-.stat-item {
-  background: rgba(184, 175, 247, 0.1);
-  border: 1px solid rgba(184, 175, 247, 0.2);
-  border-radius: 0.75rem;
-  padding: 1rem;
-  text-align: center;
-  transition: all 0.3s ease;
-}
-
-.stat-item:hover {
-  background: rgba(184, 175, 247, 0.15);
-  border-color: rgba(184, 175, 247, 0.3);
-}
-
-.stat-number {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #b8aff7;
-  line-height: 1;
-}
-
-.stat-label {
-  font-size: 0.75rem;
-  color: #999;
-  margin-top: 0.25rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-/* Section Titles */
-.section-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #b8aff7;
-  margin: 0 0 1rem 0;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid rgba(184, 175, 247, 0.2);
-}
-
-/* Recent Activity */
-.recent-activity {
-  margin-bottom: 2rem;
-}
-
-.activity-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  padding: 0.75rem;
-  background: rgba(39, 12, 59, 0.3);
-  border: 1px solid rgba(184, 175, 247, 0.1);
-  border-radius: 0.5rem;
-  transition: all 0.3s ease;
-  margin-bottom: 0.75rem;
-}
-
+/* Activity Item Hover (kept as raw CSS for rgba) */
 .activity-item:hover {
   background: rgba(39, 12, 59, 0.5);
   border-color: rgba(184, 175, 247, 0.2);
 }
 
-.activity-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  background: rgba(184, 175, 247, 0.2);
-  border-radius: 50%;
-  color: #b8aff7;
-  flex-shrink: 0;
-}
-
-.activity-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.activity-text {
-  font-size: 0.85rem;
-  color: #ccc;
-  margin: 0 0 0.25rem 0;
-  line-height: 1.3;
-}
-
-.activity-time {
-  font-size: 0.7rem;
-  color: #999;
-}
-
-/* Quick Actions */
-.quick-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-top: auto;
-  padding-top: 1rem;
-}
-
-.action-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  border: none;
-  border-radius: 0.75rem;
-  font-weight: 500;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-decoration: none;
-}
-
+/* Action Button Primary Hover (kept as raw CSS for gradient) */
 .action-btn.primary {
-  background: linear-gradient(135deg, #542f87, #b8aff7);
-  color: white;
-}
-
-.action-btn.primary:hover {
   background: linear-gradient(135deg, #6a3ba8, #c9c0ff);
   box-shadow: 0 4px 12px rgba(184, 175, 247, 0.3);
 }
 
-.action-btn.secondary {
-  background: rgba(184, 175, 247, 0.1);
-  border: 1px solid rgba(184, 175, 247, 0.3);
-  color: #b8aff7;
-}
-
+/* Action Button Secondary Hover (kept as raw CSS for rgba) */
 .action-btn.secondary:hover {
   background: rgba(184, 175, 247, 0.2);
   border-color: rgba(184, 175, 247, 0.5);
 }
 
-/* Custom Scrollbar */
+/* Custom Scrollbar (kept as raw CSS) */
 .user-sidebar::-webkit-scrollbar {
   width: 6px;
 }
@@ -463,6 +263,7 @@ onMounted(() => {
   background: #b8aff7;
 }
 
+/* Media Query (kept as raw CSS) */
 @media (max-width: 991.98px) {
   .user-sidebar {
     display: none;
