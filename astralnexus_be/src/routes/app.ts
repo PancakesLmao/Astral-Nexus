@@ -1,4 +1,5 @@
 import { Elysia } from "elysia";
+import { testConnection } from "../config/database";
 
 // Application routes (health check, status, etc.)
 export const appRoutes = new Elysia()
@@ -21,19 +22,21 @@ export const appRoutes = new Elysia()
   )
   .get(
     "/health",
-    () => {
+    async () => {
+      const dbStatus = await testConnection();
       return {
-        status: "healthy",
+        status: dbStatus ? "healthy" : "unhealthy",
         uptime: process.uptime(),
         timestamp: new Date().toISOString(),
         environment: process.env.NODE_ENV || "development",
+        database: dbStatus ? "connected" : "disconnected",
       };
     },
     {
       detail: {
         tags: ["App"],
         summary: "Health check",
-        description: "Check API health status",
+        description: "Check API health status including database connectivity",
       },
     }
   )

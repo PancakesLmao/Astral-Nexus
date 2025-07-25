@@ -6,9 +6,16 @@ import { cookie } from "@elysiajs/cookie";
 
 // Import configuration
 import { appConfig } from "./config/app";
+import { testConnection } from "./config/database";
 
 // Import routes
-import { authRoutes, userRoutes, appRoutes, commentRoutes } from "./routes";
+import {
+  authRoutes,
+  userRoutes,
+  appRoutes,
+  commentRoutes,
+  dbRoutes,
+} from "./routes";
 
 // Import middleware
 import {
@@ -69,11 +76,16 @@ const app = new Elysia({ adapter: node() })
   .use(authRoutes)
   .use(userRoutes)
   .use(commentRoutes)
+  .use(dbRoutes)
 
-  .listen(appConfig.port || 3001, ({ hostname, port }) => {
+  .listen(appConfig.port || 3001, async ({ hostname, port }) => {
     console.log(`🦊 Elysia server is running at http://${hostname}:${port}`);
     console.log(
       `📚 API Documentation: http://${hostname}:${port}${appConfig.api.swagger.path}`
     );
     console.log(`Environment: ${appConfig.environment}`);
+
+    // Test database connection
+    console.log("Testing database connection...");
+    await testConnection();
   });

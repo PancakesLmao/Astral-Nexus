@@ -65,9 +65,9 @@ services:
     ports:
       - "5432:5432"  # Expose database port for development tools
     environment:
-      - POSTGRES_USER=${POSTGRES_USER:-postgres}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
-      - POSTGRES_DB=${POSTGRES_DB:-astralnexus}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_LOG_STATEMENT=${POSTGRES_LOG_STATEMENT:-all}
       - POSTGRES_INITDB_ARGS=${POSTGRES_INITDB_ARGS}
     volumes:
@@ -76,6 +76,8 @@ services:
     networks:
       - astral_network
     restart: unless-stopped
+    env_file:
+      - .env
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-astralnexus}"]
       interval: 30s

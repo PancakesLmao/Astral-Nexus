@@ -154,12 +154,6 @@ The documentation includes:
 - **Tagged Endpoints**: Organized with Swagger tags for documentation
 - **Type Validation**: Input validation using Elysia's built-in validation
 
-### tRPC (`/trpc`)
-
-- **Type Safety**: End-to-end TypeScript type inference
-- **Input Validation**: Using Zod schemas
-- **Procedure Types**: Queries for read operations, Mutations for write operations
-
 ### Utilities (`/utils`)
 
 - **auth.ts**: Authentication utilities (hashing, token generation)
@@ -172,7 +166,7 @@ The documentation includes:
 - **Error Handling**: Secure error responses without sensitive data exposure
 - **Type Safety**: TypeScript ensures type correctness throughout the application
 
-## 🧪 Testing
+## Testing
 
 To test the API endpoints:
 
@@ -224,11 +218,3 @@ The application supports various environment configurations through the `/config
 3. Include Swagger documentation for new endpoints
 4. Add tRPC procedures for type-safe operations
 5. Update this README when adding new features
-
-## 📝 License
-
-This project is part of the COS30043 Interface Design course at Swinburne University.
-
-## Open API documentation
-
-Open your browser and navigate to `http://localhost:3001/swagger` to access the API documentation.
