@@ -66,7 +66,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import type { TrendingHashtag, SuggestedUser, PopularGame } from '@/shared/types/suggeston'
+import type { TrendingHashtag, SuggestedUser, PopularGame } from '@/shared/types'
 
 // Mock data and script remain unchanged
 const trendingHashtags = ref<TrendingHashtag[]>([

@@ -1,5 +1,5 @@
 <template>
-  <nav class="bottom-bar d-lg-none position-fixed w-100 bottom-0">
+  <nav class="bottom-bar lg:hidden fixed w-full bottom-0">
     <div class="bottom-nav-container">
       <router-link to="/" class="bottom-nav-item">
         <House :size="20" />
@@ -56,7 +56,7 @@
 
           <div class="category-selector-mobile">
             <button class="modal-action category-trigger" @click="toggleCategorySelect">
-              <span>{{ selectedCategory.name }}</span>
+              <span>{{ selectedCategory?.game_name || 'Loading...' }}</span>
               <ChevronDown class="dropdown-icon" :class="{ rotated: isCategorySelectOpen }" />
             </button>
 
@@ -65,10 +65,10 @@
                 v-for="category in gameCategories"
                 :key="category.id"
                 class="category-item"
-                :class="{ active: category.id === selectedCategory.id }"
+                :class="{ active: category.id === selectedCategory?.id }"
                 @click="selectCategory(category)"
               >
-                <span>{{ category.name }}</span>
+                <span>{{ category.game_name }}</span>
               </button>
             </div>
           </div>
@@ -95,11 +95,10 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { House, BookOpen, Calendar, User, LogOut, X, ChevronDown, Plus } from 'lucide-vue-next'
 import { useLanguageStore } from '@/shared/stores/language'
-import { API_BASE_URL } from '@/shared/api'
+import { API_BASE_URL, apiClient } from '@/shared/api'
 import { checkUserAuth, redirectToLogin } from '@/shared/utils'
 import NewPost from './NewPost.vue'
-import type { Post } from '@/shared/types'
-import { GameCategory } from '@/shared/types/suggeston'
+import type { Post, GameCategory } from '@/shared/types'
 
 const languageStore = useLanguageStore()
 const user = ref<any>(null)
@@ -108,17 +107,9 @@ const isProfileModalOpen = ref(false)
 const isCategorySelectOpen = ref(false)
 const isCreatePostDialogOpen = ref(false)
 
-// Game categories (same as TopBar)
-const gameCategories = ref<GameCategory[]>([
-  { id: 'all', name: 'All Games', icon: '' },
-  { id: 'genshin', name: 'Genshin Impact', icon: '' },
-  { id: 'hsr', name: 'Honkai Star Rail', icon: '' },
-  { id: 'zzz', name: 'Zenless Zone Zero', icon: '' },
-  { id: 'hi3', name: 'Honkai Impact 3rd', icon: '' },
-  { id: 'tot', name: 'Tears of Themis', icon: '' },
-])
-
-const selectedCategory = ref<GameCategory>(gameCategories.value[0])
+// Game categories (fetched from API)
+const gameCategories = ref<GameCategory[]>([])
+const selectedCategory = ref<GameCategory | null>(null)
 
 const toggleProfileModal = () => {
   isProfileModalOpen.value = !isProfileModalOpen.value
@@ -134,7 +125,46 @@ const toggleCategorySelect = () => {
 const selectCategory = (category: GameCategory) => {
   selectedCategory.value = category
   isCategorySelectOpen.value = false
-  console.log('Selected game category (mobile):', category.name)
+  console.log('Selected game category (mobile):', category.game_name)
+}
+
+const fetchGameCategories = async () => {
+  try {
+    const categories = await apiClient.fetchGameCategories()
+
+    // Check if "All Games" already exists in the API response
+    const hasAllGames = categories.some((cat) => cat.game_name === 'All Games')
+
+    if (!hasAllGames) {
+      // Add "All Games" option if it doesn't exist
+      const allGamesOption: GameCategory = {
+        id: 'all',
+        game_name: 'All Games',
+        created_at: new Date().toISOString(),
+      }
+      gameCategories.value = [allGamesOption, ...categories]
+    } else {
+      // Use API response as-is since it already contains "All Games"
+      gameCategories.value = categories
+    }
+
+    // Set default selection if none exists
+    if (!selectedCategory.value && gameCategories.value.length > 0) {
+      selectedCategory.value = gameCategories.value[0]
+    }
+
+    console.log('BottomBar: Game categories loaded:', gameCategories.value.length)
+  } catch (error) {
+    console.error('BottomBar: Failed to fetch game categories:', error)
+    // Fallback to "All Games" option
+    const fallbackOption: GameCategory = {
+      id: 'all',
+      game_name: 'All Games',
+      created_at: new Date().toISOString(),
+    }
+    gameCategories.value = [fallbackOption]
+    selectedCategory.value = fallbackOption
+  }
 }
 
 const openCreatePostDialog = () => {
@@ -210,6 +240,7 @@ const handleLogout = async () => {
 onMounted(() => {
   languageStore.initializeLanguage()
   fetchUser()
+  fetchGameCategories()
 })
 </script>
 

@@ -96,7 +96,7 @@ export interface CommentListResponse {
 export interface CreatePostRequest {
   title: string
   content: string
-  game_category?: string
+  game_id?: string
   post_type?: string
   tags?: string[]
   visibility?: 'public' | 'private' | 'followers'
@@ -120,4 +120,58 @@ export interface PostFilters {
   search?: string
   sort_by?: 'created_at' | 'likes_count' | 'comments_count'
   sort_order?: 'asc' | 'desc'
+}
+
+export interface UserStats {
+  posts: number
+  following: number
+  followers: number
+}
+
+export interface Activity {
+  id: string
+  type: 'like' | 'comment' | 'post' | 'follow'
+  text: string
+  timestamp: string
+}
+
+export interface TrendingHashtag {
+  id: number | string
+  name: string
+  posts_count: number
+  trend_score: number
+}
+
+export interface SuggestedUser {
+  id: number | string
+  username: string
+  name: string
+  avatar?: string
+  followers_count: number
+  is_following: boolean
+  bio?: string
+}
+
+export interface GameCategory {
+  id: string
+  game_name: string
+  created_at: string
+}
+
+export interface PopularGame {
+  id: number | string
+  name: string
+  icon?: string
+  posts_count: number
+  category: string
+}
+
+// Types for API responses
+export interface GameCategoriesResponse {
+  success: boolean
+  message: string
+  data: {
+    categories: GameCategory[]
+  }
+  error?: string
 }

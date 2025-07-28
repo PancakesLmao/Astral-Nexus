@@ -1,9 +1,10 @@
 <template>
   <!-- Dialog Overlay -->
   <div v-if="isOpen" class="fixed inset-0 z-[1000] overflow-y-auto">
-    <!-- Desktop Layout (sm and above) -->
+    <!-- Desktop Layout (lg and above) -->
     <div
-      class="desktop-dialog hidden sm:flex min-h-full items-center justify-center p-4 text-center dialog-container"
+      v-if="isDesktop"
+      class="desktop-dialog flex min-h-full items-center justify-center p-4 text-center dialog-container"
       @click="closeDialog"
     >
       <!-- Background -->
@@ -14,7 +15,7 @@
 
       <!-- Dialog Panel (Desktop) -->
       <div
-        class="relative transform overflow-y-auto rounded-xl bg-dark-900 border border-accent/30 px-6 pb-6 pt-5 text-left shadow-xl transition-all w-full max-w-2xl sm:my-8 dialog-panel"
+        class="relative transform overflow-y-auto rounded-xl bg-dark-900 border border-accent/30 px-6 pb-6 pt-5 text-left shadow-xl transition-all w-full max-w-2xl lg:my-8 dialog-panel"
         @click.stop
       >
         <!-- Dialog Header and Visibility -->
@@ -92,14 +93,21 @@
                 </button>
 
                 <div class="custom-dropdown-menu" v-show="isCategoryDropdownOpen">
+                  <div v-if="isLoadingCategories" class="dropdown-option opacity-50">
+                    <span>Loading games...</span>
+                  </div>
+                  <div v-else-if="gameCategories.length === 0" class="dropdown-option opacity-50">
+                    <span>No games available</span>
+                  </div>
                   <button
-                    v-for="category in gameCategories.filter((cat) => cat.id !== 'all')"
+                    v-else
+                    v-for="category in gameCategories"
                     :key="category.id"
                     class="dropdown-option"
-                    :class="{ active: category.id === formData.game_category }"
+                    :class="{ active: category.id === formData.game_id }"
                     @click="selectCategory(category)"
                   >
-                    <span>{{ category.name }}</span>
+                    <span>{{ category.game_name }}</span>
                   </button>
                 </div>
               </div>
@@ -208,8 +216,8 @@
       </div>
     </div>
 
-    <!-- Mobile Layout (below sm) -->
-    <div class="mobile-dialog flex sm:hidden profile-modal-overlay" @click="closeDialog">
+    <!-- Mobile Layout (below lg) -->
+    <div v-if="!isDesktop" class="mobile-dialog flex profile-modal-overlay" @click="closeDialog">
       <!-- Dialog Panel (Mobile) -->
       <div class="profile-modal w-full max-w-[400px] overflow-y-auto" @click.stop>
         <!-- Dialog Header -->
@@ -283,14 +291,21 @@
                 </button>
 
                 <div class="custom-dropdown-menu" v-show="isCategoryDropdownOpen">
+                  <div v-if="isLoadingCategories" class="dropdown-option opacity-50">
+                    <span>Loading games...</span>
+                  </div>
+                  <div v-else-if="gameCategories.length === 0" class="dropdown-option opacity-50">
+                    <span>No games available</span>
+                  </div>
                   <button
-                    v-for="category in gameCategories.filter((cat) => cat.id !== 'all')"
+                    v-else
+                    v-for="category in gameCategories"
                     :key="category.id"
                     class="dropdown-option"
-                    :class="{ active: category.id === formData.game_category }"
+                    :class="{ active: category.id === formData.game_id }"
                     @click="selectCategory(category)"
                   >
-                    <span>{{ category.name }}</span>
+                    <span>{{ category.game_name }}</span>
                   </button>
                 </div>
               </div>
@@ -406,7 +421,8 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { X, ChevronDown } from 'lucide-vue-next'
 import { usePostsStore } from '@/shared/stores/posts'
 import { CreatePostRequest } from '@/shared/types'
-import { GameCategory } from '@/shared/types/suggeston'
+import { GameCategory } from '@/shared/types'
+import { apiClient } from '@/shared/api'
 
 interface Props {
   isOpen: boolean
@@ -424,6 +440,16 @@ const emit = defineEmits<Emits>()
 const postsStore = usePostsStore()
 const isSubmitting = ref(false)
 const tagsInput = ref('')
+const isLoadingCategories = ref(false)
+
+// Screen size detection
+const windowWidth = ref(window.innerWidth)
+const isDesktop = computed(() => windowWidth.value >= 1024) // lg breakpoint
+
+// Update window width on resize
+const handleResize = () => {
+  windowWidth.value = window.innerWidth
+}
 
 // Dropdown states
 const isVisibilityDropdownOpen = ref(false)
@@ -434,20 +460,42 @@ const isPostTypeDropdownOpen = ref(false)
 const formData = ref<CreatePostRequest>({
   title: '',
   content: '',
-  game_category: '',
+  game_id: '', // Updated to match backend API
   post_type: 'general',
   tags: [],
   visibility: 'public',
 })
 
-// Game categories (template data)
-const gameCategories = ref<GameCategory[]>([
-  { id: 'all', name: 'All Games', icon: '' },
-  { id: 'genshin', name: 'Genshin Impact', icon: '' },
-  { id: 'hsr', name: 'Honkai Star Rail', icon: '' },
-  { id: 'zzz', name: 'Zenless Zone Zero', icon: '' },
-  { id: 'hi3', name: 'Honkai Impact 3rd', icon: '' },
-])
+// Game categories (loaded from API)
+const gameCategories = ref<GameCategory[]>([])
+
+// Fetch game categories from API
+const fetchGameCategories = async () => {
+  isLoadingCategories.value = true
+  try {
+    const categories = await apiClient.fetchGameCategories()
+
+    // Transform API response to match component expected format
+    // Note: API returns { id, game_name, created_at } but component expects { id, name, icon }
+    gameCategories.value = categories
+      .filter((cat) => cat.game_name !== 'All Games') // Filter out "All Games" as it's not needed for post creation
+      .map(
+        (category): GameCategory => ({
+          id: category.id,
+          game_name: category.game_name, // Keep the API property name
+          created_at: category.created_at,
+        }),
+      )
+
+    console.log('Loaded game categories:', gameCategories.value)
+  } catch (error) {
+    console.error('Failed to fetch game categories:', error)
+    // Fallback to empty array - user will see no categories
+    gameCategories.value = []
+  } finally {
+    isLoadingCategories.value = false
+  }
+}
 
 // Visibility options
 const visibilityOptions = [
@@ -497,7 +545,7 @@ const selectVisibility = (option: { value: string; label: string }) => {
 }
 
 const selectCategory = (category: GameCategory) => {
-  formData.value.game_category = category.id
+  formData.value.game_id = category.id // Updated to use game_id
   isCategoryDropdownOpen.value = false
 }
 
@@ -513,8 +561,12 @@ const getVisibilityLabel = () => {
 }
 
 const getCategoryLabel = () => {
-  const category = gameCategories.value.find((cat) => cat.id === formData.value.game_category)
-  return category ? category.name : 'Select a game'
+  if (isLoadingCategories.value) {
+    return 'Loading games...'
+  }
+
+  const category = gameCategories.value.find((cat) => cat.id === formData.value.game_id)
+  return category ? category.game_name : 'Select a game'
 }
 
 const getPostTypeLabel = () => {
@@ -551,7 +603,7 @@ const resetForm = () => {
   formData.value = {
     title: '',
     content: '',
-    game_category: '',
+    game_id: '', // Updated to use game_id
     post_type: 'general',
     tags: [],
     visibility: 'public',
@@ -608,10 +660,15 @@ const handleSubmit = async () => {
 onMounted(() => {
   console.log('NewPost component mounted, isOpen:', props.isOpen)
   document.addEventListener('click', handleClickOutside)
+  window.addEventListener('resize', handleResize)
+
+  // Fetch game categories when component mounts
+  fetchGameCategories()
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  window.removeEventListener('resize', handleResize)
 })
 </script>
 
@@ -627,31 +684,10 @@ onUnmounted(() => {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* Desktop-specific styles */
-.desktop-dialog {
-  display: none;
-}
-
-@media (min-width: 640px) {
-  .desktop-dialog {
-    display: flex;
-  }
-
-  .dialog-panel {
-    max-height: calc(100vh - 4rem); /* Account for top/bottom padding */
-    overflow-y: auto;
-  }
-}
-
-/* Mobile-specific styles (aligned with profile modal) */
-.mobile-dialog {
-  display: flex;
-}
-
-@media (min-width: 640px) {
-  .mobile-dialog {
-    display: none !important;
-  }
+/* Dialog Panel styles */
+.dialog-panel {
+  max-height: calc(100vh - 4rem); /* Account for top/bottom padding */
+  overflow-y: auto;
 }
 
 .profile-modal-overlay {
@@ -849,20 +885,16 @@ onUnmounted(() => {
   color: #c9c0ff;
 }
 
-/* Mobile form adjustments */
-@media (max-width: 639.98px) {
-  .dialog-container {
-    padding: 0;
-  }
+/* Form input adjustments */
+input,
+select,
+textarea {
+  font-size: 0.9rem;
+  padding: 0.5rem 0.75rem;
+}
 
-  input, select, textarea {
-    font-size: 0.875rem;
-    padding: 0.5rem 0.75rem;
-  }
-
-  button {
-    padding: 0.75rem;
-    font-size: 0.875rem;
-  }
+button {
+  padding: 0.75rem;
+  font-size: 0.9rem;
 }
 </style>

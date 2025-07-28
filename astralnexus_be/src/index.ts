@@ -16,6 +16,7 @@ import {
   commentRoutes,
   dbRoutes,
   postsRoutes,
+  gameCategoriesRoutes,
 } from "./routes";
 
 // Import middleware
@@ -66,6 +67,10 @@ const app = new Elysia({ adapter: node() })
             description: "Blog comment management endpoints",
           },
           {
+            name: "Game Categories",
+            description: "Game category management endpoints",
+          },
+          {
             name: "Database",
             description: "Database testing and utility endpoints",
           },
@@ -87,6 +92,7 @@ const app = new Elysia({ adapter: node() })
   .use(commentRoutes)
   .use(dbRoutes)
   .use(postsRoutes)
+  .use(gameCategoriesRoutes)
 
   .listen(appConfig.port || 3001, async ({ hostname, port }) => {
     console.log(`🦊 Elysia server is running at http://${hostname}:${port}`);

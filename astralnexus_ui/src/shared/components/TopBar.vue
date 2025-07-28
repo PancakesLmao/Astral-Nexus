@@ -1,5 +1,5 @@
 <template>
-  <header class="header-container position-fixed w-100">
+  <header class="header-container fixed w-full">
     <nav class="navbar navbar-expand-lg container">
       <div class="container-fluid">
         <router-link class="navbar-brand" to="/">
@@ -7,7 +7,7 @@
         </router-link>
 
         <!-- Navigation Links (Desktop) -->
-        <div class="nav-links d-none d-lg-flex">
+        <div class="nav-links hidden lg:flex">
           <router-link to="/" class="nav-link">
             <House :size="20" />
             <span>{{ languageStore.t('home') }}</span>
@@ -37,13 +37,13 @@
 
         <div class="nav-actions">
           <!-- Game Category Selector (Hidden on mobile) -->
-          <div class="category-selector d-none d-lg-block" @click.stop>
+          <div class="category-selector hidden lg:block" @click.stop>
             <button
               class="category-btn"
               @click="toggleCategoryDropdown"
               :aria-expanded="isCategoryDropdownOpen"
             >
-              <span class="category-name">{{ selectedCategory.name }}</span>
+              <span class="category-name">{{ selectedCategory?.game_name || 'Loading...' }}</span>
               <ChevronDown class="dropdown-icon" :class="{ rotated: isCategoryDropdownOpen }" />
             </button>
 
@@ -52,20 +52,16 @@
                 v-for="category in gameCategories"
                 :key="category.id"
                 class="category-option"
-                :class="{ active: category.id === selectedCategory.id }"
+                :class="{ active: category.id === selectedCategory?.id }"
                 @click="selectCategory(category)"
               >
-                <span class="category-label">{{ category.name }}</span>
+                <span class="category-label">{{ category.game_name }}</span>
               </button>
             </div>
           </div>
 
           <!-- Profile Icon -->
-          <div
-            class="profile-container d-none d-lg-block"
-            @click="toggleProfileDropdown"
-            v-if="user"
-          >
+          <div class="profile-container hidden lg:block" @click="toggleProfileDropdown" v-if="user">
             <div class="profile-btn">
               <img :src="user.picture" :alt="user.name" class="profile-avatar" />
             </div>
@@ -104,9 +100,9 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { ChevronDown, House, BookOpen, Calendar, User, LogOut } from 'lucide-vue-next'
 import { useLanguageStore } from '@/shared/stores/language'
-import { API_BASE_URL } from '@/shared/api'
+import { API_BASE_URL, apiClient } from '@/shared/api'
 import { checkUserAuth, redirectToLogin } from '@/shared/utils'
-import { GameCategory } from '@/shared/types/suggeston'
+import { GameCategory } from '@/shared/types'
 
 const isCategoryDropdownOpen = ref(false)
 const isProfileDropdownOpen = ref(false)
@@ -120,16 +116,8 @@ const emit = defineEmits<{
   search: [query: string]
 }>()
 
-// Game categories (template data)
-const gameCategories = ref<GameCategory[]>([
-  { id: 'all', name: 'All Games', icon: '' },
-  { id: 'genshin', name: 'Genshin Impact', icon: '' },
-  { id: 'hsr', name: 'Honkai Star Rail', icon: '' },
-  { id: 'zzz', name: 'Zenless Zone Zero', icon: '' },
-  { id: 'hi3', name: 'Honkai Impact 3rd', icon: '' },
-])
-
-const selectedCategory = ref<GameCategory>(gameCategories.value[0])
+const gameCategories = ref<GameCategory[]>([])
+const selectedCategory = ref<GameCategory | null>(null)
 
 const toggleCategoryDropdown = () => {
   isCategoryDropdownOpen.value = !isCategoryDropdownOpen.value
@@ -148,7 +136,46 @@ const toggleProfileDropdown = () => {
 const selectCategory = (category: GameCategory) => {
   selectedCategory.value = category
   isCategoryDropdownOpen.value = false
-  console.log('Selected game category:', category.name)
+  console.log('Selected game category:', category.game_name)
+}
+
+const fetchGameCategories = async () => {
+  try {
+    const categories = await apiClient.fetchGameCategories()
+
+    // Check if "All Games" already exists in the API response
+    const hasAllGames = categories.some((cat) => cat.game_name === 'All Games')
+
+    if (!hasAllGames) {
+      // Only add "All Games" option if it doesn't exist
+      const allGamesOption: GameCategory = {
+        id: 'all',
+        game_name: 'All Games',
+        created_at: new Date().toISOString(),
+      }
+      gameCategories.value = [allGamesOption, ...categories]
+    } else {
+      // Use API response as-is since it already contains "All Games"
+      gameCategories.value = categories
+    }
+
+    // Set default selection if none exists
+    if (!selectedCategory.value && gameCategories.value.length > 0) {
+      selectedCategory.value = gameCategories.value[0]
+    }
+
+    console.log('TopBar: Game categories loaded:', gameCategories.value.length)
+  } catch (error) {
+    console.error('TopBar: Failed to fetch game categories:', error)
+    // Fallback to "All Games" option only
+    const fallbackOption: GameCategory = {
+      id: 'all',
+      game_name: 'All Games',
+      created_at: new Date().toISOString(),
+    }
+    gameCategories.value = [fallbackOption]
+    selectedCategory.value = fallbackOption
+  }
 }
 
 const handleSearch = () => {
@@ -232,6 +259,7 @@ onMounted(() => {
   document.addEventListener('click', handleClickOutside)
   languageStore.initializeLanguage()
   fetchUser()
+  fetchGameCategories()
 })
 
 onUnmounted(() => {

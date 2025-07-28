@@ -4,6 +4,7 @@ import { appRoutes } from "./app";
 import { commentRoutes } from "./comments";
 import { dbRoutes } from "./database";
 import { postsRoutes } from "./posts";
+import { gameCategoriesRoutes } from "./gameCategories";
 
 // Export all routes
-export { authRoutes, userRoutes, appRoutes, commentRoutes, dbRoutes, postsRoutes };
+export { authRoutes, userRoutes, appRoutes, commentRoutes, dbRoutes, postsRoutes, gameCategoriesRoutes };

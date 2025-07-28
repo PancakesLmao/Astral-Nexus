@@ -80,7 +80,7 @@ import { Plus, Edit, Heart, MessageCircle, BookOpen, Award } from 'lucide-vue-ne
 import { API_BASE_URL } from '@/shared/api'
 import { useLanguageStore } from '@/shared/stores/language'
 import { checkUserAuth, redirectToLogin } from '@/shared/utils'
-import { UserStats, Activity } from '../types/user'
+import { UserStats, Activity } from '../types'
 import NewPost from './NewPost.vue'
 import type { Post } from '@/shared/types'
 
