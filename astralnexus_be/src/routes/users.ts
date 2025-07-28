@@ -25,9 +25,7 @@ export const userRoutes = new Elysia({ prefix: "/users" })
       },
     }
   )
-  .put(
-    "/profile/:id",
-    ({ params: { id }, body }) => {
+  .put("/profile/:id", ({ params: { id }, body }) => {
       const { username, email } = body as { username?: string; email?: string };
 
       return {
@@ -55,9 +53,7 @@ export const userRoutes = new Elysia({ prefix: "/users" })
       },
     }
   )
-  .get(
-    "/",
-    ({ query }) => {
+  .get("/", ({ query }) => {
       const { page = "1", limit = "10" } = query as {
         page?: string;
         limit?: string;

@@ -15,6 +15,7 @@ import {
   appRoutes,
   commentRoutes,
   dbRoutes,
+  postsRoutes,
 } from "./routes";
 
 // Import middleware
@@ -57,8 +58,16 @@ const app = new Elysia({ adapter: node() })
             description: "User management endpoints",
           },
           {
+            name: "Posts",
+            description: "Blog post management endpoints",
+          },
+          {
             name: "Comments",
             description: "Blog comment management endpoints",
+          },
+          {
+            name: "Database",
+            description: "Database testing and utility endpoints",
           },
         ],
         servers: [
@@ -77,6 +86,7 @@ const app = new Elysia({ adapter: node() })
   .use(userRoutes)
   .use(commentRoutes)
   .use(dbRoutes)
+  .use(postsRoutes)
 
   .listen(appConfig.port || 3001, async ({ hostname, port }) => {
     console.log(`🦊 Elysia server is running at http://${hostname}:${port}`);
