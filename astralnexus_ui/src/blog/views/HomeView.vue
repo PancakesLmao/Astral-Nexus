@@ -65,13 +65,18 @@ const isLoadingMore = ref(false)
 // Methods - now just delegate to store
 const fetchPosts = async (loadMore = false) => {
   try {
-    const page = loadMore ? postsStore.pagination.page + 1 : 1
-    await postsStore.fetchPosts({
-      page,
-      limit: 10,
-      sort_by: 'created_at',
-      sort_order: 'DESC',
-    })
+    if (loadMore) {
+      // For load more, use the next page with current filter
+      const nextPage = postsStore.pagination.page + 1
+      await postsStore.fetchPosts({
+        page: nextPage,
+        limit: 10,
+        ...postsStore.$state.currentFilter,
+      })
+    } else {
+      // For initial load, use the store's initialization method
+      await postsStore.initializePosts()
+    }
   } catch (error) {
     console.error('Failed to fetch posts:', error)
   }
@@ -143,8 +148,8 @@ const handleCommentLike = async (comment: Comment) => {
 
 // Initialize on mount
 onMounted(async () => {
-  console.log('HomeView mounted, fetching posts from API...')
-  await fetchPosts()
+  console.log('HomeView mounted, initializing posts with persisted filter...')
+  await postsStore.initializePosts()
 })
 </script>
 <style scoped></style>

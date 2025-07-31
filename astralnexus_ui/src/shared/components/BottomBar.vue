@@ -92,7 +92,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { House, BookOpen, Calendar, User, LogOut, X, ChevronDown, Plus } from 'lucide-vue-next'
 import { useLanguageStore } from '@/shared/stores/language'
 import { usePostsStore } from '@/shared/stores/posts'
@@ -109,9 +109,9 @@ const isProfileModalOpen = ref(false)
 const isCategorySelectOpen = ref(false)
 const isCreatePostDialogOpen = ref(false)
 
-// Game categories (fetched from API)
-const gameCategories = ref<GameCategory[]>([])
-const selectedCategory = ref<GameCategory | null>(null)
+// Game categories (from store)
+const gameCategories = computed(() => postsStore.gameCategories)
+const selectedCategory = computed(() => postsStore.selectedCategory)
 
 const toggleProfileModal = () => {
   isProfileModalOpen.value = !isProfileModalOpen.value
@@ -125,57 +125,20 @@ const toggleCategorySelect = () => {
 }
 
 const selectCategory = (category: GameCategory) => {
-  selectedCategory.value = category
   isCategorySelectOpen.value = false
 
-  // Convert category for posts store filtering
-  const categoryId =
-    category.game_name === 'All Games' ? 'all_games' : category.game_name // Use game_name instead of ID for filtering
+  // Use the store action to select category
+  postsStore.selectGameCategory(category)
 
-  // Update posts store filter
-  postsStore.setFilter({
-    game_category: categoryId,
-  })
-
-  console.log('Selected game category (mobile):', category.game_name, 'Filter:', categoryId)
+  console.log('Selected game category (mobile):', category.game_name)
 }
 
 const fetchGameCategories = async () => {
   try {
-    const categories = await apiClient.fetchGameCategories()
-
-    // Check if "All Games" already exists in the API response
-    const hasAllGames = categories.some((cat) => cat.game_name === 'All Games')
-
-    if (!hasAllGames) {
-      // Add "All Games" option if it doesn't exist
-      const allGamesOption: GameCategory = {
-        id: 'all',
-        game_name: 'All Games',
-        created_at: new Date().toISOString(),
-      }
-      gameCategories.value = [allGamesOption, ...categories]
-    } else {
-      // Use API response as-is since it already contains "All Games"
-      gameCategories.value = categories
-    }
-
-    // Set default selection if none exists
-    if (!selectedCategory.value && gameCategories.value.length > 0) {
-      selectedCategory.value = gameCategories.value[0]
-    }
-
-    console.log('BottomBar: Game categories loaded:', gameCategories.value.length)
+    await postsStore.loadGameCategories()
+    console.log('BottomBar: Game categories loaded from store')
   } catch (error) {
-    console.error('BottomBar: Failed to fetch game categories:', error)
-    // Fallback to "All Games" option
-    const fallbackOption: GameCategory = {
-      id: 'all',
-      game_name: 'All Games',
-      created_at: new Date().toISOString(),
-    }
-    gameCategories.value = [fallbackOption]
-    selectedCategory.value = fallbackOption
+    console.error('BottomBar: Failed to load game categories:', error)
   }
 }
 

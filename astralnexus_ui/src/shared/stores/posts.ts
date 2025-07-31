@@ -18,13 +18,30 @@ export const usePostsStore = defineStore('posts', {
       hasNext: false,
       hasPrev: false,
     },
-    // Filter state
-    currentFilter: {
-      game_category: 'all_games', // Default to showing all posts
-      search: '',
-      sort_by: 'created_at',
-      sort_order: 'DESC',
-    },
+    // Game categories and selection state
+    gameCategories: [] as any[],
+    selectedCategory: null as any | null,
+    // Filter state - load from localStorage or use defaults
+    currentFilter: (() => {
+      // Try to load from localStorage
+      if (typeof window !== 'undefined') {
+        try {
+          const saved = localStorage.getItem('astral_nexus_filter')
+          if (saved) {
+            return JSON.parse(saved)
+          }
+        } catch (error) {
+          console.warn('Failed to load filter from localStorage:', error)
+        }
+      }
+      // Default filter
+      return {
+        game_category: 'all_games', // Default to showing all posts
+        search: '',
+        sort_by: 'created_at',
+        sort_order: 'DESC',
+      }
+    })(),
   }),
 
   getters: {
@@ -35,6 +52,8 @@ export const usePostsStore = defineStore('posts', {
     },
 
     hasMorePosts: (state) => state.pagination.hasNext,
+
+    currentGameCategory: (state) => state.currentFilter.game_category,
   },
 
   actions: {
@@ -47,6 +66,16 @@ export const usePostsStore = defineStore('posts', {
     }) {
       console.log('Setting filter:', filter)
       this.currentFilter = { ...this.currentFilter, ...filter }
+
+      // Persist filter to localStorage
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('astral_nexus_filter', JSON.stringify(this.currentFilter))
+        } catch (error) {
+          console.warn('Failed to save filter to localStorage:', error)
+        }
+      }
+
       await this.fetchPosts({ page: 1, ...this.currentFilter })
     },
 
@@ -89,6 +118,86 @@ export const usePostsStore = defineStore('posts', {
       }
     },
 
+    // Initialize posts with current filter (useful for page loads)
+    async initializePosts() {
+      console.log('Initializing posts with current filter:', this.currentFilter)
+      await this.fetchPosts({ page: 1, ...this.currentFilter })
+    },
+
+    // Game category management
+    async loadGameCategories() {
+      try {
+        const categories = await apiClient.fetchGameCategories()
+
+        // Check if "All Games" already exists in the API response
+        const hasAllGames = categories.some((cat: any) => cat.game_name === 'All Games')
+
+        if (!hasAllGames) {
+          // Add "All Games" option if it doesn't exist
+          const allGamesOption = {
+            id: 'all',
+            game_name: 'All Games',
+            created_at: new Date().toISOString(),
+          }
+          this.gameCategories = [allGamesOption, ...categories]
+        } else {
+          // Use API response as-is since it already contains "All Games"
+          this.gameCategories = categories
+        }
+
+        // Sync selected category with current filter
+        this.syncSelectedCategoryWithFilter()
+
+        console.log('Game categories loaded:', this.gameCategories.length)
+        return this.gameCategories
+      } catch (error) {
+        console.error('Failed to load game categories:', error)
+        // Fallback to "All Games" option
+        const fallbackOption = {
+          id: 'all',
+          game_name: 'All Games',
+          created_at: new Date().toISOString(),
+        }
+        this.gameCategories = [fallbackOption]
+        this.selectedCategory = fallbackOption
+        throw error
+      }
+    },
+
+    syncSelectedCategoryWithFilter() {
+      if (this.gameCategories.length === 0) return
+
+      const currentFilter = this.currentFilter.game_category
+      const matchingCategory = this.gameCategories.find((cat: any) => {
+        if (currentFilter === 'all_games') {
+          return cat.game_name === 'All Games'
+        }
+        return cat.game_name === currentFilter
+      })
+
+      if (matchingCategory) {
+        this.selectedCategory = matchingCategory
+        console.log('Synced selected category with filter:', matchingCategory.game_name)
+      } else {
+        // Fallback to "All Games"
+        this.selectedCategory = this.gameCategories[0]
+      }
+    },
+
+    selectGameCategory(category: any) {
+      this.selectedCategory = category
+
+      // Convert category for filtering
+      const categoryId = category.game_name === 'All Games' ? 'all_games' : category.game_name
+
+      // refresh page to update filter
+      this.setFilter({
+        game_category: categoryId,
+      })
+
+      console.log('Selected game category:', category.game_name, '→ Filter:', categoryId)
+    },
+
     async createPost(postData: CreatePostRequest, author: User) {
       this.isCreating = true
       try {
@@ -104,7 +213,6 @@ export const usePostsStore = defineStore('posts', {
 
         const response = await apiClient.createPost(backendData)
 
-        // The API might only return metadata, so we need to refresh posts
         // to get the full post object. For now, create a temporary post.
         const tempPost: Post = {
           id: response.id || Date.now().toString(),
