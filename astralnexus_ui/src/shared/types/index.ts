@@ -84,6 +84,24 @@ export interface PostListResponse {
   hasMore: boolean
 }
 
+// API response types to match backend
+export interface PostsApiResponse {
+  success: boolean
+  message: string
+  data: {
+    posts: Post[]
+    pagination: {
+      page: number
+      limit: number
+      total: number
+      totalPages: number
+      hasNext: boolean
+      hasPrev: boolean
+    }
+  }
+  error?: string
+}
+
 export interface CommentListResponse {
   comments: Comment[]
   total: number

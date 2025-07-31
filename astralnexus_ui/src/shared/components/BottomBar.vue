@@ -95,12 +95,14 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { House, BookOpen, Calendar, User, LogOut, X, ChevronDown, Plus } from 'lucide-vue-next'
 import { useLanguageStore } from '@/shared/stores/language'
+import { usePostsStore } from '@/shared/stores/posts'
 import { API_BASE_URL, apiClient } from '@/shared/api'
 import { checkUserAuth, redirectToLogin } from '@/shared/utils'
 import NewPost from './NewPost.vue'
 import type { Post, GameCategory } from '@/shared/types'
 
 const languageStore = useLanguageStore()
+const postsStore = usePostsStore()
 const user = ref<any>(null)
 const loading = ref(false)
 const isProfileModalOpen = ref(false)
@@ -125,7 +127,17 @@ const toggleCategorySelect = () => {
 const selectCategory = (category: GameCategory) => {
   selectedCategory.value = category
   isCategorySelectOpen.value = false
-  console.log('Selected game category (mobile):', category.game_name)
+
+  // Convert category for posts store filtering
+  const categoryId =
+    category.game_name === 'All Games' ? 'all_games' : category.game_name // Use game_name instead of ID for filtering
+
+  // Update posts store filter
+  postsStore.setFilter({
+    game_category: categoryId,
+  })
+
+  console.log('Selected game category (mobile):', category.game_name, 'Filter:', categoryId)
 }
 
 const fetchGameCategories = async () => {

@@ -100,6 +100,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { ChevronDown, House, BookOpen, Calendar, User, LogOut } from 'lucide-vue-next'
 import { useLanguageStore } from '@/shared/stores/language'
+import { usePostsStore } from '@/shared/stores/posts'
 import { API_BASE_URL, apiClient } from '@/shared/api'
 import { checkUserAuth, redirectToLogin } from '@/shared/utils'
 import { GameCategory } from '@/shared/types'
@@ -107,6 +108,7 @@ import { GameCategory } from '@/shared/types'
 const isCategoryDropdownOpen = ref(false)
 const isProfileDropdownOpen = ref(false)
 const languageStore = useLanguageStore()
+const postsStore = usePostsStore()
 const user = ref<any>(null)
 const loading = ref(false)
 const searchQuery = ref('')
@@ -136,7 +138,16 @@ const toggleProfileDropdown = () => {
 const selectCategory = (category: GameCategory) => {
   selectedCategory.value = category
   isCategoryDropdownOpen.value = false
-  console.log('Selected game category:', category.game_name)
+
+  // Convert category for posts store filtering
+  const categoryId = category.game_name === 'All Games' ? 'all_games' : category.game_name // Use game_name instead of ID for filtering
+
+  // Update posts store filter
+  postsStore.setFilter({
+    game_category: categoryId,
+  })
+
+  console.log('Selected category:', category.game_name, '→ Filter:', categoryId)
 }
 
 const fetchGameCategories = async () => {
