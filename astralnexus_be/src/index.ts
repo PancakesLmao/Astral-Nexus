@@ -1,6 +1,5 @@
 import "dotenv/config"; // Load environment variables from .env file
 import { Elysia } from "elysia";
-import { node } from "@elysiajs/node";
 import { swagger } from "@elysiajs/swagger";
 import { cookie } from "@elysiajs/cookie";
 
@@ -24,15 +23,13 @@ import {
   loggerMiddleware,
   corsMiddleware,
   errorMiddleware,
-  authMiddleware,
 } from "./middleware";
 
-const app = new Elysia({ adapter: node() })
+const app = new Elysia()
   // Apply middleware
   .use(loggerMiddleware)
   .use(corsMiddleware)
   .use(errorMiddleware)
-  .use(authMiddleware)
   .use(cookie())
 
   // Swagger documentation
@@ -85,7 +82,6 @@ const app = new Elysia({ adapter: node() })
     })
   )
 
-  // Apply route groups
   .use(appRoutes)
   .use(authRoutes)
   .use(userRoutes)
@@ -94,14 +90,26 @@ const app = new Elysia({ adapter: node() })
   .use(postsRoutes)
   .use(gameCategoriesRoutes)
 
-  .listen(appConfig.port || 3001, async ({ hostname, port }) => {
-    console.log(`🦊 Elysia server is running at http://${hostname}:${port}`);
-    console.log(
-      `📚 API Documentation: http://${hostname}:${port}${appConfig.api.swagger.path}`
-    );
-    console.log(`Environment: ${appConfig.environment}`);
+  .listen(
+    {
+      port: appConfig.port || 3001,
+      hostname: "0.0.0.0", // Listen on all interfaces
+    },
+    async ({ hostname, port }) => {
+      const displayHostname = process.env.HOST || "api.localtest.me";
+      const displayUrl = `http://${displayHostname}:${port}`;
 
-    // Test database connection
-    console.log("Testing database connection...");
-    await testConnection();
-  });
+      console.log(`🦊 Elysia server is running at ${displayUrl}`);
+      console.log(
+        `📚 API Documentation: ${displayUrl}${appConfig.api.swagger.path}`
+      );
+      console.log(
+        `Server listening on: ${hostname}:${port} (all interfaces)`
+      );
+      console.log(`Environment: ${appConfig.environment}`);
+
+      // Test database connection
+      console.log("Testing database connection...");
+      await testConnection();
+    }
+  );

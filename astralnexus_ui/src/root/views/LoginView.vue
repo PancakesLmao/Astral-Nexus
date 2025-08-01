@@ -63,7 +63,7 @@
         </div> -->
 
         <!-- Google Sign In Button -->
-        <button
+        <!-- <button
           @click="handleGoogleSignIn"
           class="google-btn position-relative d-flex align-items-center justify-content-center mb-3"
         >
@@ -86,7 +86,7 @@
             />
           </svg>
           {{ languageStore.t('signInWithGoogle') }}
-        </button>
+        </button> -->
 
         <!-- Discord Sign In Button -->
         <button
@@ -100,15 +100,6 @@
           </svg>
           {{ languageStore.t('signInWithDiscord') }}
         </button>
-
-        <!-- Test Login Button (Development Only) -->
-        <button
-          @click="handleTestLogin"
-          class="test-btn position-relative d-flex align-items-center justify-content-center mt-3"
-        >
-          Test Login (Dev)
-        </button>
-        <!-- REMOVE AFTER COMPLETE SIGN-IN -->
       </div>
     </div>
   </div>
@@ -129,22 +120,22 @@ onMounted(() => {
 })
 
 // Google Sign In handler
-const handleGoogleSignIn = async (): Promise<void> => {
-  try {
-    loading.value = true
-    console.log('Initiating Google Sign In...')
+// const handleGoogleSignIn = async (): Promise<void> => {
+//   try {
+//     loading.value = true
+//     console.log('Initiating Google Sign In...')
 
-    // Get current language preference to pass to OAuth
-    const currentLang = languageStore.currentLanguage
-    console.log('Passing language to Google OAuth:', currentLang)
+//     // Get current language preference to pass to OAuth
+//     const currentLang = languageStore.currentLanguage
+//     console.log('Passing language to Google OAuth:', currentLang)
 
-    // Redirect to Google OAuth endpoint with language preference
-    window.location.href = `${API_BASE_URL}/auth/google?lang=${currentLang}`
-  } catch (error) {
-    console.error('Google Sign In error:', error)
-    loading.value = false
-  }
-}
+//     // Redirect to Google OAuth endpoint with language preference
+//     window.location.href = `${API_BASE_URL}/auth/google?lang=${currentLang}`
+//   } catch (error) {
+//     console.error('Google Sign In error:', error)
+//     loading.value = false
+//   }
+// }
 
 // Discord Sign In handler
 const handleDiscordSignIn = async (): Promise<void> => {
@@ -160,24 +151,6 @@ const handleDiscordSignIn = async (): Promise<void> => {
     window.location.href = `${API_BASE_URL}/auth/discord?lang=${currentLang}`
   } catch (error) {
     console.error('Discord Sign In error:', error)
-    loading.value = false
-  }
-}
-
-// Test Login handler (Development only)
-const handleTestLogin = async (): Promise<void> => {
-  try {
-    loading.value = true
-    console.log('Initiating Test Login...')
-
-    // Get current language preference to pass to test login
-    const currentLang = languageStore.currentLanguage
-    console.log('Passing language to Test Login:', currentLang)
-
-    // Redirect to test login endpoint with language preference
-    window.location.href = `${API_BASE_URL}/auth/test-login?lang=${currentLang}`
-  } catch (error) {
-    console.error('Test Login error:', error)
     loading.value = false
   }
 }

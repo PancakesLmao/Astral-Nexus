@@ -73,29 +73,20 @@ export async function checkUserAuth(
   apiBaseUrl: string,
 ): Promise<{ isAuthenticated: boolean; user?: any }> {
   try {
-    // Get session from localStorage or cookie
-    const sessionId = localStorage.getItem('astral_session') || getCookie('astral_session')
-
-    if (!sessionId) {
-      return { isAuthenticated: false }
-    }
-
-    const headers: Record<string, string> = {}
-    if (sessionId) {
-      headers['Authorization'] = `Bearer ${sessionId}`
-      headers['X-Session-ID'] = sessionId
-    }
-
+    // Rely solely on cookies for session management
+    // No need to manually check localStorage or send Authorization headers
     const response = await fetch(`${apiBaseUrl}/auth/me`, {
-      credentials: 'include',
-      headers,
+      credentials: 'include', // This will automatically include cookies
+      headers: {
+        'Content-Type': 'application/json',
+      },
     })
 
     if (response.ok) {
       const data = await response.json()
       return { isAuthenticated: true, user: data.user }
     } else {
-      // Clear invalid session
+      // Clear any invalid session data
       localStorage.removeItem('astral_session')
       deleteCookie('astral_session', { domain: '.localtest.me', path: '/' })
       return { isAuthenticated: false }

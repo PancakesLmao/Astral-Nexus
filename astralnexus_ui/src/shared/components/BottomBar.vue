@@ -185,17 +185,13 @@ const fetchUser = async () => {
 
 const handleLogout = async () => {
   try {
-    const sessionId = localStorage.getItem('astral_session')
-    const headers: Record<string, string> = {}
-    if (sessionId) {
-      headers['Authorization'] = `Bearer ${sessionId}`
-      headers['X-Session-ID'] = sessionId
-    }
-
+    // Use DELETE method as defined in the backend and rely on cookies
     const response = await fetch(`${API_BASE_URL}/auth/logout`, {
-      method: 'POST',
+      method: 'DELETE',
       credentials: 'include',
-      headers,
+      headers: {
+        'Content-Type': 'application/json',
+      },
     })
 
     if (response.ok) {
