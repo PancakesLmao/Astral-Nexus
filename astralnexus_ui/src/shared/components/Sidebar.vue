@@ -131,17 +131,6 @@ const fetchUser = async () => {
   try {
     loading.value = true
 
-    // Check if session ID is in URL (from OAuth redirect)
-    const urlParams = new URLSearchParams(window.location.search)
-    const sessionFromUrl = urlParams.get('session')
-
-    if (sessionFromUrl) {
-      console.log('Sidebar: Setting session from URL:', sessionFromUrl)
-      document.cookie = `astral_session=${sessionFromUrl}; path=/; max-age=${24 * 60 * 60}; SameSite=Lax; Domain=.localtest.me`
-      localStorage.setItem('astral_session', sessionFromUrl)
-      window.history.replaceState({}, document.title, window.location.pathname)
-    }
-
     // Use shared authentication utility
     const { isAuthenticated, user: userData } = await checkUserAuth(API_BASE_URL)
 

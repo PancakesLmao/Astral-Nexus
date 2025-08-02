@@ -48,17 +48,6 @@ const selectedPost = computed(() => postsStore.selectedPost)
 const postComments = computed(() => postsStore.postComments)
 const loadingComments = computed(() => postsStore.loadingComments)
 
-// Sample current user (you'll get this from your auth system)
-const currentUser = ref<User>({
-  id: 1,
-  username: 'testuser',
-  name: 'Test User',
-  email: 'test@example.com',
-  avatar: undefined,
-  bio: 'Just a test user exploring the platform',
-  created_at: '2024-01-01T00:00:00Z',
-})
-
 // Component state
 const isLoadingMore = ref(false)
 

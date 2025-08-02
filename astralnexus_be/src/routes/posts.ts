@@ -165,7 +165,9 @@ const UpdatePostSchema = t.Object({
 
 // Posts API routes
 export const postsRoutes = new Elysia({ prefix: "/api/posts" })
-  .get("/", async ({ query }) => {
+  .get(
+    "/",
+    async ({ query }) => {
       try {
         const page = Math.max(1, parseInt(query.page as string) || 1);
         const limit = Math.min(
@@ -175,6 +177,7 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
         const offset = (page - 1) * limit;
         const gameCategory = query.game_category as string;
         const postType = query.post_type as string;
+        const authorId = query.author_id as string;
         const visibility = (query.visibility as string) || "public";
         const search = query.search as string;
         const sortBy = (query.sort_by as string) || "created_at";
@@ -189,6 +192,13 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
         if (visibility) {
           whereConditions.push(`p.visibility = $${paramIndex}`);
           queryParams.push(visibility);
+          paramIndex++;
+        }
+
+        // Author filter
+        if (authorId) {
+          whereConditions.push(`p.author_id = $${paramIndex}`);
+          queryParams.push(authorId);
           paramIndex++;
         }
 
@@ -251,7 +261,7 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
 
         // Get posts with pagination
         const postsQuery = `
-          SELECT 
+          SELECT
             p.id,
             p.title,
             p.content,
@@ -353,6 +363,9 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
           t.String({ description: "Filter by game category" })
         ),
         post_type: t.Optional(t.String({ description: "Filter by post type" })),
+        author_id: t.Optional(
+          t.String({ format: "uuid", description: "Filter by author ID" })
+        ),
         visibility: t.Optional(
           t.String({ description: "Filter by visibility (default: public)" })
         ),
@@ -375,14 +388,14 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
         summary: "Get all posts",
         description: `
         Retrieve a paginated list of posts with optional filtering and sorting.
-        
+
         **Features:**
         - Pagination support with page and limit parameters
         - Filter by game category, post type, and visibility
         - Search functionality across title and content
         - Multiple sorting options
         - Returns author information and post statistics
-        
+
         **Query Parameters:**
         - \`page\`: Page number (default: 1)
         - \`limit\`: Posts per page (default: 10, max: 50)
@@ -396,10 +409,12 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
       },
     }
   )
-  .get("/:id", async ({ params }) => {
+  .get(
+    "/:id",
+    async ({ params }) => {
       try {
         const postQuery = `
-          SELECT 
+          SELECT
             p.id,
             p.title,
             p.content,
@@ -485,13 +500,13 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
         summary: "Get post by ID",
         description: `
         Retrieve a specific post by its unique identifier.
-        
+
         **Features:**
         - Returns complete post information
         - Includes author details
         - Shows post statistics (likes, comments, shares)
         - Only returns published posts
-        
+
         **Path Parameters:**
         - \`id\`: Post UUID
         `,
@@ -569,14 +584,14 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
         summary: "Create new post",
         description: `
         Create a new blog post.
-        
+
         **Features:**
         - Creates a new post with title and content
         - Optional game category association
         - Configurable visibility settings
         - Automatic author assignment (requires authentication)
         - Auto-generated timestamps
-        
+
         **Request Body:**
         - \`title\`: Post title (required, 1-255 characters)
         - \`content\`: Post content (required, markdown supported)
@@ -658,7 +673,7 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
 
         updateValues.push(params.id); // Add ID for WHERE clause
         const updateQuery = `
-          UPDATE posts 
+          UPDATE posts
           SET ${updateFields.join(", ")}
           WHERE id = $${paramIndex}
           RETURNING updated_at
@@ -704,16 +719,16 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
         summary: "Update post",
         description: `
         Update an existing post. Only the author or admin can update a post.
-        
+
         **Features:**
         - Partial updates supported (only send fields to update)
         - Automatic timestamp updating
         - Authorization checks (TODO: implement)
         - Maintains post history with updated_at
-        
+
         **Path Parameters:**
         - \`id\`: Post UUID
-        
+
         **Request Body:** (all fields optional)
         - \`title\`: New post title
         - \`content\`: New post content
@@ -786,15 +801,15 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
         summary: "Delete post",
         description: `
         Delete a post permanently. Only the author or admin can delete a post.
-        
+
         **Features:**
         - Permanent deletion (no soft delete)
         - Cascading deletion of related comments and likes
         - Authorization checks (TODO: implement)
-        
+
         **Path Parameters:**
         - \`id\`: Post UUID
-        
+
         **Warning:** This action cannot be undone
         `,
       },

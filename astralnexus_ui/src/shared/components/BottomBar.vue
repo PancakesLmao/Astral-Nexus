@@ -96,7 +96,7 @@ import { ref, onMounted, computed } from 'vue'
 import { House, BookOpen, Calendar, User, LogOut, X, ChevronDown, Plus } from 'lucide-vue-next'
 import { useLanguageStore } from '@/shared/stores/language'
 import { usePostsStore } from '@/shared/stores/posts'
-import { API_BASE_URL, apiClient } from '@/shared/api'
+import { API_BASE_URL } from '@/shared/api'
 import { checkUserAuth, redirectToLogin } from '@/shared/utils'
 import NewPost from './NewPost.vue'
 import type { Post, GameCategory } from '@/shared/types'
@@ -127,7 +127,6 @@ const toggleCategorySelect = () => {
 const selectCategory = (category: GameCategory) => {
   isCategorySelectOpen.value = false
 
-  // Use the store action to select category
   postsStore.selectGameCategory(category)
 
   console.log('Selected game category (mobile):', category.game_name)
@@ -154,16 +153,6 @@ const handlePostCreated = (post: Post) => {
 const fetchUser = async () => {
   try {
     loading.value = true
-
-    const urlParams = new URLSearchParams(window.location.search)
-    const sessionFromUrl = urlParams.get('session')
-
-    if (sessionFromUrl) {
-      console.log('BottomBar: Setting session from URL:', sessionFromUrl)
-      document.cookie = `astral_session=${sessionFromUrl}; path=/; max-age=${24 * 60 * 60}; SameSite=Lax; Domain=.localtest.me`
-      localStorage.setItem('astral_session', sessionFromUrl)
-      window.history.replaceState({}, document.title, window.location.pathname)
-    }
 
     const { isAuthenticated, user: userData } = await checkUserAuth(API_BASE_URL)
 

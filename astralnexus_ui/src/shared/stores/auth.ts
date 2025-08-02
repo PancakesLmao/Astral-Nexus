@@ -71,11 +71,6 @@ export const useAuthStore = defineStore('auth', {
     },
 
     // OAuth login functions
-    loginWithGoogle(language = 'en') {
-      const authUrl = `${API_BASE_URL}/auth/google?lang=${language}`
-      window.location.href = authUrl
-    },
-
     loginWithDiscord(language = 'en') {
       const authUrl = `${API_BASE_URL}/auth/discord?lang=${language}`
       window.location.href = authUrl

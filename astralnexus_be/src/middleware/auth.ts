@@ -132,7 +132,7 @@ export const createSession = async (
   userId: string,
   accessToken: string,
   refreshToken?: string,
-  expiresIn = 3600
+  expiresIn = 24 * 60 * 60
 ) => {
   const sessionId =
     Math.random().toString(36).substring(2) + Date.now().toString(36);
@@ -154,7 +154,7 @@ export const deleteSession = async (sessionId: string) => {
 export const refreshSession = async (
   sessionId: string,
   newAccessToken: string,
-  expiresIn = 3600
+  expiresIn = 24 * 60 * 60
 ) => {
   const expiresAt = new Date(Date.now() + expiresIn * 1000);
 

@@ -46,7 +46,7 @@ const currentUser = ref<User>({
   username: 'testuser',
   name: 'Test User',
   email: 'test@example.com',
-  avatar: undefined,
+  picture: undefined,
   bio: 'Just a test user exploring the platform',
   created_at: '2024-01-01T00:00:00Z',
 })

@@ -1,4 +1,3 @@
-// Legacy types (keeping for backward compatibility)
 export interface LegacyPost {
   id: string
   title: string
@@ -35,23 +34,24 @@ export interface CookieOptions {
 }
 
 export interface User {
-  id: number | string
-  username: string
+  id: string // UUID in database
+  username: string // Generated from email in backend
   name?: string
   email?: string
-  avatar?: string
+  picture?: string // Discord profile picture
   bio?: string
   created_at?: string
   updated_at?: string
 }
 
 export interface Post {
-  id: number | string
+  id: string // UUID in database
   title: string
   content: string
   author: User
   created_at: string
   updated_at?: string
+  published?: boolean
   comments_count?: number
   likes_count?: number
   shares_count?: number
@@ -64,11 +64,11 @@ export interface Post {
 }
 
 export interface Comment {
-  id: number | string
+  id: string // UUID 
   content: string
   author: User
-  post_id: number | string
-  parent_comment_id?: number | string
+  post_id: string // UUID
+  parent_comment_id?: string // UUID
   created_at: string
   updated_at?: string
   likes_count?: number
@@ -84,7 +84,6 @@ export interface PostListResponse {
   hasMore: boolean
 }
 
-// API response types to match backend
 export interface PostsApiResponse {
   success: boolean
   message: string
@@ -110,7 +109,6 @@ export interface CommentListResponse {
   hasMore: boolean
 }
 
-// API request/response types
 export interface CreatePostRequest {
   title: string
   content: string
@@ -121,19 +119,19 @@ export interface CreatePostRequest {
 }
 
 export interface UpdatePostRequest extends Partial<CreatePostRequest> {
-  id: number | string
+  id: string // UUID
 }
 
 export interface CreateCommentRequest {
   content: string
-  post_id: number | string
-  parent_comment_id?: number | string
+  post_id: string // UUID
+  parent_comment_id?: string // UUID
 }
 
 export interface PostFilters {
   game_category?: string
   post_type?: string
-  author_id?: number | string
+  author_id?: string // UUID
   tags?: string[]
   search?: string
   sort_by?: 'created_at' | 'likes_count' | 'comments_count'
@@ -161,10 +159,10 @@ export interface TrendingHashtag {
 }
 
 export interface SuggestedUser {
-  id: number | string
+  id: string // UUID
   username: string
   name: string
-  avatar?: string
+  picture?: string
   followers_count: number
   is_following: boolean
   bio?: string
@@ -177,14 +175,13 @@ export interface GameCategory {
 }
 
 export interface PopularGame {
-  id: number | string
+  id: string // UUID
   name: string
   icon?: string
   posts_count: number
   category: string
 }
 
-// Types for API responses
 export interface GameCategoriesResponse {
   success: boolean
   message: string

@@ -34,6 +34,7 @@ export class ApiClient {
     search?: string
     sort_by?: string
     sort_order?: string
+    author_id?: string
   }): Promise<{ posts: Post[]; pagination: any }> {
     try {
       const searchParams = new URLSearchParams()
@@ -44,6 +45,7 @@ export class ApiClient {
       if (params?.search) searchParams.append('search', params.search)
       if (params?.sort_by) searchParams.append('sort_by', params.sort_by)
       if (params?.sort_order) searchParams.append('sort_order', params.sort_order)
+      if (params?.author_id) searchParams.append('author_id', params.author_id)
 
       const url = `${this.baseUrl}/api/posts${searchParams.toString() ? '?' + searchParams.toString() : ''}`
       const response = await fetch(url)
@@ -66,6 +68,21 @@ export class ApiClient {
       console.error('Error fetching posts:', error)
       throw error
     }
+  }
+
+  async fetchUserPosts(
+    userId: string,
+    params?: {
+      page?: number
+      limit?: number
+      sort_by?: string
+      sort_order?: string
+    },
+  ): Promise<{ posts: Post[]; pagination: any }> {
+    return this.fetchPosts({
+      ...params,
+      author_id: userId,
+    })
   }
 
   async createPost(postData: {
