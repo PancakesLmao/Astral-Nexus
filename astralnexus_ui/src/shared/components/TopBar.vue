@@ -9,15 +9,15 @@
         <!-- Navigation Links (Desktop) -->
         <div class="nav-links hidden lg:flex">
           <router-link to="/" class="nav-link">
-            <House :size="20" />
+            <House :size="18" />
             <span>{{ languageStore.t('home') }}</span>
           </router-link>
-          <router-link to="/myposts" class="nav-link">
-            <BookOpen :size="20" />
-            <span>{{ languageStore.t('myposts') }}</span>
+          <router-link to="/notifications" class="nav-link">
+            <Bell :size="18" />
+            <span>{{ languageStore.t('notifications') }}</span>
           </router-link>
           <router-link to="/events" class="nav-link">
-            <Calendar :size="20" />
+            <Calendar :size="18" />
             <span>{{ languageStore.t('events') }}</span>
           </router-link>
         </div>
@@ -29,7 +29,7 @@
               type="text"
               v-model="searchQuery"
               @input="handleSearch"
-              placeholder="Search posts, users, games..."
+              :placeholder="languageStore.t('searchPlaceholder')"
               class="search-input"
             />
           </div>
@@ -98,7 +98,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { ChevronDown, House, BookOpen, Calendar, User, LogOut } from 'lucide-vue-next'
+import { ChevronDown, House, Bell, Calendar, User, LogOut } from 'lucide-vue-next'
 import { useLanguageStore } from '@/shared/stores/language'
 import { usePostsStore } from '@/shared/stores/posts'
 import { API_BASE_URL, apiClient } from '@/shared/api'

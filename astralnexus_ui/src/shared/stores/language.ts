@@ -44,7 +44,7 @@ export const useLanguageStore = defineStore('language', () => {
       setCookie('preferred-language', localStorageLanguage, {
         domain: '.localtest.me',
         path: '/',
-        maxAge: 365 * 24 * 60 * 60, // 1 year in seconds
+        maxAge: 365 * 24 * 60 * 60, // 1 year
         sameSite: 'Lax',
       })
       localStorage.removeItem('preferred-language')
@@ -59,7 +59,7 @@ export const useLanguageStore = defineStore('language', () => {
       setCookie('preferred-language', browserLang, {
         domain: '.localtest.me',
         path: '/',
-        maxAge: 365 * 24 * 60 * 60, // 1 year in seconds
+        maxAge: 365 * 24 * 60 * 60, // 1 year
         sameSite: 'Lax',
       })
     }

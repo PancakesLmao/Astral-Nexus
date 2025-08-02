@@ -30,7 +30,7 @@
               @click="$emit('follow')"
             >
               <UserPlus :size="18" />
-              {{ isFollowing ? 'Following' : 'Follow' }}
+              {{ isFollowing ? languageStore.t('following') : languageStore.t('follow') }}
             </button>
           </div>
         </div>
@@ -42,7 +42,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { UserPlus } from 'lucide-vue-next'
+import { useLanguageStore } from '../stores/language'
 import type { User } from '@/shared/types'
+
+// Language store
+const languageStore = useLanguageStore()
 
 interface Props {
   user: User

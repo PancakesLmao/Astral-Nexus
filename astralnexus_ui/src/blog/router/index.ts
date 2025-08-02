@@ -18,16 +18,9 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
-      path: '/myposts',
-      name: 'MyPosts',
-      component: () => import('../views/MyPostsView.vue'),
-      meta: { requiresAuth: true },
-    },
-    {
-      path: '/myposts/:id',
-      name: 'PostDetail',
-      component: () => import('@/shared/components/PostDetail.vue'),
-      props: true,
+      path: '/notifications',
+      name: 'Notifications',
+      component: () => import('../views/NotificationsView.vue'),
       meta: { requiresAuth: true },
     },
     {

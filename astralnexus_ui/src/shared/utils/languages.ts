@@ -52,10 +52,43 @@ export const translations = {
     backToLogin: 'Back to Login',
     // Sidebar
     home: 'Home',
-    myposts: 'My Posts',
+    notifications: 'Notifications',
     events: 'Events',
     profile: 'Profile',
     language: 'Language',
+    // Notifications
+    notificationsDescription: 'Stay updated with all your activity and interactions.',
+    noNotifications: 'No notifications yet',
+    noNotificationsDescription: 'When you have notifications, they will appear here.',
+    // Search
+    searchPlaceholder: 'Search posts, users, games...',
+    // Sidebar Stats
+    posts: 'Posts',
+    following: 'Following',
+    followers: 'Followers',
+    recentActivity: 'Recent Activity',
+    newPost: 'New Post',
+    editProfile: 'Edit Profile',
+    // Profile Header
+    follow: 'Follow',
+    // Profile Tabs
+    comments: 'Comments',
+    activity: 'Activity',
+    // Profile Posts
+    loadingPosts: 'Loading posts...',
+    noPostsYet: 'No posts yet',
+    startSharing: 'Start sharing your thoughts with the community!',
+    loadMorePosts: 'Load More Posts',
+    // Profile Comments
+    loadingComments: 'Loading comments...',
+    noCommentsYet: 'No comments yet',
+    startCommenting: 'Start commenting to engage with the community!',
+    loadMoreComments: 'Load More Comments',
+    // Profile Activities
+    loadingActivities: 'Loading activities...',
+    noActivitiesYet: 'No activities yet',
+    startEngaging: 'Start engaging with the community!',
+    loadMoreActivities: 'Load More Activities',
   },
   vn: {
     welcome: 'Chào mừng đến với',
@@ -90,10 +123,43 @@ export const translations = {
     backToLogin: 'Quay lại Đăng Nhập',
     // Sidebar
     home: 'Trang Chủ',
-    myposts: 'Bài Viết Của Tôi',
+    notifications: 'Thông Báo',
     events: 'Sự Kiện',
     profile: 'Tài Khoản',
     language: 'Ngôn Ngữ',
+    // Notifications
+    notificationsDescription: 'Cập nhật tất cả hoạt động và tương tác của bạn.',
+    noNotifications: 'Chưa có thông báo',
+    noNotificationsDescription: 'Khi bạn có thông báo, chúng sẽ xuất hiện ở đây.',
+    // Search
+    searchPlaceholder: 'Tìm kiếm bài viết, người dùng, game...',
+    // Sidebar Stats
+    posts: 'Bài Viết',
+    following: 'Đang Theo Dõi',
+    followers: 'Người Theo Dõi',
+    recentActivity: 'Hoạt Động Gần Đây',
+    newPost: 'Bài Viết Mới',
+    editProfile: 'Chỉnh Sửa Profile',
+    // Profile Header
+    follow: 'Theo Dõi',
+    // Profile Tabs
+    comments: 'Bình Luận',
+    activity: 'Hoạt Động',
+    // Profile Posts
+    loadingPosts: 'Đang tải bài viết...',
+    noPostsYet: 'Chưa có bài viết nào',
+    startSharing: 'Hãy bắt đầu chia sẻ suy nghĩ của bạn với cộng đồng!',
+    loadMorePosts: 'Tải Thêm Bài Viết',
+    // Profile Comments
+    loadingComments: 'Đang tải bình luận...',
+    noCommentsYet: 'Chưa có bình luận nào',
+    startCommenting: 'Hãy bắt đầu bình luận để tương tác với cộng đồng!',
+    loadMoreComments: 'Tải Thêm Bình Luận',
+    // Profile Activities
+    loadingActivities: 'Đang tải hoạt động...',
+    noActivitiesYet: 'Chưa có hoạt động nào',
+    startEngaging: 'Hãy bắt đầu tương tác với cộng đồng!',
+    loadMoreActivities: 'Tải Thêm Hoạt Động',
   },
 }
 

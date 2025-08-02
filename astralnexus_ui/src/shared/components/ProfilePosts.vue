@@ -2,13 +2,13 @@
   <div id="profile-posts" class="py-4">
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-8">
-      <div class="text-dark-400">Loading posts...</div>
+      <div class="text-dark-400">{{ languageStore.t('loadingPosts') }}</div>
     </div>
 
     <!-- Empty State -->
     <div v-else-if="posts.length === 0" class="text-center py-12 text-gray-400">
-      <p class="text-lg mb-2 text-[#b8aff7]">No posts yet</p>
-      <p class="text-sm text-gray-600">Start sharing your thoughts with the community!</p>
+      <p class="text-lg mb-2 text-[#b8aff7]">{{ languageStore.t('noPostsYet') }}</p>
+      <p class="text-sm text-gray-600">{{ languageStore.t('startSharing') }}</p>
     </div>
 
     <!-- Posts Grid -->
@@ -92,7 +92,7 @@
         @click="$emit('loadMore')"
         :disabled="loadingMore"
       >
-        {{ loadingMore ? 'Loading...' : 'Load More Posts' }}
+        {{ loadingMore ? languageStore.t('loading') : languageStore.t('loadMorePosts') }}
       </button>
     </div>
   </div>
@@ -100,7 +100,11 @@
 
 <script lang="ts" setup>
 import { MessageSquareMore, ThumbsUp, Ellipsis, Repeat2 } from 'lucide-vue-next'
+import { useLanguageStore } from '../stores/language'
 import type { Post } from '@/shared/types'
+
+// Language store
+const languageStore = useLanguageStore()
 
 // Props
 interface Props {

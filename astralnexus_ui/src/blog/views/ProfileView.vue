@@ -1,12 +1,16 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import ProfileHeader from '../../shared/components/ProfileHeader.vue'
 import ProfileTabs from '../../shared/components/ProfileTabs.vue'
 import ProfilePosts from '../../shared/components/ProfilePosts.vue'
 import PostDetail from '../../shared/components/PostDetail.vue'
 import { API_BASE_URL, apiClient } from '../../shared/api'
 import { checkUserAuth, redirectToLogin } from '../../shared/utils'
+import { useLanguageStore } from '../../shared/stores/language'
 import type { Post, User } from '../../shared/types'
+
+// Language store
+const languageStore = useLanguageStore()
 
 // User data from auth/me API
 const user = ref<User | null>(null)
@@ -23,11 +27,11 @@ const currentPage = ref(1)
 const selectedPost = ref<Post | null>(null)
 const showPostDetail = ref(false)
 
-const tabs = [
-  { id: 'posts', label: 'Posts' },
-  { id: 'comments', label: 'Comments' },
-  { id: 'activity', label: 'Activity' },
-]
+const tabs = computed(() => [
+  { id: 'posts', label: languageStore.t('posts') },
+  { id: 'comments', label: languageStore.t('comments') },
+  { id: 'activity', label: languageStore.t('activity') },
+])
 
 onMounted(async () => {
   await fetchUser()

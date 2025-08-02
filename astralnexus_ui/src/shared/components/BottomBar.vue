@@ -6,9 +6,9 @@
         <span class="nav-label">{{ languageStore.t('home') }}</span>
       </router-link>
 
-      <router-link to="/myposts" class="bottom-nav-item">
-        <BookOpen :size="20" />
-        <span class="nav-label">{{ languageStore.t('myposts') }}</span>
+      <router-link to="/notifications" class="bottom-nav-item">
+        <Bell :size="20" />
+        <span class="nav-label">{{ languageStore.t('notifications') }}</span>
       </router-link>
 
       <!-- Create Post Button -->
@@ -93,7 +93,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { House, BookOpen, Calendar, User, LogOut, X, ChevronDown, Plus } from 'lucide-vue-next'
+import { House, Bell, Calendar, User, LogOut, X, ChevronDown, Plus } from 'lucide-vue-next'
 import { useLanguageStore } from '@/shared/stores/language'
 import { usePostsStore } from '@/shared/stores/posts'
 import { API_BASE_URL } from '@/shared/api'
