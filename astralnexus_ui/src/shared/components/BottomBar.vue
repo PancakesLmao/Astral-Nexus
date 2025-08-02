@@ -66,14 +66,15 @@
                 :key="category.id"
                 class="category-item"
                 :class="{ active: category.id === selectedCategory?.id }"
-                @click="selectCategory(category)"
+                @click="handleCategorySelect(category)"
               >
+                <span class="category-icon">🎮</span>
                 <span>{{ category.game_name }}</span>
               </button>
             </div>
           </div>
 
-          <button class="modal-action logout-action" @click="handleLogout">
+          <button class="modal-action logout-action" @click="handleLogoutClick">
             <LogOut :size="18" />
             <span>{{ languageStore.t('logout') }}</span>
           </button>
@@ -92,26 +93,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { House, Bell, Calendar, User, LogOut, X, ChevronDown, Plus } from 'lucide-vue-next'
 import { useLanguageStore } from '@/shared/stores/language'
-import { usePostsStore } from '@/shared/stores/posts'
-import { API_BASE_URL } from '@/shared/api'
-import { checkUserAuth, redirectToLogin } from '@/shared/utils'
+import { useUser } from '@/shared/composables/useUser'
+import { useGameCategories } from '@/shared/composables/useGameCategories'
 import NewPost from './NewPost.vue'
-import type { Post, GameCategory } from '@/shared/types'
+import type { Post } from '@/shared/types'
 
 const languageStore = useLanguageStore()
-const postsStore = usePostsStore()
-const user = ref<any>(null)
-const loading = ref(false)
+const { user, loading, handleLogout, initializeUser } = useUser()
+const { gameCategories, selectedCategory, fetchGameCategories, selectCategory } =
+  useGameCategories()
 const isProfileModalOpen = ref(false)
 const isCategorySelectOpen = ref(false)
 const isCreatePostDialogOpen = ref(false)
-
-// Game categories (from store)
-const gameCategories = computed(() => postsStore.gameCategories)
-const selectedCategory = computed(() => postsStore.selectedCategory)
 
 const toggleProfileModal = () => {
   isProfileModalOpen.value = !isProfileModalOpen.value
@@ -124,21 +120,9 @@ const toggleCategorySelect = () => {
   isCategorySelectOpen.value = !isCategorySelectOpen.value
 }
 
-const selectCategory = (category: GameCategory) => {
+const handleCategorySelect = (category: any) => {
   isCategorySelectOpen.value = false
-
-  postsStore.selectGameCategory(category)
-
-  console.log('Selected game category (mobile):', category.game_name)
-}
-
-const fetchGameCategories = async () => {
-  try {
-    await postsStore.loadGameCategories()
-    console.log('BottomBar: Game categories loaded from store')
-  } catch (error) {
-    console.error('BottomBar: Failed to load game categories:', error)
-  }
+  selectCategory(category)
 }
 
 const openCreatePostDialog = () => {
@@ -150,56 +134,14 @@ const handlePostCreated = (post: Post) => {
   // You could emit an event to parent component or update some state
 }
 
-const fetchUser = async () => {
-  try {
-    loading.value = true
-
-    const { isAuthenticated, user: userData } = await checkUserAuth(API_BASE_URL)
-
-    if (!isAuthenticated) {
-      console.log('BottomBar: User not authenticated, redirecting to login')
-      redirectToLogin()
-      return
-    }
-
-    user.value = userData
-    console.log('BottomBar: User loaded:', userData.name)
-  } catch (err) {
-    console.error('BottomBar: Failed to fetch user:', err)
-    redirectToLogin()
-  } finally {
-    loading.value = false
-  }
-}
-
-const handleLogout = async () => {
-  try {
-    // Use DELETE method as defined in the backend and rely on cookies
-    const response = await fetch(`${API_BASE_URL}/auth/logout`, {
-      method: 'DELETE',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
-
-    if (response.ok) {
-      localStorage.removeItem('astral_session')
-      user.value = null
-      window.location.href = 'http://localtest.me:3000/login'
-    } else {
-      console.error('Logout failed')
-    }
-  } catch (err) {
-    console.error('Logout error:', err)
-  } finally {
-    isProfileModalOpen.value = false
-  }
+const handleLogoutClick = async () => {
+  await handleLogout()
+  isProfileModalOpen.value = false
 }
 
 onMounted(() => {
   languageStore.initializeLanguage()
-  fetchUser()
+  initializeUser()
   fetchGameCategories()
 })
 </script>

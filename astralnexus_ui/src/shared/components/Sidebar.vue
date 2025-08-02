@@ -1,6 +1,7 @@
 <template>
   <div
     class="user-sidebar fixed bg-[#0a0b0f] border-r border-white/10 top-0 left-0 w-[280px] h-screen z-[1000] overflow-y-auto p-6"
+    style="scrollbar-width: none; -ms-overflow-style: none"
   >
     <!-- Profile header -->
     <div class="profile-header relative mb-8" v-if="user">
@@ -121,17 +122,15 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Plus, Edit, Heart, MessageCircle, BookOpen, Award } from 'lucide-vue-next'
-import { API_BASE_URL } from '@/shared/api'
 import { useLanguageStore } from '@/shared/stores/language'
-import { checkUserAuth, redirectToLogin } from '@/shared/utils'
+import { useUser } from '@/shared/composables/useUser'
 import { UserStats, Activity } from '../types'
 import NewPost from './NewPost.vue'
 import type { Post } from '@/shared/types'
 
 const router = useRouter()
 const languageStore = useLanguageStore()
-const user = ref<any>(null)
-const loading = ref(false)
+const { user, loading, initializeUser } = useUser()
 const isCreatePostDialogOpen = ref(false)
 
 // Mock user stats
@@ -170,29 +169,6 @@ const recentActivities = ref<Activity[]>([
 ])
 
 languageStore.initializeLanguage()
-
-const fetchUser = async () => {
-  try {
-    loading.value = true
-
-    // Use shared authentication utility
-    const { isAuthenticated, user: userData } = await checkUserAuth(API_BASE_URL)
-
-    if (!isAuthenticated) {
-      console.log('Sidebar: User not authenticated, redirecting to login')
-      redirectToLogin()
-      return
-    }
-
-    user.value = userData
-    console.log('Sidebar: User loaded:', userData.name)
-  } catch (err) {
-    console.error('Sidebar: Failed to fetch user:', err)
-    redirectToLogin()
-  } finally {
-    loading.value = false
-  }
-}
 
 const getActivityIcon = (type: string) => {
   switch (type) {
@@ -243,7 +219,7 @@ const editProfile = () => {
 }
 
 onMounted(() => {
-  fetchUser()
+  initializeUser()
 })
 </script>
 
@@ -278,22 +254,9 @@ onMounted(() => {
   border-color: rgba(184, 175, 247, 0.5);
 }
 
-/* Custom Scrollbar (kept as raw CSS) */
+/* Hide scrollbar */
 .user-sidebar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.user-sidebar::-webkit-scrollbar-track {
-  background: #0a0b0f;
-}
-
-.user-sidebar::-webkit-scrollbar-thumb {
-  background: #542f87;
-  border-radius: 3px;
-}
-
-.user-sidebar::-webkit-scrollbar-thumb:hover {
-  background: #b8aff7;
+  display: none;
 }
 
 /* Media Query (kept as raw CSS) */

@@ -64,7 +64,7 @@ export interface Post {
 }
 
 export interface Comment {
-  id: string // UUID 
+  id: string // UUID
   content: string
   author: User
   post_id: string // UUID
@@ -175,7 +175,7 @@ export interface GameCategory {
 }
 
 export interface PopularGame {
-  id: string // UUID
+  id: string | number // UUID
   name: string
   icon?: string
   posts_count: number

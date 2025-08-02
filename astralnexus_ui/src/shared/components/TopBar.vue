@@ -26,11 +26,11 @@
         <div class="search-container">
           <div class="search-bar">
             <input
+              class="search-input"
               type="text"
               v-model="searchQuery"
-              @input="handleSearch"
               :placeholder="languageStore.t('searchPlaceholder')"
-              class="search-input"
+              @keyup.enter="handleSearch"
             />
           </div>
         </div>
@@ -53,7 +53,7 @@
                 :key="category.id"
                 class="category-option"
                 :class="{ active: category.id === selectedCategory?.id }"
-                @click="selectCategory(category)"
+                @click="handleCategorySelect(category)"
               >
                 <span class="category-label">{{ category.game_name }}</span>
               </button>
@@ -62,11 +62,10 @@
 
           <!-- Profile Icon -->
           <div class="profile-container hidden lg:block" @click="toggleProfileDropdown" v-if="user">
-            <div class="profile-btn">
+            <button class="profile-btn" :aria-expanded="isProfileDropdownOpen">
               <img :src="user.picture" :alt="user.name" class="profile-avatar" />
-            </div>
+            </button>
 
-            <!-- Profile Dropdown -->
             <div class="profile-dropdown" v-show="isProfileDropdownOpen">
               <div class="profile-info">
                 <img :src="user.picture" :alt="user.name" class="profile-avatar-large" />
@@ -84,7 +83,7 @@
                 <User :size="16" />
                 <span>{{ languageStore.t('profile') }}</span>
               </router-link>
-              <button class="dropdown-item logout-btn" @click="handleLogout">
+              <button class="dropdown-item logout-btn" @click="handleLogoutClick">
                 <LogOut :size="16" />
                 <span>{{ languageStore.t('logout') }}</span>
               </button>
@@ -97,29 +96,24 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { ChevronDown, House, Bell, Calendar, User, LogOut } from 'lucide-vue-next'
 import { useLanguageStore } from '@/shared/stores/language'
-import { usePostsStore } from '@/shared/stores/posts'
-import { API_BASE_URL, apiClient } from '@/shared/api'
-import { checkUserAuth, redirectToLogin } from '@/shared/utils'
-import { GameCategory } from '@/shared/types'
+import { useUser } from '@/shared/composables/useUser'
+import { useGameCategories } from '@/shared/composables/useGameCategories'
 
 const isCategoryDropdownOpen = ref(false)
 const isProfileDropdownOpen = ref(false)
 const languageStore = useLanguageStore()
-const postsStore = usePostsStore()
-const user = ref<any>(null)
-const loading = ref(false)
+const { user, loading, handleLogout, initializeUser } = useUser()
+const { gameCategories, selectedCategory, fetchGameCategories, selectCategory } =
+  useGameCategories()
 const searchQuery = ref('')
 
 // Emits for search functionality
 const emit = defineEmits<{
   search: [query: string]
 }>()
-
-const gameCategories = computed(() => postsStore.gameCategories)
-const selectedCategory = computed(() => postsStore.selectedCategory)
 
 const toggleCategoryDropdown = () => {
   isCategoryDropdownOpen.value = !isCategoryDropdownOpen.value
@@ -135,22 +129,9 @@ const toggleProfileDropdown = () => {
   }
 }
 
-const selectCategory = (category: GameCategory) => {
+const handleCategorySelect = (category: any) => {
   isCategoryDropdownOpen.value = false
-
-  // Use the store action to select category
-  postsStore.selectGameCategory(category)
-
-  console.log('Selected category:', category.game_name)
-}
-
-const fetchGameCategories = async () => {
-  try {
-    await postsStore.loadGameCategories()
-    console.log('TopBar: Game categories loaded from store')
-  } catch (error) {
-    console.error('TopBar: Failed to load game categories:', error)
-  }
+  selectCategory(category)
 }
 
 const handleSearch = () => {
@@ -158,51 +139,9 @@ const handleSearch = () => {
   emit('search', searchQuery.value)
 }
 
-const fetchUser = async () => {
-  try {
-    loading.value = true
-
-    const { isAuthenticated, user: userData } = await checkUserAuth(API_BASE_URL)
-
-    if (!isAuthenticated) {
-      console.log('TopBar: User not authenticated, redirecting to login')
-      redirectToLogin()
-      return
-    }
-
-    user.value = userData
-    console.log('TopBar: User loaded:', userData.name)
-  } catch (err) {
-    console.error('TopBar: Failed to fetch user:', err)
-    redirectToLogin()
-  } finally {
-    loading.value = false
-  }
-}
-
-const handleLogout = async () => {
-  try {
-    // Use DELETE method as defined in the backend and rely on cookies
-    const response = await fetch(`${API_BASE_URL}/auth/logout`, {
-      method: 'DELETE',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
-
-    if (response.ok) {
-      localStorage.removeItem('astral_session')
-      user.value = null
-      window.location.href = 'http://localtest.me:3000/login'
-    } else {
-      console.error('Logout failed')
-    }
-  } catch (err) {
-    console.error('Logout error:', err)
-  } finally {
-    isProfileDropdownOpen.value = false
-  }
+const handleLogoutClick = async () => {
+  await handleLogout()
+  isProfileDropdownOpen.value = false
 }
 
 const handleClickOutside = (event: Event) => {
@@ -218,7 +157,7 @@ const handleClickOutside = (event: Event) => {
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
   languageStore.initializeLanguage()
-  fetchUser()
+  initializeUser()
   fetchGameCategories()
 })
 

@@ -4,17 +4,17 @@ import ProfileHeader from '../../shared/components/ProfileHeader.vue'
 import ProfileTabs from '../../shared/components/ProfileTabs.vue'
 import ProfilePosts from '../../shared/components/ProfilePosts.vue'
 import PostDetail from '../../shared/components/PostDetail.vue'
-import { API_BASE_URL, apiClient } from '../../shared/api'
-import { checkUserAuth, redirectToLogin } from '../../shared/utils'
+import { apiClient } from '../../shared/api'
+import { useUser } from '../../shared/composables/useUser'
+import { usePostInteractions } from '../../shared/composables/usePostInteractions'
 import { useLanguageStore } from '../../shared/stores/language'
-import type { Post, User } from '../../shared/types'
+import type { Post } from '../../shared/types'
 
 // Language store
 const languageStore = useLanguageStore()
 
-// User data from auth/me API
-const user = ref<User | null>(null)
-const loading = ref(true)
+// User management
+const { user, loading, initializeUser } = useUser()
 
 // Posts data
 const posts = ref<Post[]>([])
@@ -23,9 +23,17 @@ const loadingMorePosts = ref(false)
 const hasMorePosts = ref(true)
 const currentPage = ref(1)
 
-// Post detail modal
-const selectedPost = ref<Post | null>(null)
-const showPostDetail = ref(false)
+// Post interactions
+const {
+  selectedPost,
+  showPostDetail,
+  handleSelectPost,
+  handleClosePostDetail,
+  handleToggleLike,
+  handleToggleComments,
+  handleSharePost,
+  handleShowPostOptions,
+} = usePostInteractions(posts)
 
 const tabs = computed(() => [
   { id: 'posts', label: languageStore.t('posts') },
@@ -34,32 +42,11 @@ const tabs = computed(() => [
 ])
 
 onMounted(async () => {
-  await fetchUser()
-})
-
-const fetchUser = async () => {
-  try {
-    loading.value = true
-
-    const { isAuthenticated, user: userData } = await checkUserAuth(API_BASE_URL)
-
-    if (!isAuthenticated) {
-      console.log('Profile: User not authenticated, redirecting to login')
-      redirectToLogin()
-      return
-    }
-
-    user.value = userData
-    console.log('Profile: User loaded:', userData.name)
-
+  await initializeUser()
+  if (user.value) {
     await fetchUserPosts()
-  } catch (err) {
-    console.error('Profile: Failed to fetch user:', err)
-    redirectToLogin()
-  } finally {
-    loading.value = false
   }
-}
+})
 
 const fetchUserPosts = async (page = 1) => {
   if (!user.value) return
@@ -96,47 +83,6 @@ const fetchUserPosts = async (page = 1) => {
 
 const loadMorePosts = async () => {
   await fetchUserPosts(currentPage.value + 1)
-}
-
-const handleSelectPost = (post: Post) => {
-  selectedPost.value = post
-  showPostDetail.value = true
-}
-
-const handleClosePostDetail = () => {
-  showPostDetail.value = false
-  selectedPost.value = null
-}
-
-const handleToggleLike = async (post: Post) => {
-  try {
-    await apiClient.likePost(post.id)
-    // Update the post in the list
-    const index = posts.value.findIndex((p) => p.id === post.id)
-    if (index !== -1) {
-      posts.value[index] = {
-        ...posts.value[index],
-        is_liked: !posts.value[index].is_liked,
-        likes_count: posts.value[index].is_liked
-          ? (posts.value[index].likes_count || 0) - 1
-          : (posts.value[index].likes_count || 0) + 1,
-      }
-    }
-  } catch (error) {
-    console.error('Failed to toggle like:', error)
-  }
-}
-
-const handleToggleComments = (post: Post) => {
-  handleSelectPost(post)
-}
-
-const handleSharePost = (post: Post) => {
-  console.log('Share post:', post.id)
-}
-
-const handleShowPostOptions = (post: Post) => {
-  console.log('Show options for post:', post.id)
 }
 </script>
 
