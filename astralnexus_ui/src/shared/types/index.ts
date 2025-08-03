@@ -199,3 +199,26 @@ export interface PaginationInfo {
   hasNext: boolean
   hasPrev: boolean
 }
+
+export interface Notification {
+  id: string
+  user_id: string
+  type: 'like' | 'comment' | 'follow' | 'mention' | 'system'
+  title: string
+  message: string
+  post_id?: string
+  comment_id?: string
+  post_title?: string
+  comment_content?: string
+  created_at: string
+}
+
+export interface NotificationsResponse {
+  success: boolean
+  message: string
+  data: {
+    notifications: Notification[]
+    pagination: PaginationInfo
+  }
+  error?: string
+}

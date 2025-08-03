@@ -1,6 +1,14 @@
 // Eden API client configuration
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
-import { GameCategory, GameCategoriesResponse, Post, PostsApiResponse, PaginationInfo } from '@/shared/types'
+import {
+  GameCategory,
+  GameCategoriesResponse,
+  Post,
+  PostsApiResponse,
+  PaginationInfo,
+  Notification,
+  NotificationsResponse,
+} from '@/shared/types'
 
 // API client setup
 export class ApiClient {
@@ -148,6 +156,65 @@ export class ApiClient {
       }
     } catch (error) {
       console.error('Error liking post:', error)
+      throw error
+    }
+  }
+
+  async fetchNotifications(params?: {
+    user_id: string
+    page?: number
+    limit?: number
+  }): Promise<{ notifications: Notification[]; pagination: PaginationInfo }> {
+    try {
+      const searchParams = new URLSearchParams()
+
+      searchParams.append('user_id', params!.user_id)
+      if (params?.page) searchParams.append('page', params.page.toString())
+      if (params?.limit) searchParams.append('limit', params.limit.toString())
+
+      const url = `${this.baseUrl}/api/notifications?${searchParams.toString()}`
+      const response = await fetch(url)
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data: NotificationsResponse = await response.json()
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to fetch notifications')
+      }
+
+      return {
+        notifications: data.data.notifications,
+        pagination: data.data.pagination,
+      }
+    } catch (error) {
+      console.error('Error fetching notifications:', error)
+      throw error
+    }
+  }
+
+  async deleteNotification(notificationId: string): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/notifications/${notificationId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to delete notification')
+      }
+    } catch (error) {
+      console.error('Error deleting notification:', error)
       throw error
     }
   }

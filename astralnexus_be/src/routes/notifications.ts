@@ -19,8 +19,7 @@ export async function createWelcomeNotification(userId: string) {
 
     const adminId = adminResult.rows[0].id;
 
-    const welcomeMessage = `Welcome to AstralNexus - your premier destination for gaming content and community discussions!
-Take your time to discover the platform. When you're ready, start your journey to support the community
+    const welcomeMessage = `Take your time to discover the platform. When you're ready, start your journey to support the community
 `;
 
     const insertQuery = `

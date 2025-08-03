@@ -1,22 +1,14 @@
 <template>
   <div id="notifications" class="px-5 py-0">
-    <h1 class="text-2xl font-bold text-foreground">{{ languageStore.t('notifications') }}</h1>
-    <p class="text-dark-300 mb-6">{{ languageStore.t('notificationsDescription') }}</p>
+    <h1 class="text-2xl font-bold text-foreground mb-6">{{ languageStore.t('notifications') }}</h1>
 
-    <!-- Empty State -->
-    <div class="text-center py-16">
-      <h3 class="text-xl font-semibold text-[#b8aff7] mb-2">
-        {{ languageStore.t('noNotifications') }}
-      </h3>
-      <p class="text-gray-400 max-w-md mx-auto">
-        {{ languageStore.t('noNotificationsDescription') }}
-      </p>
-    </div>
+    <NotificationBox />
   </div>
 </template>
 
 <script setup lang="ts">
 import { useLanguageStore } from '@/shared/stores/language'
+import NotificationBox from '@/shared/components/NotificationBox.vue'
 
 const languageStore = useLanguageStore()
 </script>
