@@ -231,6 +231,33 @@ export class ApiClient {
       throw error
     }
   }
+
+  async fetchUserStats(userId: string): Promise<{
+    posts: number
+    comments: number
+    notifications: number
+    following: number
+    followers: number
+  }> {
+    try {
+      const response = await fetch(`${this.baseUrl}/users/stats/${userId}`)
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to fetch user statistics')
+      }
+
+      return data.data
+    } catch (error) {
+      console.error('Error fetching user statistics:', error)
+      throw error
+    }
+  }
 }
 
 // Export a default instance

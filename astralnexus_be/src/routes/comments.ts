@@ -291,7 +291,8 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
           return {
             success: false,
             error: "Comment not found",
-            message: "Comment not found or you don't have permission to edit it",
+            message:
+              "Comment not found or you don't have permission to edit it",
           };
         }
 
@@ -433,15 +434,16 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
           return {
             success: false,
             error: "Comment not found",
-            message: "Comment not found or you don't have permission to delete it",
+            message:
+              "Comment not found or you don't have permission to delete it",
           };
         }
 
         // Delete comment from database
-        await queryOne("DELETE FROM comments WHERE id = $1 AND author_id = $2", [
-          commentId,
-          session.user_id,
-        ]);
+        await queryOne(
+          "DELETE FROM comments WHERE id = $1 AND author_id = $2",
+          [commentId, session.user_id]
+        );
 
         set.status = 200;
         return {

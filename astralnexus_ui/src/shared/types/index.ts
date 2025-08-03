@@ -140,6 +140,8 @@ export interface PostFilters {
 
 export interface UserStats {
   posts: number
+  comments: number
+  notifications: number
   following: number
   followers: number
 }

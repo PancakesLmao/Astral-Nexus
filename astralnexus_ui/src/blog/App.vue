@@ -1,29 +1,81 @@
 <template>
   <div id="blog-app" class="d-flex">
-    <TopBar></TopBar>
-    <Sidebar></Sidebar>
+    <TopBar :user-stats="userStats" :loading-stats="isLoadingStats"></TopBar>
+    <Sidebar
+      :user-stats="userStats"
+      :loading-stats="isLoadingStats"
+      @refresh-stats="refreshUserStats"
+    ></Sidebar>
     <div class="main-content my-6">
       <router-view />
     </div>
     <TrendingBar></TrendingBar>
-    <BottomBar></BottomBar>
+    <BottomBar :user-stats="userStats" :loading-stats="isLoadingStats"></BottomBar>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import TopBar from '@/shared/components/TopBar.vue'
 import Sidebar from '@/shared/components/Sidebar.vue'
 import TrendingBar from '@/shared/components/TrendingBar.vue'
 import BottomBar from '@/shared/components/BottomBar.vue'
 import { useLanguageStore } from '@/shared/stores/language'
+import { useUser } from '@/shared/composables/useUser'
+import { apiClient } from '@/shared/api'
+import type { UserStats } from '@/shared/types'
 
 const route = useRoute()
 const router = useRouter()
 const languageStore = useLanguageStore()
+const { user, initializeUser } = useUser()
 
-onMounted(() => {
+// User stats management
+const userStats = ref<UserStats>({
+  posts: 0,
+  comments: 0,
+  notifications: 0,
+  following: 0,
+  followers: 0,
+})
+
+const isLoadingStats = ref(false)
+
+// Function to fetch user statistics
+const fetchUserStats = async () => {
+  if (!user.value?.id) return
+
+  try {
+    isLoadingStats.value = true
+    const stats = await apiClient.fetchUserStats(user.value.id.toString())
+    userStats.value = stats
+    console.log('User stats fetched:', stats)
+  } catch (error) {
+    console.error('Error fetching user stats:', error)
+    // Keep default values on error
+  } finally {
+    isLoadingStats.value = false
+  }
+}
+
+// Function for child components to trigger stats refresh
+const refreshUserStats = async () => {
+  await fetchUserStats()
+}
+
+// Watch for user changes to fetch stats
+watch(
+  user,
+  (newUser) => {
+    if (newUser?.id) {
+      fetchUserStats()
+    }
+  },
+  { immediate: true },
+)
+
+onMounted(async () => {
   // Extract language from URL parameters
   const langFromUrl = route.query.lang as string
 
@@ -45,6 +97,9 @@ onMounted(() => {
   } else {
     languageStore.initializeLanguage()
   }
+
+  // Initialize user and fetch stats
+  await initializeUser()
 })
 </script>
 

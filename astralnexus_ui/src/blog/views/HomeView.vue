@@ -132,7 +132,6 @@ const submitComment = async (content: string, postId: number | string) => {
 
 const handleReply = (comment: Comment) => {
   console.log('Reply to comment:', comment.id)
-  // Implement reply functionality
 }
 
 const handleCommentLike = async (comment: Comment) => {

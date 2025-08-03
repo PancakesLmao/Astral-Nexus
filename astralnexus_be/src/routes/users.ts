@@ -249,4 +249,99 @@ export const userRoutes = new Elysia({ prefix: "/users" })
         description: "Get paginated list of users",
       },
     }
+  )
+
+  // Get user statistics (posts count, followers, following, etc.)
+  .get(
+    "/stats/:id",
+    async ({ params: { id }, set }) => {
+      try {
+        // Get user posts count
+        const postsCountQuery = `
+          SELECT COUNT(*) as posts_count
+          FROM posts
+          WHERE author_id = $1
+        `;
+
+        const postsResult = await db.query(postsCountQuery, [id]);
+        const postsCount = parseInt(postsResult.rows[0].posts_count) || 0;
+
+        // Get user comments count
+        const commentsCountQuery = `
+          SELECT COUNT(*) as comments_count
+          FROM comments
+          WHERE author_id = $1
+        `;
+
+        const commentsResult = await db.query(commentsCountQuery, [id]);
+        const commentsCount =
+          parseInt(commentsResult.rows[0].comments_count) || 0;
+
+        // Get user notifications count
+        const notificationsCountQuery = `
+          SELECT COUNT(*) as notifications_count
+          FROM notifications
+          WHERE user_id = $1
+        `;
+
+        const notificationsResult = await db.query(notificationsCountQuery, [
+          id,
+        ]);
+        const notificationsCount =
+          parseInt(notificationsResult.rows[0].notifications_count) || 0;
+
+        // For now, following and followers will be mock data since we don't have those tables
+        // In a real app, you would have a follows/friendships table
+        const mockFollowingCount = Math.floor(Math.random() * 200) + 50;
+        const mockFollowersCount = Math.floor(Math.random() * 300) + 100;
+
+        return {
+          success: true,
+          data: {
+            posts: postsCount,
+            comments: commentsCount,
+            notifications: notificationsCount,
+            following: mockFollowingCount,
+            followers: mockFollowersCount,
+          },
+        };
+      } catch (error) {
+        console.error("Error fetching user statistics:", error);
+        set.status = 500;
+        return {
+          success: false,
+          message: "Failed to fetch user statistics",
+          error:
+            error instanceof Error ? error.message : "Unknown error occurred",
+        };
+      }
+    },
+    {
+      params: t.Object({
+        id: t.String({
+          description: "User ID (UUID)",
+          minLength: 1,
+        }),
+      }),
+      response: t.Object({
+        success: t.Boolean(),
+        data: t.Optional(
+          t.Object({
+            posts: t.Number(),
+            comments: t.Number(),
+            notifications: t.Number(),
+            following: t.Number(),
+            followers: t.Number(),
+          })
+        ),
+        message: t.Optional(t.String()),
+        error: t.Optional(t.String()),
+      }),
+      detail: {
+        tags: ["Users"],
+        summary: "Get user statistics",
+        description:
+          "Get user statistics including posts count, comments count, followers and following",
+      },
+    }
   );

@@ -12,9 +12,16 @@
             <House :size="18" />
             <span>{{ languageStore.t('home') }}</span>
           </router-link>
-          <router-link to="/notifications" class="nav-link">
+          <router-link to="/notifications" class="nav-link relative">
             <Bell :size="18" />
             <span>{{ languageStore.t('notifications') }}</span>
+            <!-- Notification Badge -->
+            <span
+              v-if="props.userStats?.notifications && props.userStats.notifications > 0"
+              class="notification-badge absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center leading-none"
+            >
+              {{ props.userStats.notifications > 99 ? '99+' : props.userStats.notifications }}
+            </span>
           </router-link>
           <router-link to="/events" class="nav-link">
             <Calendar :size="18" />
@@ -96,6 +103,29 @@
 </template>
 
 <script setup lang="ts">
+// Props from parent (App.vue)
+interface Props {
+  userStats?: {
+    posts: number
+    comments: number
+    notifications: number
+    following: number
+    followers: number
+  }
+  loadingStats?: boolean
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  userStats: () => ({
+    posts: 0,
+    comments: 0,
+    notifications: 0,
+    following: 0,
+    followers: 0,
+  }),
+  loadingStats: false,
+})
+
 import { ref, onMounted, onUnmounted } from 'vue'
 import { ChevronDown, House, Bell, Calendar, User, LogOut } from 'lucide-vue-next'
 import { useLanguageStore } from '@/shared/stores/language'

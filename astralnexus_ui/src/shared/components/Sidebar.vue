@@ -34,24 +34,42 @@
     <div class="user-stats mb-8" v-if="user">
       <div class="stats-grid grid grid-cols-2 gap-4">
         <div class="stat-item text-center">
-          <div class="stat-number text-3xl font-semibold text-[#b8aff7] leading-none">
-            {{ userStats.posts }}
+          <div
+            class="stat-number text-3xl font-semibold text-[#b8aff7] leading-none"
+            :class="{ 'opacity-50': props.loadingStats }"
+          >
+            {{ props.loadingStats ? '...' : props.userStats.posts }}
           </div>
           <div class="stat-label text-sm text-gray-600 mt-1 uppercase tracking-wider">
             {{ languageStore.t('posts') }}
           </div>
         </div>
         <div class="stat-item text-center">
-          <div class="stat-number text-3xl font-semibold text-[#b8aff7] leading-none">
-            {{ userStats.following }}
+          <div
+            class="stat-number text-3xl font-semibold text-[#b8aff7] leading-none"
+            :class="{ 'opacity-50': props.loadingStats }"
+          >
+            {{ props.loadingStats ? '...' : props.userStats.comments }}
+          </div>
+          <div class="stat-label text-sm text-gray-600 mt-1 uppercase tracking-wider">Comments</div>
+        </div>
+        <div class="stat-item text-center">
+          <div
+            class="stat-number text-3xl font-semibold text-[#b8aff7] leading-none"
+            :class="{ 'opacity-50': props.loadingStats }"
+          >
+            {{ props.loadingStats ? '...' : props.userStats.following }}
           </div>
           <div class="stat-label text-sm text-gray-600 mt-1 uppercase tracking-wider">
             {{ languageStore.t('following') }}
           </div>
         </div>
         <div class="stat-item text-center">
-          <div class="stat-number text-3xl font-semibold text-[#b8aff7] leading-none">
-            {{ userStats.followers }}
+          <div
+            class="stat-number text-3xl font-semibold text-[#b8aff7] leading-none"
+            :class="{ 'opacity-50': props.loadingStats }"
+          >
+            {{ props.loadingStats ? '...' : props.userStats.followers }}
           </div>
           <div class="stat-label text-sm text-gray-600 mt-1 uppercase tracking-wider">
             {{ languageStore.t('followers') }}
@@ -122,6 +140,28 @@ defineOptions({
   name: 'UserSidebar',
 })
 
+// Props from parent (App.vue)
+interface Props {
+  userStats?: UserStats
+  loadingStats?: boolean
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  userStats: () => ({
+    posts: 0,
+    comments: 0,
+    notifications: 0,
+    following: 0,
+    followers: 0,
+  }),
+  loadingStats: false,
+})
+
+// Emits
+const emit = defineEmits<{
+  'refresh-stats': []
+}>()
+
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Plus, Edit, Heart, MessageCircle, BookOpen, Award } from 'lucide-vue-next'
@@ -135,13 +175,6 @@ const router = useRouter()
 const languageStore = useLanguageStore()
 const { user, initializeUser } = useUser()
 const isCreatePostDialogOpen = ref(false)
-
-// Mock user stats
-const userStats = ref<UserStats>({
-  posts: 42,
-  following: 156,
-  followers: 234,
-})
 
 // Mock recent activities
 const recentActivities = ref<Activity[]>([
@@ -210,10 +243,10 @@ const openCreatePostDialog = () => {
   isCreatePostDialogOpen.value = true
 }
 
-const handlePostCreated = (post: Post) => {
+const handlePostCreated = async (post: Post) => {
   console.log('Sidebar: New post created:', post)
-  // Update stats or activities if needed
-  userStats.value.posts += 1
+  // Emit to parent to refresh stats
+  emit('refresh-stats')
 }
 
 const editProfile = () => {
@@ -221,8 +254,8 @@ const editProfile = () => {
   router.push('/profile')
 }
 
-onMounted(() => {
-  initializeUser()
+onMounted(async () => {
+  await initializeUser()
 })
 </script>
 

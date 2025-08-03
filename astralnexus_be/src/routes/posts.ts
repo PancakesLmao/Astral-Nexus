@@ -296,11 +296,11 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
           content: post.content,
           author: {
             id: post.author_id,
-            username: post.author_name, // Use name instead of generating from email
+            username: post.author_name,
             name: post.author_name,
             email: post.author_email,
             picture: post.author_picture,
-            bio: "", // We'll add bio to users table later
+            bio: "", // I'll add bio to users table later
             created_at: new Date(post.created_at).toISOString(),
           },
           created_at: new Date(post.created_at).toISOString(),
@@ -308,7 +308,7 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
           published: post.published,
           visibility: post.visibility,
           game_category: post.game_category || undefined, // Convert null to undefined for schema validation
-          post_type: "Discussion", // Default for now, we'll add this field later
+          post_type: "Discussion", // Default for now, I'll add this field later
           tags: [], // We'll add tags support later
           likes_count: post.likes_count || 0,
           comments_count: post.comments_count || 0,
@@ -389,13 +389,6 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
         summary: "Get all posts",
         description: `
         Retrieve a paginated list of posts with optional filtering and sorting.
-
-        **Features:**
-        - Pagination support with page and limit parameters
-        - Filter by game category, post type, and visibility
-        - Search functionality across title and content
-        - Multiple sorting options
-        - Returns author information and post statistics
 
         **Query Parameters:**
         - \`page\`: Page number (default: 1)
@@ -501,12 +494,6 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
         summary: "Get post by ID",
         description: `
         Retrieve a specific post by its unique identifier.
-
-        **Features:**
-        - Returns complete post information
-        - Includes author details
-        - Shows post statistics (likes, comments, shares)
-        - Only returns published posts
 
         **Path Parameters:**
         - \`id\`: Post UUID
@@ -634,13 +621,6 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
         summary: "Create new post",
         description: `
         Create a new blog post.
-
-        **Features:**
-        - Creates a new post with title and content
-        - Optional game category association
-        - Configurable visibility settings
-        - Automatic author assignment (requires authentication)
-        - Auto-generated timestamps
 
         **Request Body:**
         - \`title\`: Post title (required, 1-255 characters)
@@ -770,12 +750,6 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
         description: `
         Update an existing post. Only the author or admin can update a post.
 
-        **Features:**
-        - Partial updates supported (only send fields to update)
-        - Automatic timestamp updating
-        - Authorization checks (TODO: implement)
-        - Maintains post history with updated_at
-
         **Path Parameters:**
         - \`id\`: Post UUID
 
@@ -851,11 +825,6 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
         summary: "Delete post",
         description: `
         Delete a post permanently. Only the author or admin can delete a post.
-
-        **Features:**
-        - Permanent deletion (no soft delete)
-        - Cascading deletion of related comments and likes
-        - Authorization checks (TODO: implement)
 
         **Path Parameters:**
         - \`id\`: Post UUID

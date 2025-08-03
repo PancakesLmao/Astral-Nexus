@@ -6,9 +6,16 @@
         <span class="nav-label">{{ languageStore.t('home') }}</span>
       </router-link>
 
-      <router-link to="/notifications" class="bottom-nav-item">
+      <router-link to="/notifications" class="bottom-nav-item relative">
         <Bell :size="20" />
         <span class="nav-label">{{ languageStore.t('notifications') }}</span>
+        <!-- Notification Badge -->
+        <span
+          v-if="props.userStats?.notifications && props.userStats.notifications > 0"
+          class="notification-badge absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[18px] text-center leading-none"
+        >
+          {{ props.userStats.notifications > 99 ? '99+' : props.userStats.notifications }}
+        </span>
       </router-link>
 
       <!-- Create Post Button -->
@@ -92,6 +99,29 @@
 </template>
 
 <script setup lang="ts">
+// Props from parent (App.vue)
+interface Props {
+  userStats?: {
+    posts: number
+    comments: number
+    notifications: number
+    following: number
+    followers: number
+  }
+  loadingStats?: boolean
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  userStats: () => ({
+    posts: 0,
+    comments: 0,
+    notifications: 0,
+    following: 0,
+    followers: 0,
+  }),
+  loadingStats: false,
+})
+
 import { ref, onMounted } from 'vue'
 import { House, Bell, Calendar, User, LogOut, X, ChevronDown, Plus } from 'lucide-vue-next'
 import { useLanguageStore } from '@/shared/stores/language'
