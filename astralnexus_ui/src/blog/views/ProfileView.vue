@@ -141,7 +141,6 @@ const loadMorePosts = async () => {
       :isOpen="showPostDetail"
       :post="selectedPost"
       @close="handleClosePostDetail"
-      @toggleLike="handleToggleLike"
       @toggleComments="handleToggleComments"
       @sharePost="handleSharePost"
       @showPostOptions="handleShowPostOptions"

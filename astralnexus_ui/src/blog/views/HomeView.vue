@@ -21,7 +21,6 @@
       :loading-comments="loadingComments"
       :allow-comments="true"
       @close="closePostDetail"
-      @toggle-like="handleLike"
       @submit-comment="submitComment"
       @reply-to-comment="handleReply"
       @toggle-comment-like="handleCommentLike"
@@ -82,12 +81,12 @@ const closePostDetail = () => {
   postsStore.closePostDetail()
 }
 
+// Like handler that uses the store directly for consistency with PostDetail
 const handleLike = async (post: Post) => {
   try {
     await postsStore.likePost(post.id.toString())
   } catch (error) {
     console.error('Failed to like post:', error)
-    // Could show toast notification here
   }
 }
 
@@ -136,7 +135,7 @@ const handleReply = (comment: Comment) => {
 
 const handleCommentLike = async (comment: Comment) => {
   try {
-    await postsStore.likeComment(Number(comment.id))
+    await postsStore.likeComment(comment.id.toString())
   } catch (error) {
     console.error('Failed to like comment:', error)
   }

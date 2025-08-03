@@ -168,8 +168,45 @@ const UpdatePostSchema = t.Object({
 export const postsRoutes = new Elysia({ prefix: "/api/posts" })
   .get(
     "/",
-    async ({ query }) => {
+    async ({ query, cookie, headers }) => {
       try {
+        // Optional authentication - get user ID if available
+        let currentUserId: string | null = null;
+
+        // Check for session
+        let sessionId: string | null = null;
+        const authHeader = headers.authorization;
+        if (authHeader && authHeader.startsWith("Bearer ")) {
+          sessionId = authHeader.substring(7);
+        }
+
+        const sessionHeader = headers["x-session-id"];
+        if (sessionHeader && !sessionId) {
+          sessionId = sessionHeader;
+        }
+
+        const cookieName = "astral_session";
+        if (!sessionId && cookie && cookie[cookieName]?.value) {
+          sessionId = cookie[cookieName].value;
+        }
+
+        if (sessionId) {
+          try {
+            const sessionQuery = `
+              SELECT s.*, u.id as user_id
+              FROM sessions s
+              JOIN users u ON s.user_id = u.id
+              WHERE s.id = $1 AND s.expires_at > CURRENT_TIMESTAMP
+            `;
+            const session = await queryOne(sessionQuery, [sessionId]);
+            if (session) {
+              currentUserId = session.user_id;
+            }
+          } catch (error) {
+            console.warn("Session check failed:", error);
+          }
+        }
+
         const page = Math.max(1, parseInt(query.page as string) || 1);
         const limit = Math.min(
           50,
@@ -261,32 +298,66 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
         const total = parseInt(totalResult?.total || "0");
 
         // Get posts with pagination
-        const postsQuery = `
-          SELECT
-            p.id,
-            p.title,
-            p.content,
-            p.published,
-            p.visibility,
-            p.likes_count,
-            p.comments_count,
-            p.shares_count,
-            p.created_at,
-            p.updated_at,
-            u.id as author_id,
-            u.name as author_name,
-            u.email as author_email,
-            u.picture as author_picture,
-            gc.game_name as game_category
-          FROM posts p
-          LEFT JOIN users u ON p.author_id = u.id
-          LEFT JOIN game_categories gc ON p.game_id = gc.id
-          ${whereClause}
-          ORDER BY p.${orderField} ${orderDirection}
-          LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
-        `;
-
-        queryParams.push(limit, offset);
+        let postsQuery: string;
+        if (currentUserId) {
+          postsQuery = `
+            SELECT
+              p.id,
+              p.title,
+              p.content,
+              p.published,
+              p.visibility,
+              p.likes_count,
+              p.comments_count,
+              p.shares_count,
+              p.created_at,
+              p.updated_at,
+              u.id as author_id,
+              u.name as author_name,
+              u.email as author_email,
+              u.picture as author_picture,
+              gc.game_name as game_category,
+              CASE
+                WHEN pl.post_id IS NOT NULL THEN true
+                ELSE false
+              END as is_liked
+            FROM posts p
+            LEFT JOIN users u ON p.author_id = u.id
+            LEFT JOIN game_categories gc ON p.game_id = gc.id
+            LEFT JOIN post_likes pl ON p.id = pl.post_id AND pl.user_id = $${paramIndex}
+            ${whereClause}
+            ORDER BY p.${orderField} ${orderDirection}
+            LIMIT $${paramIndex + 1} OFFSET $${paramIndex + 2}
+          `;
+          queryParams.push(currentUserId, limit, offset);
+        } else {
+          postsQuery = `
+            SELECT
+              p.id,
+              p.title,
+              p.content,
+              p.published,
+              p.visibility,
+              p.likes_count,
+              p.comments_count,
+              p.shares_count,
+              p.created_at,
+              p.updated_at,
+              u.id as author_id,
+              u.name as author_name,
+              u.email as author_email,
+              u.picture as author_picture,
+              gc.game_name as game_category,
+              false as is_liked
+            FROM posts p
+            LEFT JOIN users u ON p.author_id = u.id
+            LEFT JOIN game_categories gc ON p.game_id = gc.id
+            ${whereClause}
+            ORDER BY p.${orderField} ${orderDirection}
+            LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+          `;
+          queryParams.push(limit, offset);
+        }
         const posts = await queryAll(postsQuery, queryParams);
 
         // Transform posts to match frontend format
@@ -313,7 +384,7 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
           likes_count: post.likes_count || 0,
           comments_count: post.comments_count || 0,
           shares_count: post.shares_count || 0,
-          is_liked: false, // TODO: Check if current user liked this post
+          is_liked: post.is_liked || false, // Use actual is_liked from query
           is_bookmarked: false, // TODO: Check if current user bookmarked this post
         }));
 
@@ -405,8 +476,56 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
   )
   .get(
     "/:id",
-    async ({ params }) => {
+    async ({ params, cookie, headers }) => {
       try {
+        // Optional authentication - get user ID if available
+        let currentUserId: string | null = null;
+
+        // Check Authorization header (Bearer token)
+        const authHeader = headers.authorization;
+        if (authHeader && authHeader.startsWith("Bearer ")) {
+          const sessionId = authHeader.substring(7);
+          try {
+            const sessionQuery = "SELECT user_id FROM sessions WHERE id = $1";
+            const session = await queryOne(sessionQuery, [sessionId]);
+            if (session) {
+              currentUserId = session.user_id;
+            }
+          } catch (error) {
+            console.error("Error validating session from header:", error);
+          }
+        }
+
+        // Check X-Session-ID header
+        const sessionHeader = headers["x-session-id"];
+        if (sessionHeader && !currentUserId) {
+          try {
+            const sessionQuery = "SELECT user_id FROM sessions WHERE id = $1";
+            const session = await queryOne(sessionQuery, [sessionHeader]);
+            if (session) {
+              currentUserId = session.user_id;
+            }
+          } catch (error) {
+            console.error("Error validating session from header:", error);
+          }
+        }
+
+        // Check cookie as fallback
+        const cookieName = "astral_session";
+        if (!currentUserId && cookie && cookie[cookieName]?.value) {
+          try {
+            const sessionQuery = "SELECT user_id FROM sessions WHERE id = $1";
+            const session = await queryOne(sessionQuery, [
+              cookie[cookieName].value,
+            ]);
+            if (session) {
+              currentUserId = session.user_id;
+            }
+          } catch (error) {
+            console.error("Error validating session from cookie:", error);
+          }
+        }
+
         const postQuery = `
           SELECT
             p.id,
@@ -423,21 +542,30 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
             u.name as author_name,
             u.email as author_email,
             u.picture as author_picture,
-            gc.game_name as game_category
+            gc.game_name as game_category,
+            ${
+              currentUserId
+                ? `CASE WHEN pl.user_id IS NOT NULL THEN true ELSE false END as is_liked`
+                : "false as is_liked"
+            }
           FROM posts p
           LEFT JOIN users u ON p.author_id = u.id
           LEFT JOIN game_categories gc ON p.game_id = gc.id
+          ${
+            currentUserId
+              ? `LEFT JOIN post_likes pl ON p.id = pl.post_id AND pl.user_id = $2`
+              : ""
+          }
           WHERE p.id = $1 AND p.published = TRUE
         `;
 
-        const post = await queryOne(postQuery, [params.id]);
+        const queryParams = currentUserId
+          ? [params.id, currentUserId]
+          : [params.id];
+        const post = await queryOne(postQuery, queryParams);
 
         if (!post) {
-          return {
-            success: false,
-            message: "Post not found",
-            error: "The requested post does not exist or is not published",
-          };
+          throw new Error("Post not found");
         }
 
         const transformedPost = {
@@ -464,7 +592,7 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
           likes_count: post.likes_count || 0,
           comments_count: post.comments_count || 0,
           shares_count: post.shares_count || 0,
-          is_liked: false,
+          is_liked: post.is_liked || false,
           is_bookmarked: false,
         };
 
@@ -477,11 +605,7 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
         };
       } catch (error) {
         console.error("Error fetching post:", error);
-        return {
-          success: false,
-          message: "Failed to fetch post",
-          error: error instanceof Error ? error.message : "Unknown error",
-        };
+        throw new Error("Failed to fetch post");
       }
     },
     {
@@ -830,6 +954,148 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
         - \`id\`: Post UUID
 
         **Warning:** This action cannot be undone
+        `,
+      },
+    }
+  )
+
+  // Like/Unlike a post
+  .post(
+    "/:id/like",
+    async ({ params: { id }, set, cookie, headers }) => {
+      try {
+        // Manual authentication check (same as create post)
+        let sessionId: string | null = null;
+
+        // Check Authorization header (Bearer token)
+        const authHeader = headers.authorization;
+        if (authHeader && authHeader.startsWith("Bearer ")) {
+          sessionId = authHeader.substring(7);
+        }
+
+        // Check X-Session-ID header
+        const sessionHeader = headers["x-session-id"];
+        if (sessionHeader && !sessionId) {
+          sessionId = sessionHeader;
+        }
+
+        // Check cookie as fallback
+        const cookieName = "astral_session";
+        if (!sessionId && cookie && cookie[cookieName]?.value) {
+          sessionId = cookie[cookieName].value;
+        }
+
+        if (!sessionId) {
+          set.status = 401;
+          return {
+            success: false,
+            error: "Authentication required",
+            message: "No session found",
+          };
+        }
+
+        // Get session from database
+        const sessionQuery = `
+          SELECT s.*, u.id as user_id, u.email, u.name, u.picture, p.provider_name
+          FROM sessions s
+          JOIN users u ON s.user_id = u.id
+          JOIN providers p ON u.provider_id = p.id
+          WHERE s.id = $1 AND s.expires_at > CURRENT_TIMESTAMP
+        `;
+
+        const session = await queryOne(sessionQuery, [sessionId]);
+
+        if (!session) {
+          set.status = 401;
+          return {
+            success: false,
+            error: "Authentication required",
+            message: "Invalid or expired session",
+          };
+        }
+
+        // Check if post exists
+        const postExists = await queryOne(
+          "SELECT id FROM posts WHERE id = $1",
+          [id]
+        );
+
+        if (!postExists) {
+          set.status = 404;
+          return {
+            success: false,
+            error: "Post not found",
+            message: "Post does not exist",
+          };
+        }
+
+        // Check if user already liked this post
+        const existingLike = await queryOne(
+          "SELECT post_id FROM post_likes WHERE post_id = $1 AND user_id = $2",
+          [id, session.user_id]
+        );
+
+        if (existingLike) {
+          // Unlike the post
+          await queryOne(
+            "DELETE FROM post_likes WHERE post_id = $1 AND user_id = $2",
+            [id, session.user_id]
+          );
+
+          return {
+            success: true,
+            message: "Post unliked successfully",
+            data: { action: "unliked" },
+          };
+        } else {
+          // Like the post
+          await queryOne(
+            "INSERT INTO post_likes (post_id, user_id) VALUES ($1, $2)",
+            [id, session.user_id]
+          );
+
+          return {
+            success: true,
+            message: "Post liked successfully",
+            data: { action: "liked" },
+          };
+        }
+      } catch (error) {
+        console.error("Error liking/unliking post:", error);
+        set.status = 500;
+        return {
+          success: false,
+          error: "Failed to like/unlike post",
+          message:
+            error instanceof Error ? error.message : "Unknown error occurred",
+        };
+      }
+    },
+    {
+      params: t.Object({
+        id: t.String({ format: "uuid", description: "Post unique identifier" }),
+      }),
+      response: t.Object({
+        success: t.Boolean(),
+        message: t.String(),
+        data: t.Optional(
+          t.Object({
+            action: t.Union([t.Literal("liked"), t.Literal("unliked")]),
+          })
+        ),
+        error: t.Optional(t.String()),
+      }),
+      detail: {
+        tags: ["Posts"],
+        summary: "Like/Unlike post",
+        description: `
+        Toggle like status for a post. If user already liked the post, it will be unliked.
+        If user hasn't liked the post, it will be liked.
+
+        **Path Parameters:**
+        - \`id\`: Post UUID
+
+        **Authentication:** Required
         `,
       },
     }

@@ -96,10 +96,15 @@
                     <span>{{ post.comments_count || 0 }} Comments</span>
                   </button>
                   <button
-                    class="flex items-center gap-2 text-dark-400 hover:text-primary-400 transition-colors"
-                    @click="$emit('toggleLike', post)"
+                    class="flex items-center gap-2 transition-colors"
+                    :class="
+                      post.is_liked
+                        ? 'text-primary-400 hover:text-primary-300'
+                        : 'text-dark-400 hover:text-primary-400'
+                    "
+                    @click="handleToggleLike(post)"
                   >
-                    <ThumbsUp class="w-5 h-5" />
+                    <ThumbsUp class="w-5 h-5" :class="{ 'fill-current': post.is_liked }" />
                     <span>{{ post.likes_count || 0 }} Likes</span>
                   </button>
                   <button
@@ -214,9 +219,10 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { MessageSquareMore, ThumbsUp, Ellipsis, Repeat2, X } from 'lucide-vue-next'
 import type { Post, Comment, User } from '@/shared/types'
+import { usePostsStore } from '@/shared/stores/posts'
 
 // Props
 interface Props {
@@ -240,7 +246,6 @@ const props = withDefaults(defineProps<Props>(), {
 // Emits
 const emit = defineEmits<{
   close: []
-  toggleLike: [post: Post]
   toggleComments: [post: Post]
   sharePost: [post: Post]
   showPostOptions: [post: Post]
@@ -249,9 +254,19 @@ const emit = defineEmits<{
   toggleCommentLike: [comment: Comment]
 }>()
 
-// Reactive data
 const newComment = ref('')
 const submittingComment = ref(false)
+
+// Use the posts store for like functionality to ensure synchronization
+const postsStore = usePostsStore()
+
+const handleToggleLike = async (post: Post) => {
+  try {
+    await postsStore.likePost(post.id.toString())
+  } catch (error) {
+    console.error('Failed to like post:', error)
+  }
+}
 
 // Methods
 const handleBackdropClick = () => {

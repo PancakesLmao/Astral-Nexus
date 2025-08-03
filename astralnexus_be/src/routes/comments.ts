@@ -473,4 +473,161 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
         description: "Deletes a comment (author only)",
       },
     }
+  )
+
+  // Like/Unlike a comment
+  .post(
+    "/:id/like",
+    async ({ params: { id }, set, cookie, headers }) => {
+      try {
+        // Manual authentication check (same as create comment)
+        let sessionId: string | null = null;
+
+        // Check Authorization header (Bearer token)
+        const authHeader = headers.authorization;
+        if (authHeader && authHeader.startsWith("Bearer ")) {
+          sessionId = authHeader.substring(7);
+        }
+
+        // Check X-Session-ID header
+        const sessionHeader = headers["x-session-id"];
+        if (sessionHeader && !sessionId) {
+          sessionId = sessionHeader;
+        }
+
+        // Check cookie as fallback
+        const cookieName = "astral_session";
+        if (!sessionId && cookie && cookie[cookieName]?.value) {
+          sessionId = cookie[cookieName].value;
+        }
+
+        if (!sessionId) {
+          set.status = 401;
+          return {
+            success: false,
+            error: "Authentication required",
+            message: "No session found",
+          };
+        }
+
+        // Get session from database
+        const sessionQuery = `
+          SELECT s.*, u.id as user_id, u.email, u.name, u.picture, p.provider_name
+          FROM sessions s
+          JOIN users u ON s.user_id = u.id
+          JOIN providers p ON u.provider_id = p.id
+          WHERE s.id = $1 AND s.expires_at > CURRENT_TIMESTAMP
+        `;
+
+        const session = await queryOne(sessionQuery, [sessionId]);
+
+        if (!session) {
+          set.status = 401;
+          return {
+            success: false,
+            error: "Authentication required",
+            message: "Invalid or expired session",
+          };
+        }
+
+        // Check if comment exists
+        const commentExists = await queryOne(
+          "SELECT id FROM comments WHERE id = $1",
+          [id]
+        );
+
+        if (!commentExists) {
+          set.status = 404;
+          return {
+            success: false,
+            error: "Comment not found",
+            message: "Comment does not exist",
+          };
+        }
+
+        // Check if user already liked this comment
+        const existingLike = await queryOne(
+          "SELECT comment_id FROM comment_likes WHERE comment_id = $1 AND user_id = $2",
+          [id, session.user_id]
+        );
+
+        if (existingLike) {
+          // Unlike the comment
+          await queryOne(
+            "DELETE FROM comment_likes WHERE comment_id = $1 AND user_id = $2",
+            [id, session.user_id]
+          );
+
+          // Update likes count
+          await queryOne(
+            "UPDATE comments SET likes_count = likes_count - 1 WHERE id = $1",
+            [id]
+          );
+
+          return {
+            success: true,
+            message: "Comment unliked successfully",
+            data: { action: "unliked" },
+          };
+        } else {
+          // Like the comment
+          await queryOne(
+            "INSERT INTO comment_likes (comment_id, user_id) VALUES ($1, $2)",
+            [id, session.user_id]
+          );
+
+          // Update likes count
+          await queryOne(
+            "UPDATE comments SET likes_count = likes_count + 1 WHERE id = $1",
+            [id]
+          );
+
+          return {
+            success: true,
+            message: "Comment liked successfully",
+            data: { action: "liked" },
+          };
+        }
+      } catch (error) {
+        console.error("Error liking/unliking comment:", error);
+        set.status = 500;
+        return {
+          success: false,
+          error: "Failed to like/unlike comment",
+          message:
+            error instanceof Error ? error.message : "Unknown error occurred",
+        };
+      }
+    },
+    {
+      params: t.Object({
+        id: t.String({
+          format: "uuid",
+          description: "Comment unique identifier",
+        }),
+      }),
+      response: t.Object({
+        success: t.Boolean(),
+        message: t.String(),
+        data: t.Optional(
+          t.Object({
+            action: t.Union([t.Literal("liked"), t.Literal("unliked")]),
+          })
+        ),
+        error: t.Optional(t.String()),
+      }),
+      detail: {
+        tags: ["Comments"],
+        summary: "Like/Unlike comment",
+        description: `
+        Toggle like status for a comment. If user already liked the comment, it will be unliked.
+        If user hasn't liked the comment, it will be liked.
+
+        **Path Parameters:**
+        - \`id\`: Comment UUID
+
+        **Authentication:** Required
+        `,
+      },
+    }
   );

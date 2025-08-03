@@ -8,7 +8,7 @@ export const usePostsStore = defineStore('posts', {
     posts: [] as Post[],
     isLoading: false,
     isCreating: false,
-    selectedPost: null as Post | null,
+    selectedPostId: null as string | null,
     postComments: [] as Comment[],
     loadingComments: false,
     pagination: {
@@ -46,6 +46,12 @@ export const usePostsStore = defineStore('posts', {
   }),
 
   getters: {
+    // Get the currently selected post from the posts array (always up-to-date)
+    selectedPost: (state) => {
+      if (!state.selectedPostId) return null
+      return state.posts.find((post) => post.id === state.selectedPostId) || null
+    },
+
     filteredPosts: (state) => {
       // Since we're doing server-side filtering, just return all posts
       // The server already filtered them based on the current filter
@@ -237,45 +243,66 @@ export const usePostsStore = defineStore('posts', {
     },
 
     async likePost(postId: string) {
+      // Find the post to update
+      const postIndex = this.posts.findIndex((p) => p.id === postId)
+      if (postIndex === -1) {
+        console.warn('Post not found for like toggle:', postId)
+        return
+      }
+
+      const post = this.posts[postIndex]
+      const originalLiked = post.is_liked
+      const originalCount = post.likes_count || 0
+
       try {
-        const postIndex = this.posts.findIndex((p) => p.id === postId)
-        if (postIndex === -1) return
-
-        // Optimistic update
-        const post = this.posts[postIndex]
-        const wasLiked = post.is_liked
-        post.is_liked = !wasLiked
-        post.likes_count = wasLiked
-          ? Math.max(0, (post.likes_count || 0) - 1)
-          : (post.likes_count || 0) + 1
-
-        // Call API
-        await apiClient.likePost(postId)
-
-        console.log('Post like toggled:', postId)
-      } catch (error) {
-        // Revert optimistic update on error
-        const postIndex = this.posts.findIndex((p) => p.id === postId)
-        if (postIndex !== -1) {
-          const post = this.posts[postIndex]
-          post.is_liked = !post.is_liked
-          post.likes_count = post.is_liked
-            ? (post.likes_count || 0) + 1
-            : Math.max(0, (post.likes_count || 0) - 1)
+        // Step 1: Immediate optimistic update for instant UX
+        this.posts[postIndex] = {
+          ...post,
+          is_liked: !originalLiked,
+          likes_count: originalLiked ? Math.max(0, originalCount - 1) : originalCount + 1,
         }
+
+        // Step 2: Call API to persist the change
+        await apiClient.likePost(postId)
+        console.log('✅ Like action persisted to backend')
+
+        // Step 3: AJAX Request - Fetch the real post state from server
+        const updatedPost = await apiClient.fetchSinglePost(postId)
+        console.log('✅ AJAX sync - Real state from server:', {
+          is_liked: updatedPost.is_liked,
+          likes_count: updatedPost.likes_count,
+        })
+
+        // Step 4: Apply the server's truth to frontend
+        this.posts[postIndex] = {
+          ...this.posts[postIndex],
+          is_liked: updatedPost.is_liked,
+          likes_count: updatedPost.likes_count,
+        }
+
+        console.log('✅ Frontend synced with database truth')
+      } catch (error) {
         console.error('Failed to like post:', error)
+
+        // Rollback optimistic update on error
+        this.posts[postIndex] = {
+          ...this.posts[postIndex],
+          is_liked: originalLiked,
+          likes_count: originalCount,
+        }
+
         throw error
       }
     },
 
     // Post detail methods
     openPostDetail(post: Post) {
-      this.selectedPost = post
+      this.selectedPostId = post.id
       this.loadComments(post.id)
     },
 
     closePostDetail() {
-      this.selectedPost = null
+      this.selectedPostId = null
       this.postComments = []
     },
 
@@ -340,6 +367,23 @@ export const usePostsStore = defineStore('posts', {
     async likeComment(commentId: string) {
       try {
         const commentIndex = this.postComments.findIndex((c) => c.id === commentId)
+        if (commentIndex === -1) return
+
+        // Optimistic update
+        const comment = this.postComments[commentIndex]
+        const wasLiked = comment.is_liked
+        comment.is_liked = !wasLiked
+        comment.likes_count = wasLiked
+          ? Math.max(0, (comment.likes_count || 0) - 1)
+          : (comment.likes_count || 0) + 1
+
+        // Call API
+        await apiClient.likeComment(commentId)
+
+        console.log('Comment like toggled:', commentId)
+      } catch (error) {
+        // Revert optimistic update on error
+        const commentIndex = this.postComments.findIndex((c) => c.id === commentId)
         if (commentIndex !== -1) {
           const comment = this.postComments[commentIndex]
           comment.is_liked = !comment.is_liked
@@ -347,7 +391,6 @@ export const usePostsStore = defineStore('posts', {
             ? (comment.likes_count || 0) + 1
             : Math.max(0, (comment.likes_count || 0) - 1)
         }
-      } catch (error) {
         console.error('Failed to like comment:', error)
         throw error
       }

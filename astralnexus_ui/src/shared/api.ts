@@ -148,7 +148,34 @@ export class ApiClient {
     }
   }
 
-  async likePost(postId: string): Promise<void> {
+  async fetchSinglePost(postId: string): Promise<Post> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/posts/${postId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Include cookies for authentication
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to fetch post')
+      }
+
+      return data.data.post
+    } catch (error) {
+      console.error('Error fetching single post:', error)
+      throw error
+    }
+  }
+
+  async likePost(postId: string): Promise<{ action: 'liked' | 'unliked' }> {
     try {
       const response = await fetch(`${this.baseUrl}/api/posts/${postId}/like`, {
         method: 'POST',
@@ -165,10 +192,39 @@ export class ApiClient {
       const data = await response.json()
 
       if (!data.success) {
-        throw new Error(data.error || 'Failed to like post')
+        throw new Error(data.error || 'Failed to like/unlike post')
       }
+
+      return data.data
     } catch (error) {
-      console.error('Error liking post:', error)
+      console.error('Error liking/unliking post:', error)
+      throw error
+    }
+  }
+
+  async likeComment(commentId: string): Promise<{ action: 'liked' | 'unliked' }> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/comments/${commentId}/like`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Include cookies for authentication
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to like/unlike comment')
+      }
+
+      return data.data
+    } catch (error) {
+      console.error('Error liking/unliking comment:', error)
       throw error
     }
   }
@@ -260,5 +316,4 @@ export class ApiClient {
   }
 }
 
-// Export a default instance
 export const apiClient = new ApiClient()

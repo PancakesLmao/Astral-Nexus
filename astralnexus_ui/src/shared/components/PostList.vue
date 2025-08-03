@@ -57,10 +57,15 @@
                 <span class="text-sm">{{ post.comments_count || 0 }}</span>
               </button>
               <button
-                class="flex items-center gap-2 hover:text-primary-400 transition-colors"
+                class="flex items-center gap-2 transition-colors"
+                :class="
+                  post.is_liked
+                    ? 'text-primary-400 hover:text-primary-300'
+                    : 'text-dark-400 hover:text-primary-400'
+                "
                 @click.stop="$emit('toggleLike', post)"
               >
-                <ThumbsUp class="w-4 h-4" />
+                <ThumbsUp class="w-4 h-4" :class="{ 'fill-current': post.is_liked }" />
                 <span class="text-sm">{{ post.likes_count || 0 }}</span>
               </button>
               <button
