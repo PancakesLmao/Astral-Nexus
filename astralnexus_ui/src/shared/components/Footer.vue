@@ -48,6 +48,9 @@
 </template>
 
 <script lang="ts" setup>
+defineOptions({
+  name: 'AppFooter'
+})
 </script>
 
 <style scoped>

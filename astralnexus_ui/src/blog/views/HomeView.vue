@@ -34,10 +34,14 @@ import { ref, onMounted, computed } from 'vue'
 import PostList from '@/shared/components/PostList.vue'
 import PostDetail from '@/shared/components/PostDetail.vue'
 import { usePostsStore } from '@/shared/stores/posts'
-import type { Post, Comment, User } from '@/shared/types'
+import { useUser } from '@/shared/composables/useUser'
+import type { Post, Comment } from '@/shared/types'
 
 // Store
 const postsStore = usePostsStore()
+
+// User management
+const { user: currentUser, initializeUser } = useUser()
 
 // Computed properties from store
 const posts = computed(() => postsStore.filteredPosts) // Use filtered posts instead of raw posts
@@ -55,7 +59,6 @@ const isLoadingMore = ref(false)
 const fetchPosts = async (loadMore = false) => {
   try {
     if (loadMore) {
-      // For load more, use the next page with current filter
       const nextPage = postsStore.pagination.page + 1
       await postsStore.fetchPosts({
         page: nextPage,
@@ -115,6 +118,11 @@ const loadMorePosts = async () => {
 }
 
 const submitComment = async (content: string, postId: number | string) => {
+  if (!currentUser.value) {
+    console.error('User not authenticated')
+    return
+  }
+
   try {
     await postsStore.submitComment(content, postId, currentUser.value)
   } catch (error) {
@@ -137,7 +145,8 @@ const handleCommentLike = async (comment: Comment) => {
 
 // Initialize on mount
 onMounted(async () => {
-  console.log('HomeView mounted, initializing posts with persisted filter...')
+  console.log('HomeView mounted, initializing user and posts...')
+  await initializeUser()
   await postsStore.initializePosts()
 })
 </script>

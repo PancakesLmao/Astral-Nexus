@@ -101,11 +101,12 @@ import { ChevronDown, House, Bell, Calendar, User, LogOut } from 'lucide-vue-nex
 import { useLanguageStore } from '@/shared/stores/language'
 import { useUser } from '@/shared/composables/useUser'
 import { useGameCategories } from '@/shared/composables/useGameCategories'
+import type { GameCategory } from '@/shared/types'
 
 const isCategoryDropdownOpen = ref(false)
 const isProfileDropdownOpen = ref(false)
 const languageStore = useLanguageStore()
-const { user, loading, handleLogout, initializeUser } = useUser()
+const { user, handleLogout, initializeUser } = useUser()
 const { gameCategories, selectedCategory, fetchGameCategories, selectCategory } =
   useGameCategories()
 const searchQuery = ref('')
@@ -129,7 +130,7 @@ const toggleProfileDropdown = () => {
   }
 }
 
-const handleCategorySelect = (category: any) => {
+const handleCategorySelect = (category: GameCategory) => {
   isCategoryDropdownOpen.value = false
   selectCategory(category)
 }

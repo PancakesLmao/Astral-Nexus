@@ -1,6 +1,6 @@
 // Eden API client configuration
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
-import { GameCategory, GameCategoriesResponse, Post, PostsApiResponse } from '@/shared/types'
+import { GameCategory, GameCategoriesResponse, Post, PostsApiResponse, PaginationInfo } from '@/shared/types'
 
 // API client setup
 export class ApiClient {
@@ -35,7 +35,7 @@ export class ApiClient {
     sort_by?: string
     sort_order?: string
     author_id?: string
-  }): Promise<{ posts: Post[]; pagination: any }> {
+  }): Promise<{ posts: Post[]; pagination: PaginationInfo }> {
     try {
       const searchParams = new URLSearchParams()
 
@@ -78,7 +78,7 @@ export class ApiClient {
       sort_by?: string
       sort_order?: string
     },
-  ): Promise<{ posts: Post[]; pagination: any }> {
+  ): Promise<{ posts: Post[]; pagination: PaginationInfo }> {
     return this.fetchPosts({
       ...params,
       author_id: userId,
@@ -96,7 +96,7 @@ export class ApiClient {
     try {
       // Filter out undefined values to avoid sending null to API
       const cleanedData = Object.fromEntries(
-        Object.entries(postData).filter(([_, value]) => value !== undefined && value !== null),
+        Object.entries(postData).filter(([, value]) => value !== undefined && value !== null),
       )
 
       const response = await fetch(`${this.baseUrl}/api/posts`, {

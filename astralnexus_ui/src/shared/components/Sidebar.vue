@@ -119,6 +119,10 @@
 </template>
 
 <script lang="ts" setup>
+defineOptions({
+  name: 'UserSidebar'
+})
+
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Plus, Edit, Heart, MessageCircle, BookOpen, Award } from 'lucide-vue-next'
@@ -130,7 +134,7 @@ import type { Post } from '@/shared/types'
 
 const router = useRouter()
 const languageStore = useLanguageStore()
-const { user, loading, initializeUser } = useUser()
+const { user, initializeUser } = useUser()
 const isCreatePostDialogOpen = ref(false)
 
 // Mock user stats

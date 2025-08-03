@@ -114,7 +114,7 @@ interface Props {
   hasMore?: boolean
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   posts: () => [],
   loading: false,
   loadingMore: false,
@@ -122,7 +122,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 // Emits
-const emit = defineEmits<{
+defineEmits<{
   selectPost: [post: Post]
   toggleLike: [post: Post]
   toggleComments: [post: Post]

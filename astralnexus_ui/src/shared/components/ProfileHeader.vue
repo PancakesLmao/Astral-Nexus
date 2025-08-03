@@ -40,7 +40,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
 import { UserPlus } from 'lucide-vue-next'
 import { useLanguageStore } from '../stores/language'
 import type { User } from '@/shared/types'
@@ -53,11 +52,11 @@ interface Props {
   isFollowing?: boolean
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   isFollowing: false,
 })
 
-const emit = defineEmits<{
+defineEmits<{
   follow: []
 }>()
 

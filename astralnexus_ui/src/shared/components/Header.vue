@@ -56,6 +56,10 @@
 </template>
 
 <script setup lang="ts">
+defineOptions({
+  name: 'AppHeader'
+})
+
 import { ref, onMounted, onUnmounted } from 'vue'
 import { ChevronDown } from 'lucide-vue-next'
 import { useLanguageStore } from '@/shared/stores/language'

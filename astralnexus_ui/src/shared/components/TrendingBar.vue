@@ -133,7 +133,8 @@ const popularGames = ref<PopularGame[]>([
   },
 ])
 
-const followLoading = ref<number | string | null>(null)
+// TODO: Add back when follow functionality is implemented
+// const followLoading = ref<number | string | null>(null)
 
 const emit = defineEmits<{
   hashtagClick: [hashtag: TrendingHashtag]
@@ -147,6 +148,8 @@ const handleHashtagClick = (hashtag: TrendingHashtag) => {
   emit('hashtagClick', hashtag)
 }
 
+// TODO: Implement follow functionality
+/*
 const handleFollowClick = async (user: SuggestedUser) => {
   followLoading.value = user.id
 
@@ -164,16 +167,20 @@ const handleFollowClick = async (user: SuggestedUser) => {
     }, 500)
   }
 }
+*/
 
 const handleGameClick = (game: PopularGame) => {
   console.log('Game clicked:', game)
   emit('gameClick', game)
 }
 
+// TODO: Implement avatar error handling
+/*
 const handleAvatarError = (event: Event) => {
   const target = event.target as HTMLImageElement
   target.src = 'https://cdn.jsdelivr.net/gh/tandpfun/skill-icons/icons/TypeScript.svg'
 }
+*/
 
 const handleGameIconError = (event: Event) => {
   const target = event.target as HTMLImageElement

@@ -99,10 +99,10 @@ import { useLanguageStore } from '@/shared/stores/language'
 import { useUser } from '@/shared/composables/useUser'
 import { useGameCategories } from '@/shared/composables/useGameCategories'
 import NewPost from './NewPost.vue'
-import type { Post } from '@/shared/types'
+import type { Post, GameCategory } from '@/shared/types'
 
 const languageStore = useLanguageStore()
-const { user, loading, handleLogout, initializeUser } = useUser()
+const { user, handleLogout, initializeUser } = useUser()
 const { gameCategories, selectedCategory, fetchGameCategories, selectCategory } =
   useGameCategories()
 const isProfileModalOpen = ref(false)
@@ -120,7 +120,7 @@ const toggleCategorySelect = () => {
   isCategorySelectOpen.value = !isCategorySelectOpen.value
 }
 
-const handleCategorySelect = (category: any) => {
+const handleCategorySelect = (category: GameCategory) => {
   isCategorySelectOpen.value = false
   selectCategory(category)
 }
