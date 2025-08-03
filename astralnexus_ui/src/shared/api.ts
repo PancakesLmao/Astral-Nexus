@@ -100,7 +100,8 @@ export class ApiClient {
     post_type?: string
     tags?: string[]
     visibility?: string
-  }): Promise<Post> {
+    published?: boolean
+  }): Promise<{ id: string; created_at: string; updated_at: string }> {
     try {
       // Filter out undefined values to avoid sending null to API
       const cleanedData = Object.fromEntries(
@@ -111,14 +112,26 @@ export class ApiClient {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // Add auth headers when auth is implemented
-          // 'Authorization': `Bearer ${token}`
         },
+        credentials: 'include', // Include cookies for authentication
         body: JSON.stringify(cleanedData),
       })
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        // Try to get error details from response
+        let errorMessage = `HTTP error! status: ${response.status}`
+        try {
+          const errorData = await response.json()
+          if (errorData.error) {
+            errorMessage = errorData.error
+          } else if (errorData.message) {
+            errorMessage = errorData.message
+          }
+          console.error('Backend error response:', errorData)
+        } catch (e) {
+          console.error('Could not parse error response')
+        }
+        throw new Error(errorMessage)
       }
 
       const data = await response.json()
@@ -127,8 +140,8 @@ export class ApiClient {
         throw new Error(data.error || 'Failed to create post')
       }
 
-      // Return the created post data
-      return data.data.post
+      // Return the created post basic data
+      return data.data
     } catch (error) {
       console.error('Error creating post:', error)
       throw error
@@ -141,8 +154,8 @@ export class ApiClient {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // Add auth headers when auth is implemented
         },
+        credentials: 'include', // Include cookies for authentication
       })
 
       if (!response.ok) {

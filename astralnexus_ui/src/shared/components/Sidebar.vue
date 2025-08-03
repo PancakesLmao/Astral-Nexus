@@ -111,7 +111,6 @@
     <!-- New Post Dialog -->
     <NewPost
       :isOpen="isCreatePostDialogOpen"
-      :user="user"
       @close="isCreatePostDialogOpen = false"
       @created="handlePostCreated"
     />

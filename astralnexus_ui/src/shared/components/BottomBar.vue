@@ -68,7 +68,7 @@
                 :class="{ active: category.id === selectedCategory?.id }"
                 @click="handleCategorySelect(category)"
               >
-                <span class="category-icon">🎮</span>
+                <span class="category-icon"></span>
                 <span>{{ category.game_name }}</span>
               </button>
             </div>
@@ -85,7 +85,6 @@
     <!-- New Post Dialog -->
     <NewPost
       :isOpen="isCreatePostDialogOpen"
-      :user="user"
       @close="isCreatePostDialogOpen = false"
       @created="handlePostCreated"
     />

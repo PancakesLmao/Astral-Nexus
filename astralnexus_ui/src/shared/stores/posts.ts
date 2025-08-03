@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
-import { Post, User, CreatePostRequest, Comment } from '@/shared/types'
+import { Post, CreatePostRequest, Comment, User } from '@/shared/types'
 import { apiClient } from '@/shared/api'
+import { useUserStore } from './user'
 
 export const usePostsStore = defineStore('posts', {
   state: () => ({
@@ -198,50 +199,35 @@ export const usePostsStore = defineStore('posts', {
       console.log('Selected game category:', category.game_name, '→ Filter:', categoryId)
     },
 
-    async createPost(postData: CreatePostRequest, author: User) {
+    async createPost(postData: CreatePostRequest) {
+      const userStore = useUserStore()
+
+      if (!userStore.isAuthenticated || !userStore.user) {
+        throw new Error('User must be authenticated to create posts')
+      }
+
       this.isCreating = true
       try {
         // Map frontend format to backend format
         const backendData = {
           title: postData.title,
           content: postData.content,
-          game_id: postData.game_id,
+          game_id: postData.game_id && postData.game_id.trim() ? postData.game_id : undefined,
           post_type: postData.post_type || 'Discussion',
           tags: postData.tags || [],
           visibility: postData.visibility || 'public',
+          published: true,
         }
 
+        console.log('Sending post data:', backendData)
         const response = await apiClient.createPost(backendData)
 
-        // to get the full post object. For now, create a temporary post.
-        const tempPost: Post = {
-          id: response.id || Date.now().toString(),
-          title: postData.title,
-          content: postData.content,
-          author: author,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          game_category: postData.game_id || '',
-          post_type: postData.post_type || 'Discussion',
-          tags: postData.tags || [],
-          visibility: postData.visibility || 'public',
-          comments_count: 0,
-          likes_count: 0,
-          shares_count: 0,
-          is_liked: false,
-          is_bookmarked: false,
-        }
+        console.log('Post created successfully:', response.id)
 
-        // Add to the beginning of posts array
-        this.posts.unshift(tempPost)
+        // Refresh posts from API to get the accurate data with the new post
+        await this.fetchPosts({ page: 1, ...this.currentFilter })
 
-        // Refresh posts from API to get the accurate data
-        setTimeout(() => {
-          this.fetchPosts({ page: 1, ...this.currentFilter })
-        }, 1000)
-
-        console.log('Post created successfully:', tempPost.id)
-        return tempPost
+        return response
       } catch (error) {
         console.error('Failed to create post:', error)
         throw error
@@ -302,15 +288,15 @@ export const usePostsStore = defineStore('posts', {
         // Mock comments for now
         this.postComments = [
           {
-            id: 1,
+            id: '1',
             content: 'Great post! Thanks for sharing your thoughts.',
             author: {
-              id: 201,
+              id: '201',
               username: 'commenter1',
               name: 'John Doe',
               created_at: '2024-01-01T00:00:00Z',
             },
-            post_id: postId,
+            post_id: postId.toString(),
             created_at: new Date().toISOString(),
             likes_count: 2,
             is_liked: false,
@@ -325,10 +311,10 @@ export const usePostsStore = defineStore('posts', {
       try {
         // Create new comment
         const newComment: Comment = {
-          id: Date.now(),
+          id: Date.now().toString(),
           content,
           author,
-          post_id: postId,
+          post_id: postId.toString(),
           created_at: new Date().toISOString(),
           likes_count: 0,
           is_liked: false,
@@ -351,7 +337,7 @@ export const usePostsStore = defineStore('posts', {
       }
     },
 
-    async likeComment(commentId: number) {
+    async likeComment(commentId: string) {
       try {
         const commentIndex = this.postComments.findIndex((c) => c.id === commentId)
         if (commentIndex !== -1) {

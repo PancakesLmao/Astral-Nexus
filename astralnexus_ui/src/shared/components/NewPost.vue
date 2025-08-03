@@ -420,13 +420,13 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { X, ChevronDown } from 'lucide-vue-next'
 import { usePostsStore } from '@/shared/stores/posts'
+import { useUserStore } from '@/shared/stores/user'
 import { CreatePostRequest } from '@/shared/types'
 import { GameCategory } from '@/shared/types'
 import { apiClient } from '@/shared/api'
 
 interface Props {
   isOpen: boolean
-  user?: any
 }
 
 interface Emits {
@@ -438,6 +438,7 @@ const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
 const postsStore = usePostsStore()
+const userStore = useUserStore()
 const isSubmitting = ref(false)
 const tagsInput = ref('')
 const isLoadingCategories = ref(false)
@@ -630,8 +631,8 @@ const handleClickOutside = (event: Event) => {
 }
 
 const handleSubmit = async () => {
-  if (!props.user) {
-    console.error('User not found')
+  if (!userStore.isAuthenticated || !userStore.user) {
+    console.error('User not authenticated')
     return
   }
 
@@ -639,7 +640,7 @@ const handleSubmit = async () => {
 
   try {
     // Create the post using the store
-    const newPost = await postsStore.createPost(formData.value, props.user)
+    const newPost = await postsStore.createPost(formData.value)
 
     // Emit success event
     emit('created', newPost)

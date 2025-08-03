@@ -1,5 +1,6 @@
 import { Elysia, t } from "elysia";
 import { queryAll, queryOne, query, exists, count } from "../utils/database";
+import { authMiddleware } from "../middleware/auth";
 
 // Post response schemas for Swagger documentation
 const PostAuthorSchema = t.Object({
@@ -295,7 +296,7 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
           content: post.content,
           author: {
             id: post.author_id,
-            username: post.author_email?.split("@")[0] || "user", // Generate username from email
+            username: post.author_name, // Use name instead of generating from email
             name: post.author_name,
             email: post.author_email,
             picture: post.author_picture,
@@ -513,24 +514,67 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
       },
     }
   )
+
+  // Create post endpoint - with manual authentication
   .post(
     "/",
-    async ({ body }) => {
+    async ({ body, cookie, headers }) => {
       try {
-        // TODO: Add authentication middleware to get current user
-        // For now, we'll use the admin user from the database
-        const adminUser = await queryOne(
-          "SELECT id FROM users WHERE email = $1",
-          ["admin@astralnexus.com"]
-        );
+        // Manual authentication check
+        let sessionId: string | null = null;
 
-        if (!adminUser) {
+        // Check Authorization header (Bearer token)
+        const authHeader = headers.authorization;
+        if (authHeader && authHeader.startsWith("Bearer ")) {
+          sessionId = authHeader.substring(7);
+        }
+
+        // Check X-Session-ID header
+        const sessionHeader = headers["x-session-id"];
+        if (sessionHeader && !sessionId) {
+          sessionId = sessionHeader;
+        }
+
+        // Check cookie as fallback
+        const cookieName = "astral_session";
+        if (!sessionId && cookie && cookie[cookieName]?.value) {
+          sessionId = cookie[cookieName].value;
+        }
+
+        if (!sessionId) {
           return {
             success: false,
             message: "Authentication required",
-            error: "No valid user found for post creation",
+            error: "No session found",
           };
         }
+
+        // Get session from database
+        const sessionQuery = `
+          SELECT s.*, u.id as user_id, u.email, u.name, u.picture, p.provider_name
+          FROM sessions s
+          JOIN users u ON s.user_id = u.id
+          JOIN providers p ON u.provider_id = p.id
+          WHERE s.id = $1 AND s.expires_at > CURRENT_TIMESTAMP
+        `;
+
+        const session = await queryOne(sessionQuery, [sessionId]);
+
+        if (!session) {
+          return {
+            success: false,
+            message: "Authentication required",
+            error: "Invalid or expired session",
+          };
+        }
+
+        const user = {
+          id: session.user_id,
+          email: session.email,
+          name: session.name,
+          picture: session.picture,
+          provider: session.provider_name,
+        };
 
         const insertQuery = `
           INSERT INTO posts (title, content, author_id, game_id, published, visibility)
@@ -541,7 +585,7 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
         const result = await queryOne(insertQuery, [
           body.title,
           body.content,
-          adminUser.id,
+          user.id, // Use authenticated user's ID
           body.game_id || null,
           body.published ?? true,
           body.visibility || "public",
@@ -552,8 +596,14 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
           message: "Post created successfully",
           data: {
             id: result.id,
-            created_at: result.created_at,
-            updated_at: result.updated_at,
+            created_at:
+              result.created_at instanceof Date
+                ? result.created_at.toISOString()
+                : result.created_at,
+            updated_at:
+              result.updated_at instanceof Date
+                ? result.updated_at.toISOString()
+                : result.updated_at,
           },
         };
       } catch (error) {
