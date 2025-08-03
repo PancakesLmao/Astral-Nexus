@@ -1,5 +1,6 @@
 import { queryOne, query } from "./database";
 import { validationUtils } from "./auth";
+import { createWelcomeNotification } from "../routes/notifications";
 
 // User management utilities
 export const findOrCreateUser = async (
@@ -68,6 +69,18 @@ export const findOrCreateUser = async (
          RETURNING id, email, name, picture, created_at, updated_at`,
         [sanitizedEmail, sanitizedName, sanitizedPicture, providerRecord.id]
       );
+
+      // Create welcome notification for new user
+      try {
+        await createWelcomeNotification(newUser.id);
+        console.log(`Welcome notification created for new user: ${newUser.id}`);
+      } catch (error) {
+        console.error(
+          `Failed to create welcome notification for user ${newUser.id}:`,
+          error
+        );
+        // Don't throw error - user creation should still succeed even if notification fails
+      }
 
       return {
         id: newUser.id,

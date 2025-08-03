@@ -12,6 +12,8 @@ services:
     environment:
       - NODE_ENV=${NODE_ENV:-development}
       - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:3001}
+      - FRONTEND_SUCCESS_REDIRECT=${FRONTEND_SUCCESS_REDIRECT}
+      - FRONTEND_ERROR_REDIRECT=${FRONTEND_ERROR_REDIRECT}
     volumes:
       - ./astralnexus_ui:/usr/src/app
       - /usr/src/app/node_modules
@@ -34,19 +36,26 @@ services:
     environment:
       - NODE_ENV=${NODE_ENV:-development}
       - PORT=${PORT:-3001}
-      - DATABASE_URL=${DATABASE_URL}
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
+      - HOST=${HOST:-api.localtest.me}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@astralnexus_db:5432/${POSTGRES_DB}
+      - DB_HOST=astralnexus_db
+      - DB_PORT=5432
+      - DB_NAME=${POSTGRES_DB}
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
       - DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID}
       - DISCORD_CLIENT_SECRET=${DISCORD_CLIENT_SECRET}
       - DISCORD_REDIRECT_URI=${DISCORD_REDIRECT_URI}
+      - FRONTEND_SUCCESS_REDIRECT=${FRONTEND_SUCCESS_REDIRECT}
+      - FRONTEND_ERROR_REDIRECT=${FRONTEND_ERROR_REDIRECT}
       - SESSION_SECRET=${SESSION_SECRET}
       - SESSION_DOMAIN=${SESSION_DOMAIN:-localhost}
       - SESSION_SECURE=${SESSION_SECURE:-false}
       - SESSION_SAME_SITE=${SESSION_SAME_SITE:-lax}
       - SESSION_HTTP_ONLY=${SESSION_HTTP_ONLY:-true}
       - CORS_ORIGIN=${CORS_ORIGIN}
+      - POSTGRES_LOG_STATEMENT=${POSTGRES_LOG_STATEMENT:-all}
+      - POSTGRES_INITDB_ARGS=${POSTGRES_INITDB_ARGS}
     volumes:
       - ./astralnexus_be:/usr/src/app
       - /usr/src/app/node_modules
@@ -79,7 +88,7 @@ services:
     env_file:
       - .env
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-astralnexus}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pancakes} -d ${POSTGRES_DB:-astralnexus}"]
       interval: 30s
       timeout: 10s
       retries: 5

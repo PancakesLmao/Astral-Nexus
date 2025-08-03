@@ -16,6 +16,7 @@ import {
   dbRoutes,
   postsRoutes,
   gameCategoriesRoutes,
+  notificationsRoutes,
 } from "./routes";
 
 // Import middleware
@@ -64,6 +65,10 @@ const app = new Elysia()
             description: "Blog comment management endpoints",
           },
           {
+            name: "Notifications",
+            description: "User notification management endpoints",
+          },
+          {
             name: "Game Categories",
             description: "Game category management endpoints",
           },
@@ -89,6 +94,7 @@ const app = new Elysia()
   .use(dbRoutes)
   .use(postsRoutes)
   .use(gameCategoriesRoutes)
+  .use(notificationsRoutes)
 
   .listen(
     {
@@ -103,9 +109,7 @@ const app = new Elysia()
       console.log(
         `📚 API Documentation: ${displayUrl}${appConfig.api.swagger.path}`
       );
-      console.log(
-        `Server listening on: ${hostname}:${port} (all interfaces)`
-      );
+      console.log(`Server listening on: ${hostname}:${port} (all interfaces)`);
       console.log(`Environment: ${appConfig.environment}`);
 
       // Test database connection

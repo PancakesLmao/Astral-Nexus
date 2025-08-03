@@ -57,7 +57,7 @@
 
 <script setup lang="ts">
 defineOptions({
-  name: 'AppHeader'
+  name: 'AppHeader',
 })
 
 import { ref, onMounted, onUnmounted } from 'vue'

@@ -120,7 +120,7 @@
 
 <script lang="ts" setup>
 defineOptions({
-  name: 'UserSidebar'
+  name: 'UserSidebar',
 })
 
 import { ref, onMounted } from 'vue'

@@ -82,6 +82,18 @@ CREATE TABLE IF NOT EXISTS sessions (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Notifications table
+CREATE TABLE IF NOT EXISTS notifications (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type VARCHAR(50) NOT NULL CHECK (type IN ('like', 'comment', 'follow', 'mention', 'system')),
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
+    comment_id UUID REFERENCES comments(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_provider_id ON users(provider_id);
@@ -99,6 +111,11 @@ CREATE INDEX IF NOT EXISTS idx_comment_likes_comment_id ON comment_likes(comment
 CREATE INDEX IF NOT EXISTS idx_comment_likes_user_id ON comment_likes(user_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_type ON notifications(type);
+CREATE INDEX IF NOT EXISTS idx_notifications_post_id ON notifications(post_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_comment_id ON notifications(comment_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at);
 
 -- Update triggers for updated_at columns
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -206,7 +223,7 @@ BEGIN
     INSERT INTO posts (title, content, author_id, published, visibility, game_id) 
     VALUES (
         'Welcome to AstralNexus!', 
-        'Welcome to AstralNexus - your premier destination for gaming content and community discussions! 🎮
+        'Welcome to AstralNexus - your premier destination for gaming content and community discussions!
 
 This platform is designed to bring together gamers from all backgrounds to share experiences, tips, and connect with fellow enthusiasts. Whether you''re into action RPGs, strategy games, or indie titles, you''ll find a home here.
 
