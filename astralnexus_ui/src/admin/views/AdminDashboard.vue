@@ -26,7 +26,7 @@
               <Users :size="24" />
             </div>
             <div class="stat-content">
-              <h3>{{ stats.totalUsers }}</h3>
+              <h3>{{ stats.totalUsers || 0 }}</h3>
               <p>Total Users</p>
             </div>
           </div>
@@ -37,7 +37,7 @@
               <FileText :size="24" />
             </div>
             <div class="stat-content">
-              <h3>{{ stats.totalPosts }}</h3>
+              <h3>{{ stats.totalPosts || 0 }}</h3>
               <p>Total Posts</p>
             </div>
           </div>
@@ -48,7 +48,7 @@
               <MessageCircle :size="24" />
             </div>
             <div class="stat-content">
-              <h3>{{ stats.totalComments }}</h3>
+              <h3>{{ stats.totalComments || 0 }}</h3>
               <p>Total Comments</p>
             </div>
           </div>
@@ -100,7 +100,10 @@
             </div>
 
             <div v-else class="table-responsive">
-              <table class="table table-striped admin-table">
+              <div v-if="users.length === 0" class="text-center py-4">
+                <p class="text-white-50">No users found</p>
+              </div>
+              <table v-else class="table admin-table">
                 <thead>
                   <tr>
                     <th>Avatar</th>
@@ -108,7 +111,6 @@
                     <th>Email</th>
                     <th>Provider</th>
                     <th>Join Date</th>
-                    <th>Posts</th>
                     <th>Status</th>
                   </tr>
                 </thead>
@@ -127,9 +129,6 @@
                       <span class="badge bg-info">{{ user.provider_name }}</span>
                     </td>
                     <td>{{ formatDate(user.created_at) }}</td>
-                    <td>
-                      <span class="badge bg-secondary">{{ user.posts_count || 0 }}</span>
-                    </td>
                     <td>
                       <span class="badge bg-success">Active</span>
                     </td>
@@ -265,12 +264,16 @@ const postToDelete = ref<string | null>(null)
 // Fetch dashboard statistics
 const fetchStats = async () => {
   try {
-    const response = await fetch('http://api.localtest.me:3001/api/admin/dashboard/stats', {
+    const response = await fetch('http://api.localtest.me:3001/admin/dashboard/stats', {
       credentials: 'include',
     })
     const data = await response.json()
+    console.log('Stats API response:', data) // Debug log
     if (data.success) {
       stats.value = data.stats
+      console.log('Updated stats:', stats.value) // Debug log
+    } else {
+      console.error('Stats API error:', data)
     }
   } catch (error) {
     console.error('Error fetching stats:', error)
@@ -281,20 +284,24 @@ const fetchStats = async () => {
 const fetchUsers = async () => {
   loadingUsers.value = true
   try {
-    const response = await fetch('http://api.localtest.me:3001/api/users?limit=100', {
+    const response = await fetch('http://api.localtest.me:3001/admin/users?limit=100', {
       credentials: 'include',
     })
     const data = await response.json()
+    console.log('Users API response:', data) // Debug log
     if (data.success) {
       users.value = data.data.users.map((user: any) => ({
         id: user.id,
         name: user.name,
         email: user.email,
         picture: user.picture,
-        provider_name: user.provider,
-        created_at: user.createdAt,
-        posts_count: 0, // We'll fetch this separately if needed
+        provider_name: user.provider, // Backend sends 'provider', frontend expects 'provider_name'
+        created_at: user.createdAt, // Backend sends 'createdAt', frontend expects 'created_at'
+        posts_count: 0,
       }))
+      console.log('Mapped users:', users.value) // Debug log
+    } else {
+      console.error('Users API error:', data)
     }
   } catch (error) {
     console.error('Error fetching users:', error)
@@ -342,13 +349,10 @@ const confirmDelete = async () => {
 
   deletingPostId.value = postToDelete.value
   try {
-    const response = await fetch(
-      `http://api.localtest.me:3001/api/admin/posts/${postToDelete.value}`,
-      {
-        method: 'DELETE',
-        credentials: 'include',
-      },
-    )
+    const response = await fetch(`http://api.localtest.me:3001/admin/posts/${postToDelete.value}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    })
 
     const data = await response.json()
     if (data.success) {
@@ -371,7 +375,7 @@ const confirmDelete = async () => {
 
 const logout = async () => {
   try {
-    await fetch('http://api.localtest.me:3001/api/admin/logout', {
+    await fetch('http://api.localtest.me:3001/admin/logout', {
       method: 'POST',
       credentials: 'include',
     })
@@ -537,9 +541,17 @@ onMounted(() => {
 }
 
 /* Users Table */
+.table-responsive {
+  background: transparent;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
 .admin-table {
   margin-bottom: 0;
   color: #ffffff;
+  background: transparent;
+  border: none;
 }
 
 .admin-table th {
@@ -547,14 +559,46 @@ onMounted(() => {
   font-weight: 600;
   color: #ffffff;
   border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  border-top: none;
+  border-left: none;
+  border-right: none;
   padding: 1rem 0.75rem;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.5px;
 }
 
 .admin-table td {
   padding: 1rem 0.75rem;
   vertical-align: middle;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: none;
+  border-left: none;
+  border-right: none;
   color: rgba(255, 255, 255, 0.9);
+  background: transparent;
+}
+
+.admin-table tbody tr {
+  background: transparent;
+  transition: background-color 0.2s ease;
+}
+
+.admin-table tbody tr:hover {
+  background: rgba(255, 107, 53, 0.1);
+}
+
+.admin-table tbody tr:nth-child(odd) {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.admin-table tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.admin-table tbody tr:nth-child(odd):hover,
+.admin-table tbody tr:nth-child(even):hover {
+  background: rgba(255, 107, 53, 0.1);
 }
 
 .user-avatar {
@@ -563,6 +607,7 @@ onMounted(() => {
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 /* Posts Grid */
