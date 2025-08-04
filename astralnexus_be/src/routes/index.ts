@@ -6,6 +6,7 @@ import { dbRoutes } from "./database";
 import { postsRoutes } from "./posts";
 import { gameCategoriesRoutes } from "./gameCategories";
 import { notificationsRoutes } from "./notifications";
+import { adminRoutes } from "./admin";
 
 // Export all routes
 export {
@@ -17,4 +18,5 @@ export {
   postsRoutes,
   gameCategoriesRoutes,
   notificationsRoutes,
+  adminRoutes,
 };

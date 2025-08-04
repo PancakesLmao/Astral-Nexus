@@ -1,6 +1,23 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { API_BASE_URL } from '@/shared/api'
-import { checkUserAuth, redirectToLogin } from '@/shared/utils'
+
+// Admin authentication check function
+const checkAdminAuth = async () => {
+  try {
+    const response = await fetch('http://api.localtest.me:3001/admin/me', {
+      method: 'GET',
+      credentials: 'include',
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      return data.success
+    }
+    return false
+  } catch (error) {
+    console.error('Admin auth check failed:', error)
+    return false
+  }
+}
 
 const router = createRouter({
   history: createWebHistory(),
@@ -12,6 +29,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/login',
+      name: 'AdminLogin',
+      component: () => import('../views/Login.vue'),
+      meta: { requiresAuth: false },
+    },
+    {
       path: '/posts',
       name: 'PostManager',
       component: () => import('../views/PostManager.vue'),
@@ -20,7 +43,7 @@ const router = createRouter({
   ],
 })
 
-// Navigation guard to check authentication
+// Navigation guard to check admin authentication
 router.beforeEach(async (to, from, next) => {
   console.log('Admin router: Checking route:', to.path)
 
@@ -28,16 +51,16 @@ router.beforeEach(async (to, from, next) => {
   if (to.meta.requiresAuth) {
     console.log('Admin router: Route requires authentication')
 
-    // Check if user is authenticated
-    const { isAuthenticated } = await checkUserAuth(API_BASE_URL)
+    // Check if admin is authenticated
+    const isAuthenticated = await checkAdminAuth()
 
     if (!isAuthenticated) {
-      console.log('Admin router: User not authenticated, redirecting to login')
-      redirectToLogin()
+      console.log('Admin router: Admin not authenticated, redirecting to login')
+      next('/login')
       return
     }
 
-    console.log('Admin router: User authenticated, proceeding')
+    console.log('Admin router: Admin authenticated, proceeding')
   }
 
   next()

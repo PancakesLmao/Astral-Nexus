@@ -17,6 +17,7 @@ import {
   postsRoutes,
   gameCategoriesRoutes,
   notificationsRoutes,
+  adminRoutes,
 } from "./routes";
 
 // Import middleware
@@ -95,6 +96,7 @@ const app = new Elysia()
   .use(postsRoutes)
   .use(gameCategoriesRoutes)
   .use(notificationsRoutes)
+  .use(adminRoutes)
 
   .listen(
     {
