@@ -25,14 +25,14 @@
           <div
             class="w-12 h-12 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center text-white font-semibold"
           >
-            {{ getAvatarInitial(post.author?.name || post.author?.username || 'A') }}
+            {{ getAvatarInitial(post.author?.name || 'A') }}
           </div>
 
           <!-- Post Content -->
           <div class="flex-1">
             <div class="flex items-center gap-2 mb-2">
               <span class="text-accent font-medium"
-                >@{{ post.author?.username || 'username' }}</span
+                >@{{ post.author?.name || 'username' }}</span
               >
               <span class="text-dark-400 text-sm">•</span>
               <span class="text-dark-400 text-sm">{{ formatTimeAgo(post.created_at) }}</span>

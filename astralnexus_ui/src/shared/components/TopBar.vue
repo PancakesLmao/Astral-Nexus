@@ -78,7 +78,7 @@
                 <img :src="user.picture" :alt="user.name" class="profile-avatar-large" />
                 <div class="profile-details">
                   <div class="profile-name">{{ user.name }}</div>
-                  <div class="profile-username">@{{ user.username || 'user' }}</div>
+                  <div class="profile-username">@{{ user.name || 'user' }}</div>
                 </div>
               </div>
               <hr class="dropdown-divider" />

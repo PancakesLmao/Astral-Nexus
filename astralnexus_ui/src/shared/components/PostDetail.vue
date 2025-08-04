@@ -219,7 +219,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch, computed } from 'vue'
+import { ref, watch } from 'vue'
 import { MessageSquareMore, ThumbsUp, Ellipsis, Repeat2, X } from 'lucide-vue-next'
 import type { Post, Comment, User } from '@/shared/types'
 import { usePostsStore } from '@/shared/stores/posts'

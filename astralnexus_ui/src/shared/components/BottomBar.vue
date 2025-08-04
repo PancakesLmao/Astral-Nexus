@@ -48,7 +48,7 @@
           <img :src="user.picture" :alt="user.name" class="modal-avatar" />
           <div class="modal-user-info">
             <div class="modal-user-name">{{ user.name }}</div>
-            <div class="modal-username">@{{ user.username || 'user' }}</div>
+            <div class="modal-username">@{{ user.name || 'user' }}</div>
           </div>
           <button class="close-btn" @click="isProfileModalOpen = false">
             <X :size="20" />

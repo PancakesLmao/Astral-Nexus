@@ -19,7 +19,7 @@
         </div>
         <div class="profile-info text-white">
           <h3 class="profile-name text-xl font-semibold text-[#b8aff7] mb-1">{{ user.name }}</h3>
-          <p class="profile-username text-sm text-gray-600 mb-2">@{{ user.username || 'user' }}</p>
+          <p class="profile-username text-sm text-gray-600 mb-2">@{{ user.name || 'user' }}</p>
           <p class="profile-bio text-sm text-gray-400 leading-tight" v-if="user.bio">
             {{ user.bio }}
           </p>

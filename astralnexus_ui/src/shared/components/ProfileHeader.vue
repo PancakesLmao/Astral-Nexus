@@ -16,8 +16,8 @@
         <!-- User Details -->
         <div class="user-details">
           <div class="user-main-info">
-            <h1 class="user-name">{{ user.name || user.username }}</h1>
-            <p class="username">@{{ user.username || 'user' }}</p>
+            <h1 class="user-name">{{ user.name }}</h1>
+            <p class="username">@{{ user.name || 'user' }}</p>
             <div class="user-meta"></div>
           </div>
 
