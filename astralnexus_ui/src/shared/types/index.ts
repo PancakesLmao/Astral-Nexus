@@ -35,10 +35,10 @@ export interface CookieOptions {
 
 export interface User {
   id: string // UUID in database
-  username: string // Generated from email in backend
-  name?: string
-  email?: string
+  name: string
+  email: string
   picture?: string // Discord profile picture
+  provider_id?: string // UUID
   bio?: string
   created_at?: string
   updated_at?: string

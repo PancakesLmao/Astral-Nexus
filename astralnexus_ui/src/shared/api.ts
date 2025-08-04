@@ -8,6 +8,7 @@ import {
   PaginationInfo,
   Notification,
   NotificationsResponse,
+  Comment,
 } from '@/shared/types'
 
 // API client setup
@@ -311,6 +312,73 @@ export class ApiClient {
       return data.data
     } catch (error) {
       console.error('Error fetching user statistics:', error)
+      throw error
+    }
+  }
+
+  async fetchComments(postId: string): Promise<Comment[]> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/comments/${postId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Include cookies for authentication
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to fetch comments')
+      }
+
+      return data.data
+    } catch (error) {
+      console.error('Error fetching comments:', error)
+      throw error
+    }
+  }
+
+  async createComment(commentData: { postId: string; content: string }): Promise<Comment> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/comments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Include cookies for authentication
+        body: JSON.stringify(commentData),
+      })
+
+      if (!response.ok) {
+        let errorMessage = `HTTP error! status: ${response.status}`
+        try {
+          const errorData = await response.json()
+          if (errorData.error) {
+            errorMessage = errorData.error
+          } else if (errorData.message) {
+            errorMessage = errorData.message
+          }
+          console.error('Backend error response:', errorData)
+        } catch (e) {
+          console.error('Could not parse error response')
+        }
+        throw new Error(errorMessage)
+      }
+
+      const data = await response.json()
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to create comment')
+      }
+
+      return data.data
+    } catch (error) {
+      console.error('Error creating comment:', error)
       throw error
     }
   }

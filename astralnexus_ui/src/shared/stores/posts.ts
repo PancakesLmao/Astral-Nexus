@@ -309,46 +309,28 @@ export const usePostsStore = defineStore('posts', {
     async loadComments(postId: string | number) {
       this.loadingComments = true
       try {
-        // TODO: Implement real comments API
-        await new Promise((resolve) => setTimeout(resolve, 500))
-
-        // Mock comments for now
-        this.postComments = [
-          {
-            id: '1',
-            content: 'Great post! Thanks for sharing your thoughts.',
-            author: {
-              id: '201',
-              username: 'commenter1',
-              name: 'John Doe',
-              created_at: '2024-01-01T00:00:00Z',
-            },
-            post_id: postId.toString(),
-            created_at: new Date().toISOString(),
-            likes_count: 2,
-            is_liked: false,
-          },
-        ]
+        // Fetch real comments from API
+        const comments = await apiClient.fetchComments(postId.toString())
+        this.postComments = comments
+        console.log(`Loaded ${comments.length} comments for post ${postId}`)
+      } catch (error) {
+        console.error('Failed to load comments:', error)
+        this.postComments = []
       } finally {
         this.loadingComments = false
       }
     },
 
-    async submitComment(content: string, postId: string | number, author: User) {
+    async submitComment(content: string, postId: string | number) {
       try {
-        // Create new comment
-        const newComment: Comment = {
-          id: Date.now().toString(),
-          content,
-          author,
-          post_id: postId.toString(),
-          created_at: new Date().toISOString(),
-          likes_count: 0,
-          is_liked: false,
-        }
+        // Create comment via API
+        const newComment = await apiClient.createComment({
+          postId: postId.toString(),
+          content: content.trim(),
+        })
 
-        // Add to comments list
-        this.postComments.push(newComment)
+        // Add to local comments list for immediate UI update
+        this.postComments.unshift(newComment) // Add to beginning since comments are sorted by newest first
 
         // Update post comment count
         const postIndex = this.posts.findIndex((p) => p.id === postId)
@@ -367,31 +349,42 @@ export const usePostsStore = defineStore('posts', {
     async likeComment(commentId: string) {
       try {
         const commentIndex = this.postComments.findIndex((c) => c.id === commentId)
-        if (commentIndex === -1) return
+        if (commentIndex === -1) {
+          console.warn('Comment not found for like toggle:', commentId)
+          return
+        }
 
-        // Optimistic update
         const comment = this.postComments[commentIndex]
-        const wasLiked = comment.is_liked
-        comment.is_liked = !wasLiked
-        comment.likes_count = wasLiked
-          ? Math.max(0, (comment.likes_count || 0) - 1)
-          : (comment.likes_count || 0) + 1
+        const originalLiked = comment.is_liked
+        const originalCount = comment.likes_count || 0
 
-        // Call API
+        // Step 1: Optimistic update for instant UX
+        this.postComments[commentIndex] = {
+          ...comment,
+          is_liked: !originalLiked,
+          likes_count: originalLiked ? Math.max(0, originalCount - 1) : originalCount + 1,
+        }
+
+        // Step 2: Call API to persist the change
         await apiClient.likeComment(commentId)
+        console.log('✅ Comment like action persisted to backend')
 
-        console.log('Comment like toggled:', commentId)
+        // For now, trust optimistic update since we don't have comment sync API
+        // TODO: Add comment sync API similar to fetchSinglePost
       } catch (error) {
-        // Revert optimistic update on error
+        console.error('Failed to like comment:', error)
+
+        // Step 3: Rollback optimistic update on error
         const commentIndex = this.postComments.findIndex((c) => c.id === commentId)
         if (commentIndex !== -1) {
           const comment = this.postComments[commentIndex]
-          comment.is_liked = !comment.is_liked
-          comment.likes_count = comment.is_liked
-            ? (comment.likes_count || 0) + 1
-            : Math.max(0, (comment.likes_count || 0) - 1)
+          this.postComments[commentIndex] = {
+            ...comment,
+            is_liked: originalLiked,
+            likes_count: originalCount,
+          }
         }
-        console.error('Failed to like comment:', error)
+
         throw error
       }
     },

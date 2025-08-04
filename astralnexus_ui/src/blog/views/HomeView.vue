@@ -123,7 +123,7 @@ const submitComment = async (content: string, postId: number | string) => {
   }
 
   try {
-    await postsStore.submitComment(content, postId, currentUser.value)
+    await postsStore.submitComment(content, postId)
   } catch (error) {
     console.error('Failed to submit comment:', error)
   }
@@ -141,7 +141,6 @@ const handleCommentLike = async (comment: Comment) => {
   }
 }
 
-// Initialize on mount
 onMounted(async () => {
   console.log('HomeView mounted, initializing user and posts...')
   await initializeUser()

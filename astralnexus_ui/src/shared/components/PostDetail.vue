@@ -32,15 +32,15 @@
                 <div
                   class="w-16 h-16 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center text-white font-bold text-xl"
                 >
-                  {{ getAvatarInitial(post.author?.name || post.author?.username || 'A') }}
+                  {{ getAvatarInitial(post.author?.name || 'A') }}
                 </div>
 
                 <!-- Post Meta -->
                 <div class="flex-1">
                   <div class="flex items-center gap-2 mb-2">
-                    <span class="text-accent font-semibold text-lg"
-                      >@{{ post.author?.username || 'username' }}</span
-                    >
+                    <span class="text-accent font-semibold text-lg">{{
+                      post.author?.name || 'Anonymous'
+                    }}</span>
                     <span class="text-dark-400">•</span>
                     <span class="text-dark-400">{{ formatTimeAgo(post.created_at) }}</span>
                   </div>
@@ -128,7 +128,7 @@
                   <div
                     class="w-10 h-10 bg-gradient-to-br from-accent to-accent-light rounded-full flex items-center justify-center text-dark-900 font-semibold"
                   >
-                    {{ getAvatarInitial(currentUser?.name || currentUser?.username || 'U') }}
+                    {{ getAvatarInitial(currentUser?.name || 'U') }}
                   </div>
                   <div class="flex-1">
                     <textarea
@@ -173,12 +173,12 @@
                   <div
                     class="w-10 h-10 bg-gradient-to-br from-secondary-500 to-primary-500 rounded-full flex items-center justify-center text-white font-semibold"
                   >
-                    {{ getAvatarInitial(comment.author?.name || comment.author?.username || 'C') }}
+                    {{ getAvatarInitial(comment.author?.name || 'C') }}
                   </div>
                   <div class="flex-1">
                     <div class="flex items-center gap-2 mb-1">
                       <span class="text-accent font-medium"
-                        >@{{ comment.author?.username || 'commenter' }}</span
+                        >@{{ comment.author?.name || 'commenter' }}</span
                       >
                       <span class="text-dark-400 text-sm">{{
                         formatTimeAgo(comment.created_at)

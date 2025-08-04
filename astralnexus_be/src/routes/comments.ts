@@ -6,9 +6,48 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
   // Get all comments for a specific post
   .get(
     "/:postId",
-    async ({ params: { postId }, set }) => {
+    async ({ params: { postId }, set, headers, cookie }) => {
       try {
-        // Query real comments from database
+        // Get user session for like status
+        let userId: string | null = null;
+
+        // Manual authentication check (same as posts)
+        let sessionId: string | null = null;
+
+        // Check Authorization header (Bearer token)
+        const authHeader = headers.authorization;
+        if (authHeader && authHeader.startsWith("Bearer ")) {
+          sessionId = authHeader.substring(7);
+        }
+
+        // Check X-Session-ID header
+        const sessionHeader = headers["x-session-id"];
+        if (sessionHeader && !sessionId) {
+          sessionId = sessionHeader;
+        }
+
+        // Check cookie as fallback
+        const cookieName = "astral_session";
+        if (!sessionId && cookie && cookie[cookieName]?.value) {
+          sessionId = cookie[cookieName].value;
+        }
+
+        // Get user ID from session if available
+        if (sessionId) {
+          try {
+            const session = await queryOne(
+              "SELECT user_id FROM user_sessions WHERE session_id = $1 AND expires_at > NOW()",
+              [sessionId]
+            );
+            if (session) {
+              userId = session.user_id;
+            }
+          } catch (error) {
+            console.warn("Failed to validate session:", error);
+          }
+        }
+
+        // Query real comments from database with like information
         const commentsQuery = `
           SELECT 
             c.id,
@@ -16,25 +55,38 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
             c.created_at,
             c.updated_at,
             c.post_id,
+            c.likes_count,
             u.id as author_id,
             u.name as author_name,
             u.email as author_email,
-            u.picture as author_picture
+            u.picture as author_picture,
+            CASE 
+              WHEN $2::uuid IS NOT NULL AND cl.user_id IS NOT NULL THEN true 
+              ELSE false 
+            END as is_liked
           FROM comments c
           JOIN users u ON c.author_id = u.id
+          LEFT JOIN comment_likes cl ON c.id = cl.comment_id AND cl.user_id = $2::uuid
           WHERE c.post_id = $1
           ORDER BY c.created_at DESC
         `;
 
-        const comments = await queryAll(commentsQuery, [postId]);
+        const comments = await queryAll(commentsQuery, [postId, userId]);
 
         // Transform comments to match expected format
         const transformedComments = comments.map((comment: any) => ({
-          id: parseInt(comment.id),
-          postId: parseInt(comment.post_id),
-          author: comment.author_name,
+          id: comment.id.toString(),
+          postId: comment.post_id.toString(),
+          author: {
+            id: comment.author_id.toString(),
+            name: comment.author_name,
+            email: comment.author_email,
+            picture: comment.author_picture,
+          },
           content: comment.content,
-          createdAt: new Date(comment.created_at).toISOString(),
+          likes_count: parseInt(comment.likes_count) || 0,
+          is_liked: comment.is_liked,
+          created_at: new Date(comment.created_at).toISOString(),
         }));
 
         set.status = 200;
@@ -57,8 +109,8 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
     {
       params: t.Object({
         postId: t.String({
-          description: "ID of the blog post",
-          pattern: "^[0-9]+$",
+          format: "uuid",
+          description: "UUID of the blog post",
         }),
       }),
       response: t.Object({
@@ -66,11 +118,18 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
         data: t.Optional(
           t.Array(
             t.Object({
-              id: t.Number(),
-              postId: t.Number(),
-              author: t.String(),
+              id: t.String(),
+              postId: t.String(),
+              author: t.Object({
+                id: t.String(),
+                name: t.String(),
+                email: t.String(),
+                picture: t.Optional(t.String()),
+              }),
               content: t.String(),
-              createdAt: t.String(),
+              likes_count: t.Number(),
+              is_liked: t.Boolean(),
+              created_at: t.String(),
             })
           )
         ),
@@ -164,11 +223,18 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
         ]);
 
         const newComment = {
-          id: parseInt(result.id),
+          id: result.id.toString(),
           postId: body.postId,
-          author: session.name,
+          author: {
+            id: session.user_id.toString(),
+            name: session.name,
+            email: session.email,
+            picture: session.picture,
+          },
           content: body.content,
-          createdAt: new Date(result.created_at).toISOString(),
+          likes_count: 0,
+          is_liked: false,
+          created_at: new Date(result.created_at).toISOString(),
         };
 
         set.status = 201;
@@ -190,9 +256,9 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
     },
     {
       body: t.Object({
-        postId: t.Number({
-          minimum: 1,
-          description: "ID of the blog post",
+        postId: t.String({
+          format: "uuid",
+          description: "UUID of the blog post",
         }),
         content: t.String({
           minLength: 1,
@@ -204,11 +270,18 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
         success: t.Boolean(),
         data: t.Optional(
           t.Object({
-            id: t.Number(),
-            postId: t.Number(),
-            author: t.String(),
+            id: t.String(),
+            postId: t.String(),
+            author: t.Object({
+              id: t.String(),
+              name: t.String(),
+              email: t.String(),
+              picture: t.Optional(t.String()),
+            }),
             content: t.String(),
-            createdAt: t.String(),
+            likes_count: t.Number(),
+            is_liked: t.Boolean(),
+            created_at: t.String(),
           })
         ),
         message: t.String(),
@@ -278,7 +351,7 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
           };
         }
 
-        const commentId = parseInt(id);
+        const commentId = id; // UUID as string
 
         // Check if comment exists and user owns it
         const existingComment = await queryOne(
@@ -320,8 +393,8 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
         ]);
 
         const updatedComment = {
-          id: parseInt(result.id),
-          postId: result.post_id,
+          id: result.id.toString(),
+          postId: result.post_id.toString(),
           author: session.name,
           content: result.content,
           createdAt: new Date(result.created_at).toISOString(),
@@ -347,8 +420,8 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
     {
       params: t.Object({
         id: t.String({
-          description: "Comment ID",
-          pattern: "^[0-9]+$",
+          format: "uuid",
+          description: "Comment UUID",
         }),
       }),
       body: t.Object({
@@ -421,7 +494,7 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
           };
         }
 
-        const commentId = parseInt(id);
+        const commentId = id; // UUID as string
 
         // Check if comment exists and user owns it
         const existingComment = await queryOne(
@@ -463,8 +536,8 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
     {
       params: t.Object({
         id: t.String({
-          description: "Comment ID",
-          pattern: "^[0-9]+$",
+          format: "uuid",
+          description: "Comment UUID",
         }),
       }),
       detail: {
