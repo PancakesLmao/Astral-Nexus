@@ -11,7 +11,7 @@ services:
       - "24678:24678"  # Vite HMR port
     environment:
       - NODE_ENV=${NODE_ENV:-development}
-      - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:3001}
+      - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://api.localtest.me:3001}
       - FRONTEND_SUCCESS_REDIRECT=${FRONTEND_SUCCESS_REDIRECT}
       - FRONTEND_ERROR_REDIRECT=${FRONTEND_ERROR_REDIRECT}
     volumes:
