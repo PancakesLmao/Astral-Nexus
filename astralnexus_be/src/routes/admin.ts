@@ -197,17 +197,11 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
         };
       }
 
-      // Get dashboard statistics
-      const [usersCount, postsCount, commentsCount, activeUsersCount] =
-        await Promise.all([
-          db.query("SELECT COUNT(*) as count FROM users"),
-          db.query("SELECT COUNT(*) as count FROM posts"),
-          db.query("SELECT COUNT(*) as count FROM comments"),
-          db.query(`
-          SELECT COUNT(*) as count FROM users
-          WHERE last_login_at > NOW() - INTERVAL '30 days'
-        `),
-        ]);
+      const [usersCount, postsCount, commentsCount] = await Promise.all([
+        db.query("SELECT COUNT(*) as count FROM users"),
+        db.query("SELECT COUNT(*) as count FROM posts"),
+        db.query("SELECT COUNT(*) as count FROM comments"),
+      ]);
 
       return {
         success: true,
@@ -215,7 +209,6 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
           totalUsers: parseInt(usersCount.rows[0].count),
           totalPosts: parseInt(postsCount.rows[0].count),
           totalComments: parseInt(commentsCount.rows[0].count),
-          activeUsers: parseInt(activeUsersCount.rows[0].count),
         },
       };
     } catch (error) {
@@ -226,4 +219,74 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
         message: "Internal server error",
       };
     }
-  });
+  })
+
+  // Delete post endpoint (admin only)
+  .delete(
+    "/posts/:id",
+    async ({ params, cookie: { adminSession }, set }) => {
+      try {
+        const sessionId = adminSession.value;
+        const { id: postId } = params;
+
+        if (!sessionId) {
+          set.status = 401;
+          return {
+            success: false,
+            message: "Not authenticated",
+          };
+        }
+
+        // Validate admin session
+        const adminCheck = await db.query(
+          `
+        SELECT a.id FROM administrators a
+        INNER JOIN admin_sessions s ON a.id = s.admin_id
+        WHERE s.id = $1 AND s.expires_at > NOW() AND a.is_active = true
+      `,
+          [sessionId]
+        );
+
+        if (adminCheck.rows.length === 0) {
+          adminSession.remove();
+          set.status = 401;
+          return {
+            success: false,
+            message: "Session expired",
+          };
+        }
+
+        // Check if post exists
+        const postCheck = await db.query("SELECT id FROM posts WHERE id = $1", [
+          postId,
+        ]);
+        if (postCheck.rows.length === 0) {
+          set.status = 404;
+          return {
+            success: false,
+            message: "Post not found",
+          };
+        }
+
+        // Delete post (cascading deletes will handle related records)
+        await db.query("DELETE FROM posts WHERE id = $1", [postId]);
+
+        return {
+          success: true,
+          message: "Post deleted successfully",
+        };
+      } catch (error) {
+        console.error("Admin delete post error:", error);
+        set.status = 500;
+        return {
+          success: false,
+          message: "Internal server error",
+        };
+      }
+    },
+    {
+      params: t.Object({
+        id: t.String(),
+      }),
+    }
+  );
