@@ -1,0 +1,34 @@
+{
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "blog.astral-nexus.vercel.app/"
+        }
+      ],
+      "destination": "/blog.html"
+    },
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "admin.astral-nexus.vercel.app/"
+        }
+      ],
+      "destination": "/admin.html"
+    },
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "astral-nexus.vercel.app/"
+        }
+      ],
+      "destination": "/root.html"
+    }
+  ]
+}

@@ -244,6 +244,7 @@ import {
   LogOut,
   ThumbsUp,
 } from 'lucide-vue-next'
+import { apiClient } from '@/shared/api'
 
 // Reactive data
 const activeTab = ref('users')
@@ -283,20 +284,116 @@ const deletingPostId = ref<string | null>(null)
 const showDeleteModal = ref(false)
 const postToDelete = ref<string | null>(null)
 
+// Admin API methods using the centralized ApiClient
+class AdminApiClient {
+  constructor(private baseUrl: string) {}
+
+  async fetchDashboardStats(): Promise<{
+    totalUsers: number
+    totalPosts: number
+    totalComments: number
+    activeUsers: number
+  }> {
+    try {
+      const response = await fetch(`${this.baseUrl}/admin/dashboard/stats`, {
+        credentials: 'include',
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const data = await response.json()
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to fetch dashboard stats')
+      }
+      
+      return data.stats
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error)
+      throw error
+    }
+  }
+
+  async fetchUsers(limit: number = 100): Promise<Array<{
+    id: string
+    name: string
+    email: string
+    picture?: string
+    provider: string
+    createdAt: string
+  }>> {
+    try {
+      const response = await fetch(`${this.baseUrl}/admin/users?limit=${limit}`, {
+        credentials: 'include',
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const data = await response.json()
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to fetch users')
+      }
+      
+      return data.data.users
+    } catch (error) {
+      console.error('Error fetching users:', error)
+      throw error
+    }
+  }
+
+  async deletePost(postId: string): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/admin/posts/${postId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const data = await response.json()
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to delete post')
+      }
+    } catch (error) {
+      console.error('Error deleting post:', error)
+      throw error
+    }
+  }
+
+  async logout(): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/admin/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+    } catch (error) {
+      console.error('Error during logout:', error)
+      throw error
+    }
+  }
+}
+
+// Initialize admin API client
+const adminApiClient = new AdminApiClient(apiClient['baseUrl'])
+
 // Fetch dashboard statistics
 const fetchStats = async () => {
   try {
-    const response = await fetch('http://api.localtest.me:3001/admin/dashboard/stats', {
-      credentials: 'include',
-    })
-    const data = await response.json()
-    console.log('Stats API response:', data) // Debug log
-    if (data.success) {
-      stats.value = data.stats
-      console.log('Updated stats:', stats.value) // Debug log
-    } else {
-      console.error('Stats API error:', data)
-    }
+    const statsData = await adminApiClient.fetchDashboardStats()
+    stats.value = statsData
+    console.log('Updated stats:', stats.value) // Debug log
   } catch (error) {
     console.error('Error fetching stats:', error)
   }
@@ -306,34 +403,17 @@ const fetchStats = async () => {
 const fetchUsers = async () => {
   loadingUsers.value = true
   try {
-    const response = await fetch('http://api.localtest.me:3001/admin/users?limit=100', {
-      credentials: 'include',
-    })
-    const data = await response.json()
-    console.log('Users API response:', data) // Debug log
-    if (data.success) {
-      users.value = data.data.users.map(
-        (user: {
-          id: string
-          name: string
-          email: string
-          picture?: string
-          provider: string
-          createdAt: string
-        }) => ({
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          picture: user.picture,
-          provider_name: user.provider, // Backend sends 'provider', frontend expects 'provider_name'
-          created_at: user.createdAt, // Backend sends 'createdAt', frontend expects 'created_at'
-          posts_count: 0,
-        }),
-      )
-      console.log('Mapped users:', users.value) // Debug log
-    } else {
-      console.error('Users API error:', data)
-    }
+    const usersData = await adminApiClient.fetchUsers(100)
+    users.value = usersData.map((user) => ({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      picture: user.picture,
+      provider_name: user.provider, // Backend sends 'provider', frontend expects 'provider_name'
+      created_at: user.createdAt, // Backend sends 'createdAt', frontend expects 'created_at'
+      posts_count: 0,
+    }))
+    console.log('Mapped users:', users.value) // Debug log
   } catch (error) {
     console.error('Error fetching users:', error)
   } finally {
@@ -341,38 +421,22 @@ const fetchUsers = async () => {
   }
 }
 
-// Fetch posts
+// Fetch posts using existing apiClient
 const fetchPosts = async () => {
   loadingPosts.value = true
   try {
-    const response = await fetch('http://api.localtest.me:3001/api/posts?limit=50', {
-      credentials: 'include',
-    })
-    const data = await response.json()
-    if (data.success) {
-      posts.value = data.data.posts.map(
-        (post: {
-          id: string
-          title: string
-          content: string
-          author: { name: string; picture?: string }
-          likes_count: number
-          comments_count: number
-          created_at: string
-          game_category?: string
-        }) => ({
-          id: post.id,
-          title: post.title,
-          content: post.content,
-          author_name: post.author.name,
-          author_picture: post.author.picture,
-          likes_count: post.likes_count,
-          comments_count: post.comments_count,
-          created_at: post.created_at,
-          game_name: post.game_category,
-        }),
-      )
-    }
+    const { posts: postsData } = await apiClient.fetchPosts({ limit: 50 })
+    posts.value = postsData.map((post) => ({
+      id: post.id,
+      title: post.title,
+      content: post.content,
+      author_name: post.author.name,
+      author_picture: post.author.picture,
+      likes_count: post.likes_count || 0,
+      comments_count: post.comments_count || 0,
+      created_at: post.created_at,
+      game_name: post.game_category,
+    }))
   } catch (error) {
     console.error('Error fetching posts:', error)
   } finally {
@@ -391,23 +455,14 @@ const confirmDelete = async () => {
 
   deletingPostId.value = postToDelete.value
   try {
-    const response = await fetch(`http://api.localtest.me:3001/admin/posts/${postToDelete.value}`, {
-      method: 'DELETE',
-      credentials: 'include',
-    })
-
-    const data = await response.json()
-    if (data.success) {
-      // Remove post from the list
-      posts.value = posts.value.filter((post) => post.id !== postToDelete.value)
-      // Update stats
-      stats.value.totalPosts--
-    } else {
-      alert('Failed to delete post: ' + data.message)
-    }
+    await adminApiClient.deletePost(postToDelete.value)
+    // Remove post from the list
+    posts.value = posts.value.filter((post) => post.id !== postToDelete.value)
+    // Update stats
+    stats.value.totalPosts--
   } catch (error) {
     console.error('Error deleting post:', error)
-    alert('Failed to delete post')
+    alert('Failed to delete post: ' + (error as Error).message)
   } finally {
     deletingPostId.value = null
     showDeleteModal.value = false
@@ -417,10 +472,7 @@ const confirmDelete = async () => {
 
 const logout = async () => {
   try {
-    await fetch('http://api.localtest.me:3001/admin/logout', {
-      method: 'POST',
-      credentials: 'include',
-    })
+    await adminApiClient.logout()
     window.location.href = 'http://localtest.me:3000'
   } catch (error) {
     console.error('Logout error:', error)
