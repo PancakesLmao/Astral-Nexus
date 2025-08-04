@@ -1,3 +1,4 @@
+<!-- eslint-disable vue/multi-word-component-names -->
 <template>
   <div
     class="login min-vh-100 d-flex align-items-center justify-content-center p-4 position-relative"
@@ -67,10 +68,8 @@
 
 <script lang="ts" setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
 import { ArrowLeft } from 'lucide-vue-next'
 
-const router = useRouter()
 const isLoading = ref(false)
 const errorMessage = ref('')
 

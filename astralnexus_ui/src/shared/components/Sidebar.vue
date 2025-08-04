@@ -243,8 +243,9 @@ const openCreatePostDialog = () => {
   isCreatePostDialogOpen.value = true
 }
 
-const handlePostCreated = async (post: Post) => {
-  console.log('Sidebar: New post created:', post)
+const handlePostCreated = async (post: unknown) => {
+  const typedPost = post as Post
+  console.log('Sidebar: New post created:', typedPost)
   // Emit to parent to refresh stats
   emit('refresh-stats')
 }

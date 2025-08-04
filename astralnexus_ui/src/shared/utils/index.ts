@@ -71,7 +71,7 @@ export function deleteCookie(
 // Authentication utilities
 export async function checkUserAuth(
   apiBaseUrl: string,
-): Promise<{ isAuthenticated: boolean; user?: any }> {
+): Promise<{ isAuthenticated: boolean; user?: unknown }> {
   try {
     // Rely solely on cookies for session management
     // No need to manually check localStorage or send Authorization headers

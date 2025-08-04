@@ -129,7 +129,7 @@ export class ApiClient {
             errorMessage = errorData.message
           }
           console.error('Backend error response:', errorData)
-        } catch (e) {
+        } catch {
           console.error('Could not parse error response')
         }
         throw new Error(errorMessage)
@@ -364,7 +364,7 @@ export class ApiClient {
             errorMessage = errorData.message
           }
           console.error('Backend error response:', errorData)
-        } catch (e) {
+        } catch {
           console.error('Could not parse error response')
         }
         throw new Error(errorMessage)

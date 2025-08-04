@@ -431,7 +431,7 @@ interface Props {
 
 interface Emits {
   (e: 'close'): void
-  (e: 'created', post: any): void
+  (e: 'created', post: unknown): void
 }
 
 const props = defineProps<Props>()

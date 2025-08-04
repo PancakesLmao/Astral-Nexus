@@ -27,8 +27,8 @@ export const useUserStore = defineStore('user', () => {
         return
       }
 
-      user.value = userData
-      console.log('User loaded in store:', userData.name)
+      user.value = userData as User
+      console.log('User loaded in store:', (userData as User)?.name)
     } catch (err) {
       console.error('Failed to fetch user:', err)
       error.value = 'Failed to load user data'

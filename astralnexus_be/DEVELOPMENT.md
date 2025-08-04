@@ -1,6 +1,6 @@
 # Development Guide - Astral Nexus API
 
-## 📋 Quick Reference
+## Quick Reference
 
 ### Server Information
 
@@ -8,30 +8,7 @@
 - **Swagger Documentation**: `http://localhost:3001/swagger`
 - **OAuth Endpoints**: `http://localhost:3001/auth/oauth`
 
-### Project Status
-
-✅ **Organized folder structure**
-✅ **Swagger documentation with tags**
-✅ **Modular route architecture**
-✅ **Middleware implementation**
-✅ **Configuration management**
-✅ **OAuth2 integration with Arctic**
-✅ **Utility functions**
-
-## 🎯 What You Have Now
-
-### 1. **Organized Architecture**
-
-```
-src/
-├── config/     → Application & database configuration
-├── middleware/ → CORS, logging, error handling
-├── routes/     → Modular REST API endpoints
-├── utils/      → Helper functions & utilities
-└── index.ts    → Main application entry
-```
-
-### 2. **REST API Endpoints**
+### **REST API Endpoints**
 
 | Method | Endpoint                         | Description            | Tag   |
 | ------ | -------------------------------- | ---------------------- | ----- |
@@ -45,7 +22,7 @@ src/
 | PUT    | `/users/profile/:id`             | Update user profile    | Users |
 | GET    | `/users`                         | List users (paginated) | Users |
 
-### 3. **OAuth2 Integration**
+### **OAuth2 Integration**
 
 **Supported Providers:**
 
@@ -73,10 +50,6 @@ src/
 Add OAuth credentials to your `.env` file:
 
 ````env
-# Google OAuth
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
-
 # GitHub OAuth
 GITHUB_CLIENT_ID=your_github_client_id
 GITHUB_CLIENT_SECRET=your_github_client_secret

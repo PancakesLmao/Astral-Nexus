@@ -1,0 +1,164 @@
+@startuml Post_Liking_Sequence_Detailed
+!theme blueprint
+title Post Liking System - User Interaction & Synchronization
+
+actor User as U
+participant "Frontend UI\n(PostList/PostDetail)" as FE
+participant "Posts Store\n(Pinia State)" as PS
+participant "API Client\n(HTTP Service)" as API
+participant "Backend API\n(api.localtest.me:3001)" as BE
+database "PostgreSQL\nDatabase" as DB
+
+== Phase 1: Initial Post Display ==
+U -> FE: 1. View posts interface
+note right: User navigates to blog posts
+
+FE -> PS: 2. Load posts from store
+PS -> API: 3. GET /api/posts
+note right
+**API Request:**
+- URL: api.localtest.me:3001/api/posts
+- Method: GET
+- Headers: Authorization Bearer token
+- Response: Posts with like counts
+end note
+
+API -> BE: 4. HTTP Request with authentication
+BE -> DB: 5. SELECT posts with likes_count
+
+DB --> BE: 6. Posts with like counts & user status
+BE --> API: 7. JSON response with posts
+API --> PS: 8. Posts data array
+PS --> FE: 9. Update reactive posts state
+FE -> U: 10. Display posts with like counts
+
+== Phase 2: Like/Unlike Interaction ==
+U -> FE: 11. Click like button on post
+note right: User toggles like on specific post
+
+FE -> FE: 12. Optimistic UI update
+note right
+**Optimistic Update Logic:**
+const optimisticUpdate = () => {
+  post.is_liked = !post.is_liked
+  post.likes_count += post.is_liked ? 1 : -1
+}
+**Benefits:**
+- Instant visual feedback
+- Better user experience
+- Rollback on error
+end note
+
+FE -> PS: 13. likePost(postId)
+PS -> API: 14. toggleLike(postId)
+API -> BE: 15. POST /api/posts/:id/like
+note right
+**API Request Details:**
+- URL: /api/posts/{uuid}/like
+- Method: POST
+- Headers: Authorization Bearer token
+- Body: Empty (toggle action)
+end note
+
+== Phase 3: Backend Processing & Database Operations ==
+BE -> BE: 16. Validate session & extract user
+note right
+**Authentication Validation:**
+const session = await validateSession(
+  request.headers.authorization ||
+  request.headers['x-session-id'] ||
+  request.cookies.session
+);
+**Security Checks:**
+- Bearer token validation
+- Session expiry check
+- User existence verification
+end note
+
+alt Session Valid & User Authenticated
+    BE -> DB: 17. Check existing like status
+    note right
+    **Like Status Query:**
+    SELECT EXISTS(
+      SELECT 1 FROM post_likes 
+      WHERE post_id = $1 AND user_id = $2
+    ) as is_liked;
+    end note
+    
+    DB --> BE: 18. Current like status
+    
+    alt User hasn't liked post yet
+        BE -> DB: 19a. INSERT INTO post_likes
+        note right
+        **Database Trigger Fires:**
+        - Automatically increments posts.likes_count
+        - Maintains data consistency
+        end note
+        
+        DB -> DB: 20a. Trigger updates posts.likes_count (+1)
+        BE -> DB: 21a. SELECT updated post data
+        DB --> BE: 22a. Post with new like count
+        
+    else User has already liked post
+        BE -> DB: 19b. DELETE FROM post_likes
+        note right
+        **Database Trigger Fires:**
+        - Automatically decrements posts.likes_count
+        - Maintains referential integrity
+        end note
+        
+        DB -> DB: 20b. Trigger updates posts.likes_count (-1)
+        BE -> DB: 21b. SELECT updated post data
+        DB --> BE: 22b. Post with updated like count
+    end
+    
+    BE --> API: 23. Success response with updated post
+    note right
+    **API Response:**
+    {
+      "success": true,
+      "data": {
+        "id": "uuid",
+        "likes_count": 42,
+        "is_liked": true
+      },
+      "message": "Post like toggled successfully"
+    }
+    end note
+    
+    API --> PS: 24. Updated post data
+    PS -> PS: 25. Update local post state
+    PS -> FE: 26. Sync like state across components
+    FE -> U: 27. Show final like state
+    
+else Session Invalid or Expired
+    BE --> API: 23b. 401 Unauthorized
+    note right
+    **Error Response:**
+    {
+      "success": false,
+      "message": "Authentication required",
+      "error": "UNAUTHORIZED"
+    }
+    end note
+    
+    API --> PS: 24b. Authentication error
+    PS -> FE: 25b. Rollback optimistic update
+    PS -> FE: 26b. Show authentication error
+    FE -> U: 27b. Display login required message
+end
+
+== Phase 4: Component Synchronization ==
+PS -> PS: 28. Update selectedPost (computed property)
+note right
+**Reactive Synchronization:**
+const selectedPost = computed(() => 
+  posts.value.find(p => p.id === selectedPostId.value)
+);
+end note
+
+PS -> FE: 29. Trigger Vue reactivity
+FE -> FE: 30. PostDetail reflects PostList changes
+FE -> U: 31. Consistent like state across all views
+
+@enduml

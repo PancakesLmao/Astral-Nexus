@@ -1,0 +1,222 @@
+@startuml PKCE_Flow_Detailed
+!theme blueprint
+title PKCE (Proof Key for Code Exchange) Implementation Flow
+
+actor User as U
+participant "Frontend\n(blog.localtest.me:3000)" as FE
+participant "Backend API\n(api.localtest.me:3001)" as BE
+participant "Discord OAuth\n(discord.com)" as DC
+
+== Phase 1: PKCE Parameter Generation ==
+U -> FE: 1. Click "Login with Discord"
+FE -> BE: 2. GET /auth/discord?lang=en
+
+BE -> BE: 3. Generate PKCE code verifier
+note right
+**Secure Code Verifier Generation:**
+// 32 bytes of cryptographically secure random data
+const codeVerifierArray = new Uint8Array(32);
+crypto.getRandomValues(codeVerifierArray);
+
+// Convert to base64url (43-128 chars per RFC 7636)
+const codeVerifier = btoa(String.fromCharCode(...codeVerifierArray))
+  .replace(/\+/g, "-")    // Replace + with -
+  .replace(/\//g, "_")    // Replace / with _
+  .replace(/=/g, "");     // Remove padding =
+
+**Properties:**
+- Length: 43-128 characters
+- Encoding: Base64url (URL-safe)
+- Entropy: 256 bits minimum
+- Character set: [A-Z][a-z][0-9]"-""."_""~"
+end note
+
+BE -> BE: 4. Generate PKCE code challenge
+note right
+**Code Challenge Generation (SHA256):**
+// Use Web Crypto API for SHA256 hashing
+const encoder = new TextEncoder();
+const data = encoder.encode(codeVerifier);
+const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+const hashArray = new Uint8Array(hashBuffer);
+
+// Convert SHA256 hash to base64url
+const codeChallenge = btoa(String.fromCharCode(...hashArray))
+  .replace(/\+/g, "-")
+  .replace(/\//g, "_")
+  .replace(/=/g, "");
+
+**Security:**
+- Method: S256 (SHA256)
+- One-way hash function
+- Cannot derive verifier from challenge
+- Prevents code interception attacks
+end note
+
+BE -> BE: 5. Store code verifier securely
+note right
+**Temporary Storage in HTTP-Only Cookie:**
+set.cookie = {
+  discord_code_verifier: {
+    value: codeVerifier,
+    httpOnly: true,           // XSS protection
+    secure: false,            // HTTP in development  
+    sameSite: "lax",         // CSRF protection
+    maxAge: 10 * 60 * 1000,  // 10 minutes timeout
+    path: "/",
+    domain: ".localtest.me",
+  }
+};
+end note
+
+== Phase 2: OAuth Authorization with Code Challenge ==
+BE -> DC: 6. Redirect to Discord OAuth (with PKCE)
+note right
+**Discord OAuth URL with PKCE:**
+https://discord.com/oauth2/authorize
+?response_type=code
+&client_id=${CLIENT_ID}
+&redirect_uri=api.localtest.me:3001/auth/discord/callback
+&scope=identify%20email
+&state=${state}|lang=${language}
+&code_challenge_method=S256
+&code_challenge=${codeChallenge}
+
+**PKCE Parameters:**
+- code_challenge_method: S256 (SHA256)
+- code_challenge: Base64url-encoded SHA256 hash
+- NO code_verifier sent
+end note
+
+DC -> DC: 7. Store code challenge
+
+DC -> U: 8. Display authorization page
+U -> DC: 9. Grant authorization
+
+== Phase 3: Authorization Code Return ==
+DC -> BE: 10. OAuth callback with authorization code
+note right
+**Callback Request:**
+GET /auth/discord/callback
+?code=AUTHORIZATION_CODE
+&state=${state}|lang=en
+
+**Security Properties:**
+- Authorization code is short-lived (10 minutes)
+- Code is bound to code_challenge in Discord
+- Code is useless without matching code_verifier
+- State parameter provides CSRF protection
+end note
+
+== Phase 4: PKCE Verification and Token Exchange ==
+BE -> BE: 11. Extract and validate PKCE parameters
+note right
+**PKCE Validation Process:**
+// Extract stored code verifier from cookie
+const codeVerifier = cookie.discord_code_verifier?.value;
+
+// Validate presence
+if (!codeVerifier) {
+  throw new Error("Missing code verifier cookie");
+}
+
+// Extract authorization code from callback
+const code = query.code;
+if (!code) {
+  throw new Error("No authorization code received");
+}
+
+**Security Checks:**
+1. Code verifier cookie exists
+2. Authorization code present
+3. State parameter validated (CSRF)
+4. Request within time window (10 min)
+end note
+
+BE -> DC: 12. Exchange code for tokens (with PKCE proof)
+note right
+**Token Exchange Request with PKCE:**
+POST https://discord.com/api/oauth2/token
+Content-Type: application/x-www-form-urlencoded
+
+client_id=${CLIENT_ID}
+client_secret=${CLIENT_SECRET}
+code=${authorization_code}
+grant_type=authorization_code
+redirect_uri=${REDIRECT_URI}
+code_verifier=${codeVerifier}
+
+end note
+
+DC -> DC: 13. Verify PKCE proof
+note right
+**Discord Server PKCE Verification:**
+1. Retrieve stored code_challenge for this code
+2. Hash the received code_verifier using SHA256
+3. Base64url encode the hash result
+4. Compare with stored code_challenge
+
+if (base64url(sha256(code_verifier)) === stored_code_challenge) {
+  // PKCE verification successful
+  return access_tokens;
+} else {
+  // PKCE verification failed  
+  return error;
+}
+end note
+
+alt PKCE verification successful
+    DC -> BE: 14a. Return OAuth tokens
+    note right
+    **Token Response:**
+    {
+      "access_token": "ya29.a0AfH6SMC...",
+      "refresh_token": "1//04...", 
+      "expires_in": 3600,
+      "token_type": "Bearer",
+      "scope": "identify email"
+    }
+    
+    **Success Indicators:**
+    - HTTP 200 OK status
+    - Valid access_token received
+    - Refresh_token for renewals
+    - PKCE validation passed
+    end note
+    
+    BE -> BE: 15a. Clear code verifier (security cleanup)
+    note right
+    **Security Cleanup:**
+    // Clear the temporary PKCE cookie
+    set.cookie = {
+      discord_code_verifier: {
+        value: "",
+        maxAge: 0,                // Immediate expiration
+        path: "/",
+        domain: ".localtest.me",
+      }
+    };
+    
+    end note
+    
+else PKCE verification failed
+    DC -> BE: 14b. Return error response
+    note right
+    **PKCE Failure Response:**
+    {
+      "error": "invalid_grant",
+      "error_description": "PKCE verification failed"
+    }
+    end note
+    
+    BE -> FE: 15b. Redirect to error page
+    note right
+    **Error Handling:**
+    - Log security incident
+    - Clear all OAuth cookies
+    - Redirect to login with error
+    - User must restart flow
+    end note
+end
+
+@enduml

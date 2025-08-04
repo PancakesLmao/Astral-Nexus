@@ -1,0 +1,223 @@
+@startuml Session_Validation_Detailed
+!theme blueprint
+title Session Validation Process (Cookie-First Authentication)
+
+actor User as U
+participant "Frontend\n(blog.localtest.me:3000)" as FE
+participant "Backend API\n(api.localtest.me:3001)" as BE
+database "PostgreSQL\nDatabase" as DB
+
+== Authentication Check Request ==
+U -> FE: 1. Navigate to protected page
+note right: User accesses application
+
+FE -> BE: 2. GET /auth/me (credentials: include)
+note right
+**Request Details:**
+- Method: GET
+- URL: api.localtest.me:3001/auth/me
+- Credentials: include (automatic cookies)
+- Headers: Content-Type: application/json
+
+**No Authorization header needed**
+Browser automatically includes cookies
+end note
+
+== Session Extraction (Cookie-First Priority) ==
+BE -> BE: 3. Extract session with priority system
+note right
+**Session Extraction Priority:**
+
+```typescript
+// 1. PRIMARY: HTTP-only cookie (preferred)
+const cookieName = "astral_session";
+if (cookie && cookie[cookieName]?.value) {
+  sessionId = cookie[cookieName].value;
+}
+
+// 2. FALLBACK: Authorization header
+if (!sessionId && headers.authorization) {
+  sessionId = headers.authorization.replace("Bearer ", "");
+}
+
+// 3. FINAL FALLBACK: X-Session-ID header
+if (!sessionId && headers["x-session-id"]) {
+  sessionId = headers["x-session-id"];
+}
+```
+
+**Why Cookie-First?**
+- More secure (HTTP-only)
+- Automatic browser handling
+- XSS attack protection
+- No manual header management
+end note
+
+alt Session ID extracted successfully
+    BE -> DB: 4a. Validate session in database
+    note right
+    **Session Validation Query:**
+    ```sql
+    SELECT 
+      s.*,                          -- Session data
+      u.id as user_id, 
+      u.email, 
+      u.name, 
+      u.picture,
+      p.provider_name               -- OAuth provider
+    FROM sessions s
+    JOIN users u ON s.user_id = u.id
+    JOIN providers p ON u.provider_id = p.id
+    WHERE s.id = $1                 -- Match session ID
+    AND s.expires_at > CURRENT_TIMESTAMP  -- Not expired
+    ```
+    
+    **Validation Checks:**
+    1. Session exists in database
+    2. Session not expired (expires_at > NOW())
+    3. User record linked and valid
+    4. Provider information available
+    end note
+    
+    alt Session valid and not expired
+        DB -> BE: 5a. Return complete user data
+        note right
+        **Database Response:**
+        ```json
+        {
+          "id": "session-123",
+          "user_id": "uuid-456", 
+          "access_token": "discord-token",
+          "refresh_token": "discord-refresh",
+          "expires_at": "2024-02-01T12:00:00Z",
+          "email": "user@example.com",
+          "name": "Display Name",
+          "picture": "avatar-url",
+          "provider_name": "discord"
+        }
+        ```
+        end note
+        
+        BE -> FE: 6a. Return authenticated user
+        note right
+        **Success Response:**
+        ```json
+        {
+          "user": {
+            "id": "uuid-456",
+            "email": "user@example.com", 
+            "name": "Display Name",
+            "picture": "avatar-url",
+            "provider": "discord"
+          }
+        }
+        ```
+        
+        **HTTP Status:** 200 OK
+        end note
+        
+        FE -> U: 7a. Show authenticated interface
+        note right
+        **Frontend Actions:**
+        1. Store user data in Pinia store
+        2. Update UI to authenticated state
+        3. Show user profile/avatar
+        4. Enable protected features
+        end note
+        
+    else Session expired or invalid
+        DB -> BE: 5b. No session found / expired
+        note right
+        **Possible Scenarios:**
+        1. Session ID not in database
+        2. Session expired (expires_at < NOW())
+        3. User record deleted
+        4. Database connection issues
+        end note
+        
+        BE -> FE: 6b. Return authentication error
+        note right
+        **Error Response:**
+        ```json
+        {
+          "error": "Session not found in database",
+          "sessionId": "session-123"
+        }
+        ```
+        
+        **HTTP Status:** 401 Unauthorized
+        end note
+        
+        FE -> FE: 7b. Clear invalid session state
+        note right
+        **Frontend Error Handling:**
+        1. Clear user data from Pinia store
+        2. Clear any cached authentication state
+        3. Reset UI to unauthenticated state
+        end note
+        
+        FE -> U: 8b. Redirect to login page
+        note right: User must re-authenticate
+    end
+    
+else No session ID found
+    BE -> FE: 4b. Return no session error
+    note right
+    **Error Response:**
+    ```json
+    {
+      "error": "No session found",
+      "debug": {
+        "cookieReceived": false,
+        "authHeaderReceived": false, 
+        "sessionHeaderReceived": false
+      }
+    }
+    ```
+    
+    **Common Causes:**
+    1. User never logged in
+    2. Cookie expired/deleted
+    3. Different domain/subdomain
+    4. Browser cookie disabled
+    end note
+    
+    FE -> U: 5b. Show login interface
+    note right: User sees unauthenticated state
+end
+
+== Session Usage in Protected Routes ==
+note over BE
+**Once session is validated, it's available for:**
+
+1. **Route Protection:** Middleware checks session
+2. **User Context:** Access to user ID and profile
+3. **API Authorization:** Discord token for external calls
+4. **Audit Logging:** Track user actions
+5. **Personalization:** User-specific content
+
+**Session Data Available:**
+- User UUID for database queries
+- Discord access/refresh tokens
+- User profile information
+- Provider information
+end note
+
+== Automatic Session Refresh (Future) ==
+note over BE, DB
+**Potential Enhancement:**
+
+When session nears expiration:
+1. Check if refresh_token exists
+2. Call Discord token refresh endpoint
+3. Update session with new tokens
+4. Extend session expiration
+5. Return updated session to client
+
+**Benefits:**
+- Seamless user experience
+- No re-authentication needed
+- Maintains security boundaries
+end note
+
+@enduml

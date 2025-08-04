@@ -249,8 +249,30 @@ import {
 const activeTab = ref('users')
 const loadingUsers = ref(false)
 const loadingPosts = ref(false)
-const users = ref<any[]>([])
-const posts = ref<any[]>([])
+const users = ref<
+  Array<{
+    id: string
+    name: string
+    email: string
+    picture?: string
+    provider_name: string
+    created_at: string
+    posts_count: number
+  }>
+>([])
+const posts = ref<
+  Array<{
+    id: string
+    title: string
+    content: string
+    author_name: string
+    author_picture?: string
+    likes_count: number
+    comments_count: number
+    created_at: string
+    game_name?: string
+  }>
+>([])
 const stats = ref({
   totalUsers: 0,
   totalPosts: 0,
@@ -290,15 +312,24 @@ const fetchUsers = async () => {
     const data = await response.json()
     console.log('Users API response:', data) // Debug log
     if (data.success) {
-      users.value = data.data.users.map((user: any) => ({
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        picture: user.picture,
-        provider_name: user.provider, // Backend sends 'provider', frontend expects 'provider_name'
-        created_at: user.createdAt, // Backend sends 'createdAt', frontend expects 'created_at'
-        posts_count: 0,
-      }))
+      users.value = data.data.users.map(
+        (user: {
+          id: string
+          name: string
+          email: string
+          picture?: string
+          provider: string
+          createdAt: string
+        }) => ({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          picture: user.picture,
+          provider_name: user.provider, // Backend sends 'provider', frontend expects 'provider_name'
+          created_at: user.createdAt, // Backend sends 'createdAt', frontend expects 'created_at'
+          posts_count: 0,
+        }),
+      )
       console.log('Mapped users:', users.value) // Debug log
     } else {
       console.error('Users API error:', data)
@@ -319,17 +350,28 @@ const fetchPosts = async () => {
     })
     const data = await response.json()
     if (data.success) {
-      posts.value = data.data.posts.map((post: any) => ({
-        id: post.id,
-        title: post.title,
-        content: post.content,
-        author_name: post.author.name,
-        author_picture: post.author.picture,
-        likes_count: post.likes_count,
-        comments_count: post.comments_count,
-        created_at: post.created_at,
-        game_name: post.game_category,
-      }))
+      posts.value = data.data.posts.map(
+        (post: {
+          id: string
+          title: string
+          content: string
+          author: { name: string; picture?: string }
+          likes_count: number
+          comments_count: number
+          created_at: string
+          game_category?: string
+        }) => ({
+          id: post.id,
+          title: post.title,
+          content: post.content,
+          author_name: post.author.name,
+          author_picture: post.author.picture,
+          likes_count: post.likes_count,
+          comments_count: post.comments_count,
+          created_at: post.created_at,
+          game_name: post.game_category,
+        }),
+      )
     }
   } catch (error) {
     console.error('Error fetching posts:', error)

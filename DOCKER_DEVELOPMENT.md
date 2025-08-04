@@ -39,8 +39,8 @@ Before you begin, ensure you have the following installed:
 ### 1. Clone the Repository
 
 ```bash
-git clone <repository-url>
-cd hd_project
+git clone https://github.com/PancakesLmao/Astral-Nexus.git
+cd Astral-Nexus
 ```
 
 ### 2. Configure Environment Variables
@@ -63,7 +63,7 @@ docker compose up --build
 ### 4. Access the Application
 
 - **Frontend**: http://localtest.me:3000
-- **Backend API**: http://localhost:3001
+- **Backend API**: http://api.localtest.me:3001
 - **Database**: localhost:5432 (for external tools)
 - **Vite HMR**: Port 24678 (automatically handled)
 
@@ -77,7 +77,7 @@ docker compose ps
 docker compose logs -f
 
 # Test backend health
-curl http://localhost:3001/health
+curl http://api.localtest.me:3001/health
 ```
 
 ## ⚙️ Environment Configuration
@@ -89,7 +89,7 @@ All configuration is centralized in the `.env` file. Here's what each section co
 ```env
 NODE_ENV=development              # Environment mode
 PORT=3001                         # Backend port
-VITE_API_BASE_URL=http://localhost:3001  # Frontend API URL
+VITE_API_BASE_URL=http://api.localtest.me:3001  # Frontend API URL
 ```
 
 ### Database Configuration
@@ -122,7 +122,7 @@ SESSION_SECRET=your_super_secret_session_key_here_at_least_32_characters_long_de
 CORS_ORIGINS=http://localhost:3000,http://localtest.me:3000,http://blog.localtest.me:3000,http://admin.localtest.me:3000
 ```
 
-## 🔄 Development Workflow
+## Development Workflow
 
 ### Making Code Changes
 

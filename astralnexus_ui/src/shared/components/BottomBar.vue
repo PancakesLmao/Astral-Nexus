@@ -158,8 +158,9 @@ const openCreatePostDialog = () => {
   isCreatePostDialogOpen.value = true
 }
 
-const handlePostCreated = (post: Post) => {
-  console.log('New post created from mobile:', post)
+const handlePostCreated = (post: unknown) => {
+  const typedPost = post as Post
+  console.log('New post created from mobile:', typedPost)
   // You could emit an event to parent component or update some state
 }
 

@@ -1,0 +1,302 @@
+@startuml Post_Creation_Sequence_Detailed
+!theme blueprint
+title Post Creation System - Complete User Flow & Database Integration
+
+actor User as U
+participant "UI Components\n(Sidebar/BottomBar)" as UI
+participant "NewPost Modal\n(Vue Component)" as NP
+participant "Posts Store\n(Pinia State)" as PS
+participant "API Client\n(HTTP Service)" as API
+participant "Backend API\n(api.localtest.me:3001)" as BE
+database "PostgreSQL\nDatabase" as DB
+
+== Phase 1: Post Creation Initiation ==
+U -> UI: 1. Click "Create Post" button
+note right: User initiates post creation from sidebar or mobile bottom bar
+
+UI -> UI: 2. Open NewPost modal dialog
+UI -> NP: 3. Mount NewPost component with isOpen=true
+NP -> NP: 4. Initialize form state & detect screen size
+note right
+**Component Initialization:**
+const formData = ref<CreatePostRequest>({
+  title: '',
+  content: '',
+  game_id: '',
+  post_type: 'general',
+  tags: [],
+  visibility: 'public'
+});
+end note
+
+== Phase 2: Content Loading ==
+NP -> API: 5. fetchGameCategories()
+note right
+**API Request:**
+- URL: /api/game-categories
+- Method: GET
+- Purpose: Populate game selection dropdown
+end note
+
+API -> BE: 6. GET /api/game-categories
+BE -> DB: 7. SELECT game categories
+
+DB --> BE: 8. Game categories data
+BE --> API: 9. JSON response with categories
+note right
+**Response Format:**
+{
+  "success": true,
+  "data": [
+    {
+      "id": "category-uuid",
+      "game_name": "Valorant",
+      "created_at": "2025-08-01T10:00:00Z"
+    }
+  ]
+}
+end note
+
+API --> NP: 10. Categories array
+NP -> NP: 11. Populate dropdown options
+NP -> U: 12. Display form with loaded categories
+
+== Phase 3: User Form Interaction ==
+U -> NP: 13. Fill in post details
+
+NP -> NP: 14. Real-time form validation
+note right
+**Frontend Validation:**
+const isFormValid = computed(() => {
+  return !!(
+    formData.value.title.trim() &&
+    formData.value.content.trim() &&
+    formData.value.title.length <= 255
+  );
+});
+**Validation Rules:**
+- Title and content required
+- Character limits enforced
+- Real-time feedback
+end note
+
+U -> NP: 15. Click "Create Post" button
+NP -> NP: 16. Final form validation & processing
+note right
+**Submit Processing:**
+const tagsArray = tagsInput.value
+  .split(',')
+  .map(tag => tag.trim())
+  .filter(tag => tag.length > 0);
+
+formData.value.tags = tagsArray;
+end note
+
+== Phase 4: Authentication & Data Submission ==
+NP -> PS: 17. createPost(formData)
+PS -> PS: 18. Authentication validation
+note right
+**Authentication Check:**
+const userStore = useUserStore();
+if (!userStore.isAuthenticated || !userStore.user) {
+  throw new Error('User must be authenticated to create posts');
+}
+end note
+
+PS -> PS: 19. Transform data for backend API
+note right
+**Data Transformation:**
+const backendData = {
+  title: postData.title,
+  content: postData.content,
+  game_id: postData.game_id?.trim() || undefined,
+  post_type: postData.post_type || 'Discussion',
+  tags: postData.tags || [],
+  visibility: postData.visibility || 'public',
+  published: true
+};
+end note
+
+PS -> API: 20. createPost(backendData)
+API -> BE: 21. POST /api/posts
+note right
+**API Request Details:**
+- URL: /api/posts
+- Method: POST
+- Headers: Content-Type application/json
+- Credentials: include (session cookie)
+- Body: Transformed post data
+end note
+
+== Phase 5: Backend Authentication & Validation ==
+BE -> BE: 22. Extract and validate session
+note right
+**Multi-Source Authentication:**
+let sessionId = 
+  headers.authorization?.substring(7) ||      // Bearer token
+  headers['x-session-id'] ||                  // Session header
+  cookie.astral_session?.value;              // Session cookie
+**Session Priority:**
+1. Authorization Bearer header
+2. X-Session-ID header  
+3. astral_session cookie
+end note
+
+BE -> DB: 23. Validate session & get user
+note right
+**Validation Checks:**
+- Session exists in database
+- Session not expired
+- Associated user exists
+- Provider information available
+end note
+
+DB --> BE: 24. Session data with user info
+
+alt Session Valid & User Authenticated
+    BE -> BE: 25. Validate and sanitize post data
+    note right
+    **Backend Validation:**
+    const validation = {
+      title: sanitizeTitle(body.title),
+      content: sanitizeContent(body.content),
+      gameId: validateUUID(body.game_id),
+      postType: validatePostType(body.post_type),
+      tags: validateTags(body.tags),
+      visibility: validateVisibility(body.visibility)
+    };
+    end note
+
+    == Phase 6: Database Post Creation ==
+    BE -> DB: 26. INSERT new post record
+
+    DB -> DB: 27. Execute database triggers
+
+    DB --> BE: 28. New post data with generated fields
+    note right
+    **Created Post Response:**
+    {
+      "id": "new-post-uuid",
+      "created_at": "2025-08-04T12:00:00Z",
+      "updated_at": "2025-08-04T12:00:00Z"
+    }
+    end note
+
+    BE --> API: 29. Success response with post data
+    note right
+    **API Success Response:**
+    {
+      "success": true,
+      "message": "Post created successfully",
+      "data": {
+        "id": "new-post-uuid",
+        "created_at": "2025-08-04T12:00:00Z",
+        "updated_at": "2025-08-04T12:00:00Z"
+      }
+    }
+    end note
+
+    API --> PS: 30. Post creation confirmation
+    
+    == Phase 7: Post-Creation Updates ==
+    PS -> API: 31. fetchPosts() - Refresh post list
+    note right
+    **Post List Refresh:**
+    await this.fetchPosts({ 
+      page: 1, 
+      ...this.currentFilter 
+    });
+    end note
+
+    API -> BE: 32. GET /api/posts with current filters
+    BE -> DB: 33. SELECT posts with new post included
+    DB --> BE: 34. Updated posts array
+    BE --> API: 35. Refreshed posts response
+    API --> PS: 36. Updated posts data
+    PS -> PS: 37. Update local posts state
+    PS --> NP: 38. Post creation success
+    NP -> NP: 39. Reset form & close modal
+    NP -> UI: 40. Emit 'created' event with new post
+    UI -> U: 41. Show success feedback & updated post list
+    note right
+    **User Experience:**
+    - Immediate success feedback
+    - Form automatically cleared
+    - Modal closes smoothly
+    - New post visible in feed
+    - No page refresh required
+    end note
+
+else Session Invalid or Expired
+    BE --> API: 29b. 401 Unauthorized
+    note right
+    **Authentication Error:**
+    {
+      "success": false,
+      "message": "Authentication required",
+      "error": "Invalid or expired session"
+    }
+    end note
+
+    API --> PS: 30b. Authentication error
+    PS -> NP: 31b. Display authentication error
+    NP -> U: 32b. Show "Please log in" message
+    note right
+    **Error Recovery:**
+    - Clear invalid session
+    - Redirect to login page
+    - Preserve form data if possible
+    - Resume after authentication
+    end note
+end
+
+== Phase 8: Error Handling Scenarios ==
+alt Form Validation Error
+    NP -> NP: 25b. Client-side validation failure
+    NP -> U: 26b. Display validation error messages
+    note right
+    **Validation Errors:**
+    - "Title is required"
+    - "Content cannot be empty"
+    - "Title too long (max 255 characters)"
+    - Real-time error highlighting
+    end note
+end
+
+alt Network or Server Error
+    API --> PS: 30c. Network/server error
+    PS -> NP: 31c. Display error message
+    NP -> U: 32c. Show "Try again" with retry option
+    note right
+    **Error Types:**
+    - Network connectivity issues
+    - Server 500 errors
+    - Database connection problems
+    - Timeout errors
+    **Recovery Options:**
+    - Retry button
+    - Save draft locally
+    - Error reporting
+    end note
+end
+
+alt Database Constraint Error
+    DB --> BE: 28b. Constraint violation error
+    BE --> API: 29c. 422 Validation Error
+    API --> PS: 30d. Data validation error
+    PS -> NP: 31d. Display specific field errors
+    NP -> U: 32d. Show field-specific error messages
+    note right
+    **Constraint Errors:**
+    - Invalid game_id foreign key
+    - Title length violation
+    - Content type mismatch
+    - Tag format errors
+    **User Guidance:**
+    - Specific field highlighting
+    - Suggested corrections
+    - Format examples
+    end note
+end
+
+@enduml

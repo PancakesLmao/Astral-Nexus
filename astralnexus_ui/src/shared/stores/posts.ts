@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { Post, CreatePostRequest, Comment, User } from '@/shared/types'
+import { Post, CreatePostRequest, Comment, GameCategory } from '@/shared/types'
 import { apiClient } from '@/shared/api'
 import { useUserStore } from './user'
 
@@ -20,8 +20,8 @@ export const usePostsStore = defineStore('posts', {
       hasPrev: false,
     },
     // Game categories and selection state
-    gameCategories: [] as any[],
-    selectedCategory: null as any | null,
+    gameCategories: [] as GameCategory[],
+    selectedCategory: null as GameCategory | null,
     // Filter state - load from localStorage or use defaults
     currentFilter: (() => {
       // Try to load from localStorage
@@ -137,7 +137,7 @@ export const usePostsStore = defineStore('posts', {
         const categories = await apiClient.fetchGameCategories()
 
         // Check if "All Games" already exists in the API response
-        const hasAllGames = categories.some((cat: any) => cat.game_name === 'All Games')
+        const hasAllGames = categories.some((cat: GameCategory) => cat.game_name === 'All Games')
 
         if (!hasAllGames) {
           // Add "All Games" option if it doesn't exist
@@ -175,7 +175,7 @@ export const usePostsStore = defineStore('posts', {
       if (this.gameCategories.length === 0) return
 
       const currentFilter = this.currentFilter.game_category
-      const matchingCategory = this.gameCategories.find((cat: any) => {
+      const matchingCategory = this.gameCategories.find((cat: GameCategory) => {
         if (currentFilter === 'all_games') {
           return cat.game_name === 'All Games'
         }
@@ -191,7 +191,7 @@ export const usePostsStore = defineStore('posts', {
       }
     },
 
-    selectGameCategory(category: any) {
+    selectGameCategory(category: GameCategory) {
       this.selectedCategory = category
 
       // Convert category for filtering
@@ -264,11 +264,11 @@ export const usePostsStore = defineStore('posts', {
 
         // Step 2: Call API to persist the change
         await apiClient.likePost(postId)
-        console.log('✅ Like action persisted to backend')
+        console.log('Like action persisted to backend')
 
         // Step 3: AJAX Request - Fetch the real post state from server
         const updatedPost = await apiClient.fetchSinglePost(postId)
-        console.log('✅ AJAX sync - Real state from server:', {
+        console.log('AJAX sync - Real state from server:', {
           is_liked: updatedPost.is_liked,
           likes_count: updatedPost.likes_count,
         })
@@ -280,7 +280,7 @@ export const usePostsStore = defineStore('posts', {
           likes_count: updatedPost.likes_count,
         }
 
-        console.log('✅ Frontend synced with database truth')
+        console.log('Frontend synced with database truth')
       } catch (error) {
         console.error('Failed to like post:', error)
 
@@ -347,17 +347,17 @@ export const usePostsStore = defineStore('posts', {
     },
 
     async likeComment(commentId: string) {
+      const commentIndex = this.postComments.findIndex((c) => c.id === commentId)
+      if (commentIndex === -1) {
+        console.warn('Comment not found for like toggle:', commentId)
+        return
+      }
+
+      const comment = this.postComments[commentIndex]
+      const originalLiked = comment.is_liked
+      const originalCount = comment.likes_count || 0
+
       try {
-        const commentIndex = this.postComments.findIndex((c) => c.id === commentId)
-        if (commentIndex === -1) {
-          console.warn('Comment not found for like toggle:', commentId)
-          return
-        }
-
-        const comment = this.postComments[commentIndex]
-        const originalLiked = comment.is_liked
-        const originalCount = comment.likes_count || 0
-
         // Step 1: Optimistic update for instant UX
         this.postComments[commentIndex] = {
           ...comment,
@@ -367,22 +367,16 @@ export const usePostsStore = defineStore('posts', {
 
         // Step 2: Call API to persist the change
         await apiClient.likeComment(commentId)
-        console.log('✅ Comment like action persisted to backend')
-
-        // For now, trust optimistic update since we don't have comment sync API
+        console.log('Comment like action persisted to backend')
         // TODO: Add comment sync API similar to fetchSinglePost
       } catch (error) {
         console.error('Failed to like comment:', error)
 
         // Step 3: Rollback optimistic update on error
-        const commentIndex = this.postComments.findIndex((c) => c.id === commentId)
-        if (commentIndex !== -1) {
-          const comment = this.postComments[commentIndex]
-          this.postComments[commentIndex] = {
-            ...comment,
-            is_liked: originalLiked,
-            likes_count: originalCount,
-          }
+        this.postComments[commentIndex] = {
+          ...comment,
+          is_liked: originalLiked,
+          likes_count: originalCount,
         }
 
         throw error
@@ -402,7 +396,7 @@ export const usePostsStore = defineStore('posts', {
       this.posts = this.posts.filter((post) => post.id !== id)
     },
 
-    // Reset posts (useful when filtering/searching)
+    // Reset posts
     resetPosts() {
       this.posts = []
       this.pagination = {
