@@ -1,4 +1,3 @@
-# Multi-stage build for Vue.js application with Vite
 FROM node:22-alpine AS build
 
 WORKDIR /usr/src/app
