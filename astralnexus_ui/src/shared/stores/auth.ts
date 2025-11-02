@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia'
-import { API_BASE_URL } from '../api'
+import { getApiUrl } from '../utils'
+
+const API_BASE_URL = getApiUrl()
 
 export interface User {
   id: string

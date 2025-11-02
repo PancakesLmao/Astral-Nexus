@@ -68,6 +68,71 @@ export function deleteCookie(
   })
 }
 
+// ============================================
+// Environment-based URL Configuration
+// ============================================
+// Vite automatically detects mode at build time:
+// - Development: import.meta.env.DEV === true
+// - Production: import.meta.env.PROD === true
+//
+// Dev environment (localhost):
+//   - Frontend: http://localtest.me:3000
+//   - Backend:  http://api.localtest.me:3001
+//   - Admin:    http://admin.localtest.me:3000
+//
+// Production environment:
+//   - Uses values from .env file (no ports)
+//   - Frontend: https://domain.com
+//   - Backend:  https://api.domain.com
+//   - Admin:    https://admin.domain.com
+
+export function getApiUrl(): string {
+  if (import.meta.env.DEV) {
+    // Development: hardcoded with port
+    return 'http://api.localtest.me:3001'
+  }
+  // Production: from .env file
+  const envUrl = import.meta.env.VITE_API_BASE_URL
+  return envUrl ? envUrl.replace(/\/$/, '') : 'https://api.domain.com'
+}
+
+export function getBaseUrl(): string {
+  if (import.meta.env.DEV) {
+    // Development: hardcoded with port
+    return 'http://localtest.me:3000'
+  }
+  // Production: from .env file
+  const envUrl = import.meta.env.VITE_APP_BASE_URL
+  return envUrl ? envUrl.replace(/\/$/, '') : 'https://domain.com'
+}
+
+export function getAdminUrl(): string {
+  if (import.meta.env.DEV) {
+    // Development: hardcoded admin subdomain with port
+    return 'http://admin.localtest.me:3000'
+  }
+  // Production: extract domain and add admin subdomain
+  const baseUrl = getBaseUrl()
+  try {
+    const url = new URL(baseUrl)
+    const hostname = url.hostname.replace(/^(www\.)?/, 'admin.')
+    return `${url.protocol}//${hostname}`
+  } catch (error) {
+    console.error('Error parsing base URL:', error)
+    return 'https://admin.domain.com'
+  }
+}
+
+export function getSessionDomain(): string {
+  if (import.meta.env.DEV) {
+    // Development: hardcoded cross-subdomain cookie
+    return '.localtest.me'
+  }
+  // Production: from .env file
+  const envDomain = import.meta.env.VITE_SESSION_DOMAIN
+  return envDomain || '.domain.com'
+}
+
 // Authentication utilities
 export async function checkUserAuth(
   apiBaseUrl: string,
@@ -88,7 +153,7 @@ export async function checkUserAuth(
     } else {
       // Clear any invalid session data
       localStorage.removeItem('astral_session')
-      deleteCookie('astral_session', { domain: '.localtest.me', path: '/' })
+      deleteCookie('astral_session', { domain: getSessionDomain(), path: '/' })
       return { isAuthenticated: false }
     }
   } catch (error) {
@@ -98,5 +163,5 @@ export async function checkUserAuth(
 }
 
 export function redirectToLogin(): void {
-  window.location.href = 'http://localtest.me:3000/login'
+  window.location.href = `${getBaseUrl()}/login`
 }

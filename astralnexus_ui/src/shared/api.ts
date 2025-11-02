@@ -1,5 +1,8 @@
 // Eden API client configuration
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://api.localtest.me:3001'
+import { getApiUrl } from './utils'
+
+export const API_BASE_URL = getApiUrl()
+
 import {
   GameCategory,
   GameCategoriesResponse,
@@ -10,6 +13,10 @@ import {
   NotificationsResponse,
   Comment,
 } from '@/shared/types'
+
+// Log current environment configuration
+console.log('[API] Environment Mode:', import.meta.env.DEV ? 'Development' : 'Production')
+console.log('[API] Base URL:', API_BASE_URL)
 
 // API client setup
 export class ApiClient {
