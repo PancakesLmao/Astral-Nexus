@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { API_BASE_URL } from '@/shared/api'
-import { checkUserAuth, redirectToLogin } from '@/shared/utils'
+import { supabase } from '@/shared/lib/supabase'
+import { getApiUrl, getLoginUrl } from '@/shared/utils'
 import type { User } from '@/shared/types'
 
 export const useUserStore = defineStore('user', () => {
@@ -19,20 +19,43 @@ export const useUserStore = defineStore('user', () => {
       loading.value = true
       error.value = null
 
-      const { isAuthenticated, user: userData } = await checkUserAuth(API_BASE_URL)
+      // Get Supabase session directly
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
-      if (!isAuthenticated) {
-        console.log('User not authenticated, redirecting to login')
-        redirectToLogin()
-        return
+      if (sessionError) {
+        console.error('Session error:', sessionError)
+        return { isAuthenticated: false }
       }
 
-      user.value = userData as User
-      console.log('User loaded in store:', (userData as User)?.name)
+      if (!session?.user) {
+        console.log('No Supabase session found')
+        return { isAuthenticated: false }
+      }
+
+      // Convert Supabase user to our User type
+      const supabaseUser = session.user
+      const userData: User = {
+        id: supabaseUser.id,
+        name: supabaseUser.user_metadata?.full_name ||
+              supabaseUser.user_metadata?.name ||
+              supabaseUser.user_metadata?.global_name ||
+              supabaseUser.user_metadata?.username ||
+              'Unknown User',
+        email: supabaseUser.email || '',
+        picture: supabaseUser.user_metadata?.avatar_url ||
+                 supabaseUser.user_metadata?.picture ||
+                 `https://cdn.discordapp.com/avatars/${supabaseUser.id}/${supabaseUser.user_metadata?.avatar}.png` ||
+                 `https://cdn.discordapp.com/embed/avatars/${(supabaseUser.user_metadata?.discriminator || 0) % 5}.png`
+      }
+
+      user.value = userData
+      console.log('User loaded from Supabase:', userData.name)
+      return { isAuthenticated: true, user: userData }
+
     } catch (err) {
-      console.error('Failed to fetch user:', err)
+      console.error('Failed to fetch user from Supabase:', err)
       error.value = 'Failed to load user data'
-      redirectToLogin()
+      return { isAuthenticated: false }
     } finally {
       loading.value = false
     }
@@ -40,21 +63,21 @@ export const useUserStore = defineStore('user', () => {
 
   const handleLogout = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/logout`, {
-        method: 'DELETE',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      // Call backend logout to clear HTTP-only cookies
+      await fetch(`${getApiUrl()}/auth/logout`, {
+        method: 'POST',
+        credentials: 'include', // Include cookies for session clearing
       })
 
-      if (response.ok) {
-        localStorage.removeItem('astral_session')
-        user.value = null
-        window.location.href = 'http://localtest.me:3000/login'
-      } else {
-        console.error('Logout failed')
+      // Use Supabase sign out to clear localStorage session
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        console.error('Supabase logout error:', error)
       }
+
+      // Clear local user state
+      user.value = null
+      window.location.href = getLoginUrl()
     } catch (err) {
       console.error('Logout error:', err)
     }

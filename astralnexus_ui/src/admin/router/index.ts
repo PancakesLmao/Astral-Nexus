@@ -1,23 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
-
-// Admin authentication check function
-const checkAdminAuth = async () => {
-  try {
-    const response = await fetch('http://api.localtest.me:3001/admin/me', {
-      method: 'GET',
-      credentials: 'include',
-    })
-
-    if (response.ok) {
-      const data = await response.json()
-      return data.success
-    }
-    return false
-  } catch (error) {
-    console.error('Admin auth check failed:', error)
-    return false
-  }
-}
+import { supabase } from '@/shared/lib/supabase'
+import { getLoginUrl, getBlogUrl } from '@/shared/utils'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -26,7 +9,7 @@ const router = createRouter({
       path: '/',
       name: 'AdminDashboard',
       component: () => import('../views/AdminDashboard.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, requiresAdmin: true },
     },
     {
       path: '/login',
@@ -38,7 +21,7 @@ const router = createRouter({
       path: '/posts',
       name: 'PostManager',
       component: () => import('../views/PostManager.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, requiresAdmin: true },
     },
   ],
 })
@@ -51,12 +34,22 @@ router.beforeEach(async (to, from, next) => {
   if (to.meta.requiresAuth) {
     console.log('Admin router: Route requires authentication')
 
-    // Check if admin is authenticated
-    const isAuthenticated = await checkAdminAuth()
+    // Check Supabase session
+    const { data: { session } } = await supabase.auth.getSession()
 
-    if (!isAuthenticated) {
-      console.log('Admin router: Admin not authenticated, redirecting to login')
-      next('/login')
+    if (!session) {
+      console.log('Admin router: No session, redirecting to root login')
+      window.location.href = getLoginUrl()
+      return
+    }
+
+    // Check if user has admin role
+    const isAdmin = session.user.user_metadata?.role === 'admin' ||
+                    session.user.email?.includes('admin')
+
+    if (to.meta.requiresAdmin && !isAdmin) {
+      console.log('Admin router: User is not admin, redirecting to blog')
+      window.location.href = getBlogUrl()
       return
     }
 

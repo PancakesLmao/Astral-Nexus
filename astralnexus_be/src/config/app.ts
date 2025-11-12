@@ -4,9 +4,9 @@ const isProduction = process.env.NODE_ENV === "production";
 
 // Default values based on environment
 const defaultPort = isDevelopment ? "3001" : "3001";
-const defaultHost = isDevelopment ? "api.localtest.me" : "0.0.0.0"; // 0.0.0.0 for production containers
+const defaultHost = isDevelopment ? "localhost" : "0.0.0.0"; // 0.0.0.0 for production containers
 const defaultSessionDomain = isDevelopment
-  ? ".localtest.me"
+  ? process.env.SESSION_DOMAIN || "localhost"
   : process.env.SESSION_DOMAIN || ".domain.com";
 
 export const appConfig = {

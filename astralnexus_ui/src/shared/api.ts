@@ -1,7 +1,33 @@
 // Eden API client configuration
 import { getApiUrl } from './utils'
+import { supabase } from './lib/supabase'
 
 export const API_BASE_URL = getApiUrl()
+
+// Create authenticated API request
+export async function createAuthenticatedRequest(
+  url: string,
+  options: RequestInit = {},
+): Promise<Response> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  } as Record<string, string>
+
+  // Add authorization header if we have a session
+  if (session?.access_token) {
+    headers['Authorization'] = `Bearer ${session.access_token}`
+  }
+
+  return fetch(url, {
+    ...options,
+    headers,
+  })
+}
 
 import {
   GameCategory,

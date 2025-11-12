@@ -245,6 +245,7 @@ import {
   ThumbsUp,
 } from 'lucide-vue-next'
 import { apiClient } from '@/shared/api'
+import { getAppUrl } from '@/shared/utils'
 
 // Reactive data
 const activeTab = ref('users')
@@ -298,17 +299,17 @@ class AdminApiClient {
       const response = await fetch(`${this.baseUrl}/admin/dashboard/stats`, {
         credentials: 'include',
       })
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
-      
+
       const data = await response.json()
-      
+
       if (!data.success) {
         throw new Error(data.error || 'Failed to fetch dashboard stats')
       }
-      
+
       return data.stats
     } catch (error) {
       console.error('Error fetching dashboard stats:', error)
@@ -316,29 +317,31 @@ class AdminApiClient {
     }
   }
 
-  async fetchUsers(limit: number = 100): Promise<Array<{
-    id: string
-    name: string
-    email: string
-    picture?: string
-    provider: string
-    createdAt: string
-  }>> {
+  async fetchUsers(limit: number = 100): Promise<
+    Array<{
+      id: string
+      name: string
+      email: string
+      picture?: string
+      provider: string
+      createdAt: string
+    }>
+  > {
     try {
       const response = await fetch(`${this.baseUrl}/admin/users?limit=${limit}`, {
         credentials: 'include',
       })
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
-      
+
       const data = await response.json()
-      
+
       if (!data.success) {
         throw new Error(data.error || 'Failed to fetch users')
       }
-      
+
       return data.data.users
     } catch (error) {
       console.error('Error fetching users:', error)
@@ -352,13 +355,13 @@ class AdminApiClient {
         method: 'DELETE',
         credentials: 'include',
       })
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
-      
+
       const data = await response.json()
-      
+
       if (!data.success) {
         throw new Error(data.error || 'Failed to delete post')
       }
@@ -374,7 +377,7 @@ class AdminApiClient {
         method: 'POST',
         credentials: 'include',
       })
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
@@ -473,7 +476,7 @@ const confirmDelete = async () => {
 const logout = async () => {
   try {
     await adminApiClient.logout()
-    window.location.href = 'http://localtest.me:3000'
+    window.location.href = getAppUrl()
   } catch (error) {
     console.error('Logout error:', error)
   }

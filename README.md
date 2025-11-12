@@ -118,8 +118,24 @@ CORS_ORIGIN=http://localtest.me:3000,http://blog.localtest.me:3000,http://admin.
 SESSION_SECRET=your_super_secret_session_key_here
 SESSION_DOMAIN=.localtest.me
 
-# OAuth (Optional - for authentication features)
+# Supabase Authentication
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your_anon_key_here
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
+
+# OAuth (Legacy - keeping for reference)
 DISCORD_CLIENT_ID=your_discord_client_id
 DISCORD_CLIENT_SECRET=your_discord_client_secret
 DISCORD_REDIRECT_URI=http://api.localtest.me:3001/auth/discord/callback
 ```
+
+## Authentication Setup
+
+This project uses **Supabase Auth** for authentication with Discord OAuth integration.
+
+### Quick Setup:
+
+1. **Create Supabase Project**: Go to [supabase.com/dashboard](https://supabase.com/dashboard)
+2. **Configure Discord OAuth**: Enable Discord provider in Supabase Auth settings
+3. **Set Environment Variables**: Add Supabase keys to your `.env` files
+4. **Remove Old Edge Functions**: Clean up any existing authentication edge functions

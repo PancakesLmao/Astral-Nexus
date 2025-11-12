@@ -9,7 +9,7 @@
     <!-- Login Form Card -->
     <div class="login-card position-relative">
       <div class="back-to-home">
-        <a href="http://localtest.me:3000" class="home-link">
+        <a :href="getAppUrl()" class="home-link">
           <ArrowLeft class="arrow-icon" />
           Back to Home
         </a>
@@ -69,6 +69,7 @@
 <script lang="ts" setup>
 import { ref } from 'vue'
 import { ArrowLeft } from 'lucide-vue-next'
+import { getApiUrl, getAppUrl, getAdminUrl } from '@/shared/utils'
 
 const isLoading = ref(false)
 const errorMessage = ref('')
@@ -88,7 +89,7 @@ const handleSubmit = async () => {
   errorMessage.value = ''
 
   try {
-    const response = await fetch('http://api.localtest.me:3001/admin/login', {
+    const response = await fetch(`${getApiUrl()}/admin/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -103,8 +104,8 @@ const handleSubmit = async () => {
     const data = await response.json()
 
     if (data.success) {
-      // Redirect to admin dashboard on subdomain
-      window.location.href = 'http://admin.localtest.me:3000'
+      // Redirect to admin dashboard
+      window.location.href = getAdminUrl()
     } else {
       errorMessage.value = data.message || 'Invalid email or password'
     }

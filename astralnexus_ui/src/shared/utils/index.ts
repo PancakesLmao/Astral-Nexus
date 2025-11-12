@@ -69,89 +69,125 @@ export function deleteCookie(
 }
 
 // ============================================
-// Environment-based URL Configuration
+// URL Configuration - Single Source of Truth
 // ============================================
-// Vite automatically detects mode at build time:
-// - Development: import.meta.env.DEV === true
-// - Production: import.meta.env.PROD === true
+// All URLs are derived from environment variables in .env.local
+// This allows for easy configuration in any environment (dev, staging, production)
+// without changing code.
 //
-// Dev environment (localhost):
-//   - Frontend: http://localtest.me:3000
-//   - Backend:  http://api.localtest.me:3001
-//   - Admin:    http://admin.localtest.me:3000
+// Required Environment Variables:
+//   - VITE_API_URL: Backend API endpoint
+//   - VITE_APP_URL: Main frontend URL
 //
-// Production environment:
-//   - Uses values from .env file (no ports)
-//   - Frontend: https://domain.com
-//   - Backend:  https://api.domain.com
-//   - Admin:    https://admin.domain.com
+// Optional (will be derived if not set):
+//   - VITE_BLOG_URL: Blog subdomain/path
+//   - VITE_ADMIN_URL: Admin subdomain/path
 
+/**
+ * Get the backend API URL
+ * Falls back to localhost:3001 if not configured
+ */
 export function getApiUrl(): string {
-  if (import.meta.env.DEV) {
-    // Development: hardcoded with port
-    return 'http://api.localtest.me:3001'
-  }
-  // Production: from .env file
-  const envUrl = import.meta.env.VITE_API_BASE_URL
-  return envUrl ? envUrl.replace(/\/$/, '') : 'https://api.domain.com'
+  return import.meta.env.VITE_API_URL || 'http://localhost:3001'
 }
 
-export function getBaseUrl(): string {
-  if (import.meta.env.DEV) {
-    // Development: hardcoded with port
-    return 'http://localtest.me:3000'
-  }
-  // Production: from .env file
-  const envUrl = import.meta.env.VITE_APP_BASE_URL
-  return envUrl ? envUrl.replace(/\/$/, '') : 'https://domain.com'
+/**
+ * Get the main app URL
+ * Falls back to localtest.me:3000 for development
+ */
+export function getAppUrl(): string {
+  return import.meta.env.VITE_APP_URL || 'http://localtest.me:3000'
 }
 
+/**
+ * Get the blog URL
+ * Defaults to {VITE_APP_URL}/blog if not explicitly set
+ */
+export function getBlogUrl(): string {
+  if (import.meta.env.VITE_BLOG_URL) {
+    return import.meta.env.VITE_BLOG_URL
+  }
+  // Default to path-based routing
+  return `${getAppUrl()}/blog`
+}
+
+/**
+ * Get the admin URL
+ * Defaults to {VITE_APP_URL}/admin if not explicitly set
+ */
 export function getAdminUrl(): string {
-  if (import.meta.env.DEV) {
-    // Development: hardcoded admin subdomain with port
-    return 'http://admin.localtest.me:3000'
+  if (import.meta.env.VITE_ADMIN_URL) {
+    return import.meta.env.VITE_ADMIN_URL
   }
-  // Production: extract domain and add admin subdomain
-  const baseUrl = getBaseUrl()
-  try {
-    const url = new URL(baseUrl)
-    const hostname = url.hostname.replace(/^(www\.)?/, 'admin.')
-    return `${url.protocol}//${hostname}`
-  } catch (error) {
-    console.error('Error parsing base URL:', error)
-    return 'https://admin.domain.com'
-  }
+  // Default to path-based routing
+  return `${getAppUrl()}/admin`
 }
 
+/**
+ * Get the session cookie domain for cross-subdomain auth
+ * Extracts domain from VITE_APP_URL or falls back to .localtest.me
+ *
+ * Examples:
+ *   http://localtest.me:3000 → .localtest.me
+ *   https://astralnexus.com → .astralnexus.com
+ *   http://localhost:3000 → localhost
+ */
 export function getSessionDomain(): string {
-  if (import.meta.env.DEV) {
-    // Development: hardcoded cross-subdomain cookie
+  const appUrl = getAppUrl()
+  try {
+    const url = new URL(appUrl)
+    const hostname = url.hostname
+
+    // For localhost, don't use leading dot
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return hostname
+    }
+
+    // For domains, use leading dot for subdomain sharing
+    // Extract base domain (e.g., localtest.me, astralnexus.com)
+    const parts = hostname.split('.')
+    if (parts.length >= 2) {
+      // Get last two parts (domain.tld)
+      const baseDomain = parts.slice(-2).join('.')
+      return `.${baseDomain}`
+    }
+
+    return `.${hostname}`
+  } catch (error) {
+    console.error('Failed to parse app URL for session domain:', error)
+    // Fallback to localtest.me for development
     return '.localtest.me'
   }
-  // Production: from .env file
-  const envDomain = import.meta.env.VITE_SESSION_DOMAIN
-  return envDomain || '.domain.com'
 }
 
-// Authentication utilities
+/**
+ * Get the login URL
+ */
+export function getLoginUrl(): string {
+  return `${getAppUrl()}/login`
+}
+
+// Authentication utilities - Updated for Supabase compatibility
 export async function checkUserAuth(
   apiBaseUrl: string,
 ): Promise<{ isAuthenticated: boolean; user?: unknown }> {
   try {
-    // Rely solely on cookies for session management
-    // No need to manually check localStorage or send Authorization headers
-    const response = await fetch(`${apiBaseUrl}/auth/me`, {
-      credentials: 'include', // This will automatically include cookies
-      headers: {
-        'Content-Type': 'application/json',
-      },
+    // Use the createAuthenticatedRequest function which properly handles Supabase tokens
+    const { createAuthenticatedRequest } = await import('../api')
+
+    const response = await createAuthenticatedRequest(`${apiBaseUrl}/auth/me`, {
+      credentials: 'include', // This will include cookies for legacy sessions
     })
+
+    console.log('checkUserAuth: Response status:', response.status)
 
     if (response.ok) {
       const data = await response.json()
+      console.log('checkUserAuth: Success, user authenticated:', !!data.user)
       return { isAuthenticated: true, user: data.user }
     } else {
-      // Clear any invalid session data
+      console.log('checkUserAuth: Failed, response not ok')
+      // Clear any invalid session data (legacy)
       localStorage.removeItem('astral_session')
       deleteCookie('astral_session', { domain: getSessionDomain(), path: '/' })
       return { isAuthenticated: false }
@@ -163,5 +199,5 @@ export async function checkUserAuth(
 }
 
 export function redirectToLogin(): void {
-  window.location.href = `${getBaseUrl()}/login`
+  window.location.href = getLoginUrl()
 }

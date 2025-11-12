@@ -1,28 +1,37 @@
 import { Elysia } from "elysia";
 import { queryOne, query } from "../utils/database";
+import { verifySupabaseToken, extractBearerToken, type SupabaseUser } from "../config/supabase";
 
-// Database-backed session management
+// Hybrid authentication middleware - supports both legacy sessions and Supabase JWT
 export const authMiddleware = new Elysia({ name: "auth-middleware" })
   .derive(async ({ headers, cookie }) => {
     try {
       // Extract session ID from Authorization header or cookie
       let sessionId: string | null = null;
+      let supabaseToken: string | null = null;
 
-      // Check Authorization header (Bearer token)
+      // Check Authorization header (Bearer token) - could be legacy session or Supabase JWT
       const authHeader = headers.authorization;
       if (authHeader && authHeader.startsWith("Bearer ")) {
-        sessionId = authHeader.substring(7);
+        const token = authHeader.substring(7);
+        
+        // Try to determine if it's a Supabase JWT (starts with 'ey' and has 3 parts)
+        if (token.startsWith('ey') && token.split('.').length === 3) {
+          supabaseToken = token;
+        } else {
+          sessionId = token;
+        }
       }
 
-      // Check X-Session-ID header
+      // Check X-Session-ID header for legacy sessions
       const sessionHeader = headers["x-session-id"];
-      if (sessionHeader && !sessionId) {
+      if (sessionHeader && !sessionId && !supabaseToken) {
         sessionId = sessionHeader;
       }
 
-      // Check cookie as fallback
+      // Check cookie as fallback for legacy sessions
       const cookieName = "astral_session";
-      if (!sessionId && cookie && cookie[cookieName]?.value) {
+      if (!sessionId && !supabaseToken && cookie && cookie[cookieName]?.value) {
         sessionId = cookie[cookieName].value;
       }
 
@@ -34,17 +43,47 @@ export const authMiddleware = new Elysia({ name: "auth-middleware" })
         console.log("Authorization header:", authHeader);
         console.log("X-Session-ID header:", sessionHeader);
         console.log("Final extracted sessionId:", sessionId);
+        console.log("Supabase token detected:", !!supabaseToken);
       }
 
+      // Try Supabase authentication first
+      if (supabaseToken) {
+        const supabaseUser = await verifySupabaseToken(supabaseToken);
+        
+        if (supabaseUser) {
+          const user = {
+            id: supabaseUser.id,
+            email: supabaseUser.email || '',
+            name: supabaseUser.user_metadata?.full_name || supabaseUser.user_metadata?.name || '',
+            picture: supabaseUser.user_metadata?.avatar_url || '',
+            provider: 'discord'
+          };
+
+          if (headers["x-debug-auth"]) {
+            console.log("Supabase user authenticated:", user);
+          }
+
+          return {
+            user,
+            isAuthenticated: true,
+            sessionId: null,
+            supabaseUser,
+            authType: 'supabase'
+          };
+        }
+      }
+
+      // Fall back to legacy session authentication
       if (!sessionId) {
         return {
           user: null,
           isAuthenticated: false,
           sessionId: null,
+          authType: 'none'
         };
       }
 
-      // Get session from database
+      // Get session from database (legacy)
       const sessionQuery = `
         SELECT s.*, u.id as user_id, u.email, u.name, u.picture, p.provider_name
         FROM sessions s
@@ -58,7 +97,7 @@ export const authMiddleware = new Elysia({ name: "auth-middleware" })
       // Only log session info when debug header is present
       if (headers["x-debug-auth"]) {
         console.log(
-          "Session from store:",
+          "Legacy session from store:",
           session
             ? {
                 userId: session.user_id,
@@ -79,6 +118,7 @@ export const authMiddleware = new Elysia({ name: "auth-middleware" })
           user: null,
           isAuthenticated: false,
           sessionId: null,
+          authType: 'none'
         };
       }
 
@@ -91,13 +131,14 @@ export const authMiddleware = new Elysia({ name: "auth-middleware" })
       };
 
       if (headers["x-debug-auth"]) {
-        console.log("Session found, returning user:", user);
+        console.log("Legacy session found, returning user:", user);
       }
 
       return {
         user,
         isAuthenticated: true,
         sessionId,
+        authType: 'legacy',
         session: {
           id: session.id,
           accessToken: session.access_token,

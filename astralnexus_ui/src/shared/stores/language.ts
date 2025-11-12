@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { getSessionDomain } from '../utils'
 import { translations, languages, type TranslationKey } from '@/shared/utils/languages'
 import { setCookie, getCookie } from '@/shared/utils'
 
@@ -21,7 +22,7 @@ export const useLanguageStore = defineStore('language', () => {
       currentLanguage.value = languageCode
       // Save to cookie for cross-subdomain persistence
       setCookie('preferred-language', languageCode, {
-        domain: '.localtest.me', // This allows sharing across subdomains
+        domain: getSessionDomain(), // For cross-subdomain cookie sharing
         path: '/',
         maxAge: 365 * 24 * 60 * 60, // 1 year in seconds
         sameSite: 'Lax',
@@ -42,7 +43,7 @@ export const useLanguageStore = defineStore('language', () => {
     if (localStorageLanguage && languages.some((lang) => lang.code === localStorageLanguage)) {
       currentLanguage.value = localStorageLanguage
       setCookie('preferred-language', localStorageLanguage, {
-        domain: '.localtest.me',
+        domain: getSessionDomain(),
         path: '/',
         maxAge: 365 * 24 * 60 * 60, // 1 year
         sameSite: 'Lax',
@@ -57,7 +58,7 @@ export const useLanguageStore = defineStore('language', () => {
       currentLanguage.value = browserLang
       // Save browser language preference
       setCookie('preferred-language', browserLang, {
-        domain: '.localtest.me',
+        domain: getSessionDomain(),
         path: '/',
         maxAge: 365 * 24 * 60 * 60, // 1 year
         sameSite: 'Lax',

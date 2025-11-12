@@ -10,6 +10,9 @@ import { testConnection } from "./config/database";
 // Import routes
 import {
   authRoutes,
+  supabaseAuthRoutes,
+  supabaseAuthMiddleware,
+  requireAuth,
   userRoutes,
   appRoutes,
   commentRoutes,
@@ -90,6 +93,7 @@ const app = new Elysia()
 
   .use(appRoutes)
   .use(authRoutes)
+  .use(supabaseAuthRoutes)
   .use(userRoutes)
   .use(commentRoutes)
   .use(dbRoutes)
@@ -104,15 +108,16 @@ const app = new Elysia()
       hostname: "0.0.0.0", // Listen on all interfaces
     },
     async ({ hostname, port }) => {
-      const displayHostname = process.env.HOST || "api.localtest.me";
-      const displayUrl = `http://${displayHostname}:${port}`;
+      const isDevelopment = process.env.NODE_ENV === "development"
+      const displayHostname = isDevelopment ? "api.localtest.me" : process.env.HOST || "localhost"
+      const displayUrl = `http://${displayHostname}:${port}`
 
-      console.log(`🦊 Elysia server is running at ${displayUrl}`);
+      console.log(`🦊 Elysia server is running at ${displayUrl}`)
       console.log(
         `📚 API Documentation: ${displayUrl}${appConfig.api.swagger.path}`
-      );
-      console.log(`Server listening on: ${hostname}:${port} (all interfaces)`);
-      console.log(`Environment: ${appConfig.environment}`);
+      )
+      console.log(`Server listening on: ${hostname}:${port} (all interfaces)`)
+      console.log(`Environment: ${appConfig.environment}`)
 
       // Test database connection
       console.log("Testing database connection...");

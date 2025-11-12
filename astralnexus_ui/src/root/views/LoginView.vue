@@ -21,76 +21,23 @@
       </div>
 
       <div class="card-body">
-        <!-- <form @submit.prevent="handleSubmit" class="auth-form d-flex flex-column">
-          <div class="form-group">
-            <label class="form-label">{{ languageStore.t('email') }}</label>
-            <input
-              v-model="formData.email"
-              type="email"
-              class="form-control"
-              :placeholder="languageStore.t('emailPlaceholder')"
-              required
-            >
-          </div>
+        <!-- Error Message -->
+        <div v-if="error" class="error-message mb-3">
+          {{ error }}
+          <button @click="clearError()" class="error-close">&times;</button>
+        </div>
 
-          <div class="form-group">
-            <label class="form-label">{{ languageStore.t('password') }}</label>
-            <input
-              v-model="formData.password"
-              type="password"
-              class="form-control"
-              :placeholder="languageStore.t('passwordPlaceholder')"
-              required
-            >
-          </div>
-
-          <div class="form-group text-end">
-            <a href="#" class="forgot-password">
-              {{ languageStore.t('forgotPassword') }}
-            </a>
-          </div>
-
-          <button type="submit" class="auth-btn position-relative d-flex align-items-center justify-content-center">
-            <svg>
-              <rect x="0" y="0" fill="none" width="100%" height="100%"/>
-            </svg>
-            {{ languageStore.t('signIn') }}
-          </button>
-        </form>
-
-        <div class="divider">
-          <span class="divider-text position-relative">{{ languageStore.t('orContinueWith') }}</span>
-        </div> -->
-
-        <!-- Google Sign In Button -->
-        <!-- <button
-          @click="handleGoogleSignIn"
-          class="google-btn position-relative d-flex align-items-center justify-content-center mb-3"
-        >
-          <svg class="google-icon" viewBox="0 0 24 24">
-            <path
-              fill="#4285F4"
-              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-            />
-            <path
-              fill="#34A853"
-              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-            />
-            <path
-              fill="#FBBC05"
-              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-            />
-            <path
-              fill="#EA4335"
-              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-            />
-          </svg>
-          {{ languageStore.t('signInWithGoogle') }}
-        </button> -->
+        <!-- Loading State -->
+        <div v-if="loading" class="loading-container text-center">
+          <div class="loading-spinner me-2"></div>
+          <span>Signing in with Discord...</span>
+        </div>
 
         <!-- Discord Sign In Button -->
         <button
+          v-else
           @click="handleDiscordSignIn"
+          :disabled="loading"
           class="discord-btn position-relative d-flex align-items-center justify-content-center"
         >
           <svg class="discord-icon" viewBox="0 0 24 24" fill="#FFFFFF">
@@ -108,51 +55,110 @@
 <script lang="ts" setup>
 import { ref, onMounted } from 'vue'
 import { ArrowLeft } from 'lucide-vue-next'
-import { useLanguageStore } from '@/shared/stores/language'
-import { API_BASE_URL } from '@/shared/api'
+import { useLanguageStore } from '../../shared/stores/language'
+import { supabase, signInWithDiscord } from '../../shared/lib/supabase'
+import { getBlogUrl } from '../../shared/utils'
 
 const languageStore = useLanguageStore()
 const loading = ref(false)
+const error = ref('')
 
 // Initialize language on component mount
-onMounted(() => {
+onMounted(async () => {
   languageStore.initializeLanguage()
+
+  // Check for OAuth callback parameters
+  const urlParams = new URLSearchParams(window.location.search)
+  const code = urlParams.get('code')
+  const oauthError = urlParams.get('error')
+  const errorDescription = urlParams.get('error_description')
+
+  if (oauthError) {
+    error.value = errorDescription || oauthError
+    // Clean up URL
+    window.history.replaceState({}, document.title, window.location.pathname)
+    return
+  }
+
+  // If we have a code, this is an OAuth callback
+  if (code) {
+    console.log('OAuth callback detected, processing...')
+    loading.value = true
+
+    // Clean up URL immediately
+    window.history.replaceState({}, document.title, window.location.pathname)
+
+    // Listen for auth state change instead of polling
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state change during callback:', event, session?.user?.id)
+
+      if (event === 'SIGNED_IN' && session) {
+        console.log('Session established via auth state change, redirecting to blog...')
+        // Unsubscribe before redirecting
+        subscription.unsubscribe()
+        // Redirect to blog subdomain
+        window.location.href = getBlogUrl()
+      }
+    })
+
+    // Fallback: Check session after a short delay in case event already fired
+    setTimeout(async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (session) {
+        console.log('Session found on fallback check, redirecting to blog...')
+        subscription.unsubscribe()
+        window.location.href = getBlogUrl()
+      } else {
+        // If no session after 5 seconds, show error
+        console.error('OAuth callback failed to establish session')
+        error.value = 'Authentication failed. Please try again.'
+        loading.value = false
+        subscription.unsubscribe()
+      }
+    }, 5000)
+
+    return
+  }
+
+  // Note: We don't check if user is already authenticated here
+  // Let them see the login page - we'll check when they click the button
 })
-
-// Google Sign In handler
-// const handleGoogleSignIn = async (): Promise<void> => {
-//   try {
-//     loading.value = true
-//     console.log('Initiating Google Sign In...')
-
-//     // Get current language preference to pass to OAuth
-//     const currentLang = languageStore.currentLanguage
-//     console.log('Passing language to Google OAuth:', currentLang)
-
-//     // Redirect to Google OAuth endpoint with language preference
-//     window.location.href = `${API_BASE_URL}/auth/google?lang=${currentLang}`
-//   } catch (error) {
-//     console.error('Google Sign In error:', error)
-//     loading.value = false
-//   }
-// }
 
 // Discord Sign In handler
 const handleDiscordSignIn = async (): Promise<void> => {
   try {
     loading.value = true
-    console.log('Initiating Discord Sign In...')
+    error.value = ''
 
-    // Get current language preference to pass to OAuth
-    const currentLang = languageStore.currentLanguage
-    console.log('Passing language to Discord OAuth:', currentLang)
+    // First check if user is already authenticated
+    console.log('Checking existing session before Discord Sign In...')
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
 
-    // Redirect to Discord OAuth endpoint with language preference
-    window.location.href = `${API_BASE_URL}/auth/discord?lang=${currentLang}`
-  } catch (error) {
-    console.error('Discord Sign In error:', error)
+    if (session) {
+      console.log('User already authenticated, redirecting to blog...')
+      window.location.href = getBlogUrl()
+      return
+    }
+
+    console.log('No existing session, initiating Discord Sign In...')
+    await signInWithDiscord()
+    // User will be redirected to Discord, then back to /login with code
+  } catch (err) {
+    console.error('Discord Sign In error:', err)
+    error.value = 'Failed to initiate Discord login. Please try again.'
     loading.value = false
   }
+}
+
+const clearError = () => {
+  error.value = ''
 }
 </script>
 
@@ -361,11 +367,69 @@ const handleDiscordSignIn = async (): Promise<void> => {
   color: white;
 }
 
+.discord-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 .discord-icon {
   width: 20px;
   height: 20px;
   margin-right: 12px;
 }
+
+.error-message {
+  background: rgba(220, 53, 69, 0.1);
+  border: 1px solid rgba(220, 53, 69, 0.3);
+  color: #ff6b6b;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  text-align: center;
+  position: relative;
+}
+
+.error-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  color: #ff6b6b;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.loading-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  color: #b8aff7;
+  font-weight: 500;
+  padding: 1rem;
+}
+
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(184, 175, 247, 0.3);
+  border-top: 2px solid #b8aff7;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
 /* REMOVE AFTER COMPLETE SIGN-IN */
 .test-btn {
   background: #ff6b35;
@@ -419,6 +483,55 @@ const handleDiscordSignIn = async (): Promise<void> => {
 
 .home-link:hover .arrow-icon {
   transform: translateX(-2px);
+}
+
+/* Bootstrap utility classes */
+.min-vh-100 {
+  min-height: 100vh;
+}
+
+.d-flex {
+  display: flex;
+}
+
+.align-items-center {
+  align-items: center;
+}
+
+.justify-content-center {
+  justify-content: center;
+}
+
+.p-4 {
+  padding: 1.5rem;
+}
+
+.position-relative {
+  position: relative;
+}
+
+.position-absolute {
+  position: absolute;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.mb-3 {
+  margin-bottom: 1rem;
+}
+
+.me-2 {
+  margin-right: 0.5rem;
+}
+
+.me-3 {
+  margin-right: 1rem;
+}
+
+.flex-column {
+  flex-direction: column;
 }
 
 /* Responsive for smaller screen */

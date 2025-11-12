@@ -16,4 +16,17 @@ const router = createRouter({
   ],
 })
 
+// Navigation guard for root domain
+router.beforeEach(async (to, from, next) => {
+  // Allow landing page and login page without authentication checks
+  if (to.path === '/' || to.path === '/login') {
+    console.log('✅ Root router - Allowing access to', to.path)
+    next()
+    return
+  }
+
+  console.log('=== ROOT ROUTER END ===')
+  next()
+})
+
 export default router

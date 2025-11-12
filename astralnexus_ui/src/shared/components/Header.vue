@@ -1,7 +1,7 @@
 <template>
   <header class="header-container fixed w-full" :class="{ scrolled: isScrolled }">
-    <nav class="navbar navbar-expand-lg container">
-      <div class="container-fluid">
+    <nav class="navbar">
+      <div class="navbar-content">
         <router-link class="navbar-brand" to="/">
           <span class="brand-text">AstralNexus</span>
         </router-link>
@@ -102,7 +102,9 @@ onUnmounted(() => {
 
 <style scoped>
 .header-container {
+  position: fixed;
   top: 0;
+  width: 100%;
   z-index: 999;
   transition: all 0.3s ease;
 }
@@ -121,9 +123,19 @@ onUnmounted(() => {
 
 /* Navbar Section*/
 .navbar {
-  padding: 1rem 0;
+  padding: 1rem;
   position: relative;
   z-index: 1;
+}
+
+.navbar-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
 }
 
 .nav-actions {
@@ -237,7 +249,11 @@ onUnmounted(() => {
 
 @media (max-width: 575.98px) {
   .navbar {
-    padding: 0.75rem 0;
+    padding: 0.75rem;
+  }
+
+  .navbar-content {
+    padding: 0 0.75rem;
   }
 
   .navbar-brand {
