@@ -1,212 +1,39 @@
 import { Elysia, t } from "elysia";
 import { queryAll, queryOne, query, exists, count } from "../utils/database";
 import { authMiddleware } from "../middleware/auth";
+import { Schemas } from "../schemas";
 
-// Post response schemas for Swagger documentation
-const PostAuthorSchema = t.Object({
-  id: t.String({ format: "uuid", description: "Author unique identifier" }),
-  username: t.String({ description: "Author username" }),
-  name: t.String({ description: "Author display name" }),
-  email: t.String({ format: "email", description: "Author email address" }),
-  picture: t.Optional(t.String({ description: "Author profile picture URL" })),
-  bio: t.Optional(t.String({ description: "Author biography" })),
-  created_at: t.String({
-    format: "date-time",
-    description: "Account creation timestamp",
-  }),
-});
-
-const PostSchema = t.Object({
-  id: t.String({ format: "uuid", description: "Post unique identifier" }),
-  title: t.String({ description: "Post title" }),
-  content: t.String({ description: "Post content (markdown supported)" }),
-  author: PostAuthorSchema,
-  created_at: t.String({
-    format: "date-time",
-    description: "Post creation timestamp",
-  }),
-  updated_at: t.String({
-    format: "date-time",
-    description: "Post last update timestamp",
-  }),
-  published: t.Boolean({ description: "Post publication status" }),
-  visibility: t.String({
-    enum: ["public", "private", "followers"],
-    description: "Post visibility level",
-  }),
-  game_category: t.Optional(
-    t.String({ description: "Associated game category" })
-  ),
-  post_type: t.Optional(
-    t.String({ description: "Type of post (Discussion, Guide, Review, etc.)" })
-  ),
-  tags: t.Optional(t.Array(t.String({ description: "Post tags" }))),
-  likes_count: t.Number({ description: "Number of likes" }),
-  comments_count: t.Number({ description: "Number of comments" }),
-  shares_count: t.Number({ description: "Number of shares" }),
-  is_liked: t.Optional(
-    t.Boolean({ description: "Whether current user liked this post" })
-  ),
-  is_bookmarked: t.Optional(
-    t.Boolean({ description: "Whether current user bookmarked this post" })
-  ),
-});
-
-const PostsListResponse = t.Object({
-  success: t.Boolean({ description: "Request success status" }),
-  message: t.String({ description: "Response message" }),
-  data: t.Object({
-    posts: t.Array(PostSchema),
-    pagination: t.Object({
-      page: t.Number({ description: "Current page number" }),
-      limit: t.Number({ description: "Posts per page" }),
-      total: t.Number({ description: "Total number of posts" }),
-      totalPages: t.Number({ description: "Total number of pages" }),
-      hasNext: t.Boolean({ description: "Whether there are more pages" }),
-      hasPrev: t.Boolean({ description: "Whether there are previous pages" }),
-    }),
-  }),
-});
-
-const PostDetailResponse = t.Object({
-  success: t.Boolean({ description: "Request success status" }),
-  message: t.String({ description: "Response message" }),
-  data: t.Object({
-    post: PostSchema,
-  }),
-});
-
-const CreatePostSchema = t.Object({
-  title: t.String({
-    minLength: 1,
-    maxLength: 255,
-    description: "Post title (1-255 characters)",
-  }),
-  content: t.String({
-    minLength: 1,
-    description: "Post content (markdown supported)",
-  }),
-  game_id: t.Optional(
-    t.String({
-      format: "uuid",
-      description: "Game category ID (optional)",
-    })
-  ),
-  post_type: t.Optional(
-    t.String({
-      description: "Type of post (Discussion, Guide, Review, etc.)",
-    })
-  ),
-  tags: t.Optional(
-    t.Array(
-      t.String({
-        description: "Post tags (array of strings)",
-      })
-    )
-  ),
-  visibility: t.Optional(
-    t.String({
-      enum: ["public", "private", "followers"],
-      default: "public",
-      description: "Post visibility level",
-    })
-  ),
-  published: t.Optional(
-    t.Boolean({
-      default: true,
-      description: "Whether to publish immediately",
-    })
-  ),
-});
-
-const UpdatePostSchema = t.Object({
-  title: t.Optional(
-    t.String({
-      minLength: 1,
-      maxLength: 255,
-      description: "Post title (1-255 characters)",
-    })
-  ),
-  content: t.Optional(
-    t.String({
-      minLength: 1,
-      description: "Post content (markdown supported)",
-    })
-  ),
-  game_id: t.Optional(
-    t.String({
-      format: "uuid",
-      description: "Game category ID",
-    })
-  ),
-  post_type: t.Optional(
-    t.String({
-      description: "Type of post (Discussion, Guide, Review, etc.)",
-    })
-  ),
-  tags: t.Optional(
-    t.Array(
-      t.String({
-        description: "Post tags (array of strings)",
-      })
-    )
-  ),
-  visibility: t.Optional(
-    t.String({
-      enum: ["public", "private", "followers"],
-      description: "Post visibility level",
-    })
-  ),
-  published: t.Optional(
-    t.Boolean({
-      description: "Publication status",
-    })
-  ),
-});
+// Helper: Extract and verify user with fallback to manual token verification
+async function getAuthenticatedUser(user: any, headers: any) {
+  if (user) return user;
+  
+  // Fallback: manually verify token if middleware didn't provide user
+  if (headers.authorization) {
+    const { extractBearerToken, verifySupabaseToken } = await import("../config/supabase");
+    const token = extractBearerToken(headers.authorization);
+    if (token) {
+      const verifiedUser = await verifySupabaseToken(token);
+      if (verifiedUser) {
+        return {
+          id: verifiedUser.id,
+          email: verifiedUser.email || '',
+          name: verifiedUser.user_metadata?.full_name || verifiedUser.user_metadata?.name || '',
+          picture: verifiedUser.user_metadata?.avatar_url || '',
+          provider: verifiedUser.app_metadata?.provider || 'discord'
+        };
+      }
+    }
+  }
+  return null;
+}
 
 // Posts API routes
 export const postsRoutes = new Elysia({ prefix: "/api/posts" })
+  .use(authMiddleware)
   .get(
     "/",
-    async ({ query, cookie, headers }) => {
+    async ({ query, user, set }) => {
       try {
-        // Optional authentication - get user ID if available
-        let currentUserId: string | null = null;
-
-        // Check for session
-        let sessionId: string | null = null;
-        const authHeader = headers.authorization;
-        if (authHeader && authHeader.startsWith("Bearer ")) {
-          sessionId = authHeader.substring(7);
-        }
-
-        const sessionHeader = headers["x-session-id"];
-        if (sessionHeader && !sessionId) {
-          sessionId = sessionHeader;
-        }
-
-        const cookieName = "astral_session";
-        if (!sessionId && cookie && cookie[cookieName]?.value) {
-          sessionId = cookie[cookieName].value;
-        }
-
-        if (sessionId) {
-          try {
-            const sessionQuery = `
-              SELECT s.*, u.id as user_id
-              FROM sessions s
-              JOIN users u ON s.user_id = u.id
-              WHERE s.id = $1 AND s.expires_at > CURRENT_TIMESTAMP
-            `;
-            const session = await queryOne(sessionQuery, [sessionId]);
-            if (session) {
-              currentUserId = session.user_id;
-            }
-          } catch (error) {
-            console.warn("Session check failed:", error);
-          }
-        }
-
         const page = Math.max(1, parseInt(query.page as string) || 1);
         const limit = Math.min(
           50,
@@ -299,7 +126,7 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
 
         // Get posts with pagination
         let postsQuery: string;
-        if (currentUserId) {
+        if (user) {
           postsQuery = `
             SELECT
               p.id,
@@ -329,7 +156,7 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
             ORDER BY p.${orderField} ${orderDirection}
             LIMIT $${paramIndex + 1} OFFSET $${paramIndex + 2}
           `;
-          queryParams.push(currentUserId, limit, offset);
+          queryParams.push(user.id, limit, offset);
         } else {
           postsQuery = `
             SELECT
@@ -367,25 +194,27 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
           content: post.content,
           author: {
             id: post.author_id,
-            username: post.author_name,
-            name: post.author_name,
-            email: post.author_email,
-            picture: post.author_picture,
-            bio: "", // I'll add bio to users table later
-            created_at: new Date(post.created_at).toISOString(),
+            username: post.author_name || "",
+            name: post.author_name || "",
+            email: post.author_email || "",
+            picture: post.author_picture || undefined,
+            bio: "",
+            createdAt: new Date(post.created_at).toISOString(),
           },
-          created_at: new Date(post.created_at).toISOString(),
-          updated_at: new Date(post.updated_at).toISOString(),
-          published: post.published,
+          author_id: post.author_id,
+          game_id: post.game_id || undefined,
+          game_category: post.game_category || undefined,
+          post_type: "Discussion",
+          tags: [],
           visibility: post.visibility,
-          game_category: post.game_category || undefined, // Convert null to undefined for schema validation
-          post_type: "Discussion", // Default for now, I'll add this field later
-          tags: [], // We'll add tags support later
+          published: post.published,
           likes_count: post.likes_count || 0,
           comments_count: post.comments_count || 0,
           shares_count: post.shares_count || 0,
-          is_liked: post.is_liked || false, // Use actual is_liked from query
-          is_bookmarked: false, // TODO: Check if current user bookmarked this post
+          is_liked: post.is_liked || false,
+          isLiked: post.is_liked || false,
+          createdAt: new Date(post.created_at).toISOString(),
+          updatedAt: new Date(post.updated_at).toISOString(),
         }));
 
         const totalPages = Math.ceil(total / limit);
@@ -407,6 +236,7 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
         };
       } catch (error) {
         console.error("Error fetching posts:", error);
+        set.status = 500;
         return {
           success: false,
           message: "Failed to fetch posts",
@@ -454,78 +284,63 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
           t.String({ description: "Sort order (ASC, DESC)" })
         ),
       }),
-      response: PostsListResponse,
+      response: t.Object({
+        success: t.Boolean(),
+        message: t.String(),
+        data: t.Object({
+          posts: t.Array(Schemas.Post),
+          pagination: Schemas.Pagination,
+        }),
+      }),
       detail: {
         tags: ["Posts"],
         summary: "Get all posts",
-        description: `
-        Retrieve a paginated list of posts with optional filtering and sorting.
-
-        **Query Parameters:**
-        - \`page\`: Page number (default: 1)
-        - \`limit\`: Posts per page (default: 10, max: 50)
-        - \`game_category\`: Filter by game category name
-        - \`post_type\`: Filter by post type
-        - \`visibility\`: Filter by visibility (public, private, followers)
-        - \`search\`: Search term for title and content
-        - \`sort_by\`: Sort field (created_at, updated_at, title, likes_count, comments_count)
-        - \`sort_order\`: Sort direction (ASC, DESC)
-        `,
+        description: `Retrieve a paginated list of posts with optional filtering and sorting.`,
+        responses: {
+          "200": {
+            description: "List of posts retrieved successfully",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean" },
+                    message: { type: "string" },
+                    data: {
+                      type: "object",
+                      properties: {
+                        posts: { type: "array" },
+                        pagination: { type: "object" },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal server error",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", enum: [false] },
+                    message: { type: "string" },
+                    error: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     }
   )
   .get(
     "/:id",
-    async ({ params, cookie, headers }) => {
+    async ({ params, user, set }) => {
       try {
-        // Optional authentication - get user ID if available
-        let currentUserId: string | null = null;
-
-        // Check Authorization header (Bearer token)
-        const authHeader = headers.authorization;
-        if (authHeader && authHeader.startsWith("Bearer ")) {
-          const sessionId = authHeader.substring(7);
-          try {
-            const sessionQuery = "SELECT user_id FROM sessions WHERE id = $1";
-            const session = await queryOne(sessionQuery, [sessionId]);
-            if (session) {
-              currentUserId = session.user_id;
-            }
-          } catch (error) {
-            console.error("Error validating session from header:", error);
-          }
-        }
-
-        // Check X-Session-ID header
-        const sessionHeader = headers["x-session-id"];
-        if (sessionHeader && !currentUserId) {
-          try {
-            const sessionQuery = "SELECT user_id FROM sessions WHERE id = $1";
-            const session = await queryOne(sessionQuery, [sessionHeader]);
-            if (session) {
-              currentUserId = session.user_id;
-            }
-          } catch (error) {
-            console.error("Error validating session from header:", error);
-          }
-        }
-
-        // Check cookie as fallback
-        const cookieName = "astral_session";
-        if (!currentUserId && cookie && cookie[cookieName]?.value) {
-          try {
-            const sessionQuery = "SELECT user_id FROM sessions WHERE id = $1";
-            const session = await queryOne(sessionQuery, [
-              cookie[cookieName].value,
-            ]);
-            if (session) {
-              currentUserId = session.user_id;
-            }
-          } catch (error) {
-            console.error("Error validating session from cookie:", error);
-          }
-        }
-
         const postQuery = `
           SELECT
             p.id,
@@ -544,7 +359,7 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
             u.picture as author_picture,
             gc.game_name as game_category,
             ${
-              currentUserId
+              user
                 ? `CASE WHEN pl.user_id IS NOT NULL THEN true ELSE false END as is_liked`
                 : "false as is_liked"
             }
@@ -552,20 +367,25 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
           LEFT JOIN users u ON p.author_id = u.id
           LEFT JOIN game_categories gc ON p.game_id = gc.id
           ${
-            currentUserId
+            user
               ? `LEFT JOIN post_likes pl ON p.id = pl.post_id AND pl.user_id = $2`
               : ""
           }
           WHERE p.id = $1 AND p.published = TRUE
         `;
 
-        const queryParams = currentUserId
-          ? [params.id, currentUserId]
+        const queryParams = user
+          ? [params.id, user.id]
           : [params.id];
         const post = await queryOne(postQuery, queryParams);
 
         if (!post) {
-          throw new Error("Post not found");
+          set.status = 404;
+          return {
+            success: false,
+            message: "Post not found",
+            error: "The requested post does not exist",
+          };
         }
 
         const transformedPost = {
@@ -575,25 +395,26 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
           author: {
             id: post.author_id,
             username: post.author_email?.split("@")[0] || "user",
-            name: post.author_name,
-            email: post.author_email,
-            picture: post.author_picture,
+            name: post.author_name || "",
+            email: post.author_email || "",
+            picture: post.author_picture || undefined,
             bio: "",
-            created_at: new Date(post.created_at).toISOString(),
+            createdAt: new Date(post.created_at).toISOString(),
           },
-          created_at: new Date(post.created_at).toISOString(),
-          updated_at: new Date(post.updated_at).toISOString(),
-          published: post.published,
-          visibility: post.visibility,
+          author_id: post.author_id,
+          game_id: post.game_id || undefined,
           game_category: post.game_category || undefined,
-          // Convert null to undefined for schema validation
           post_type: "Discussion",
           tags: [],
+          visibility: post.visibility,
+          published: post.published,
           likes_count: post.likes_count || 0,
           comments_count: post.comments_count || 0,
           shares_count: post.shares_count || 0,
           is_liked: post.is_liked || false,
-          is_bookmarked: false,
+          isLiked: post.is_liked || false,
+          createdAt: new Date(post.created_at).toISOString(),
+          updatedAt: new Date(post.updated_at).toISOString(),
         };
 
         return {
@@ -605,87 +426,119 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
         };
       } catch (error) {
         console.error("Error fetching post:", error);
-        throw new Error("Failed to fetch post");
+        set.status = 500;
+        return {
+          success: false,
+          message: "Failed to fetch post",
+          error: error instanceof Error ? error.message : "Unknown error",
+        };
       }
     },
     {
       params: t.Object({
         id: t.String({ format: "uuid", description: "Post unique identifier" }),
       }),
-      response: PostDetailResponse,
+      response: t.Object({
+        success: t.Boolean(),
+        message: t.String(),
+        data: t.Object({
+          post: Schemas.Post,
+        }),
+      }),
       detail: {
         tags: ["Posts"],
         summary: "Get post by ID",
-        description: `
-        Retrieve a specific post by its unique identifier.
-
-        **Path Parameters:**
-        - \`id\`: Post UUID
-        `,
+        description: `Retrieve a specific post by its unique identifier.`,
+        responses: {
+          "200": {
+            description: "Post retrieved successfully",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean" },
+                    message: { type: "string" },
+                    data: { type: "object" },
+                  },
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Post not found",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", enum: [false] },
+                    message: { type: "string" },
+                    error: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal server error",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", enum: [false] },
+                    message: { type: "string" },
+                    error: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     }
   )
 
-  // Create post endpoint - with manual authentication
+  // Create post endpoint - requires Supabase authentication via JWT token
+  .use(authMiddleware)
   .post(
     "/",
-    async ({ body, cookie, headers }) => {
+    async ({ body, user, set, headers }) => {
       try {
-        // Manual authentication check
-        let sessionId: string | null = null;
-
-        // Check Authorization header (Bearer token)
-        const authHeader = headers.authorization;
-        if (authHeader && authHeader.startsWith("Bearer ")) {
-          sessionId = authHeader.substring(7);
-        }
-
-        // Check X-Session-ID header
-        const sessionHeader = headers["x-session-id"];
-        if (sessionHeader && !sessionId) {
-          sessionId = sessionHeader;
-        }
-
-        // Check cookie as fallback
-        const cookieName = "astral_session";
-        if (!sessionId && cookie && cookie[cookieName]?.value) {
-          sessionId = cookie[cookieName].value;
-        }
-
-        if (!sessionId) {
+        // Get authenticated user with fallback to manual verification
+        const currentUser = await getAuthenticatedUser(user, headers);
+        
+        if (!currentUser) {
+          set.status = 401;
           return {
             success: false,
             message: "Authentication required",
-            error: "No session found",
+            error: "No valid authentication token",
           };
         }
 
-        // Get session from database
-        const sessionQuery = `
-          SELECT s.*, u.id as user_id, u.email, u.name, u.picture, p.provider_name
-          FROM sessions s
-          JOIN users u ON s.user_id = u.id
-          JOIN providers p ON u.provider_id = p.id
-          WHERE s.id = $1 AND s.expires_at > CURRENT_TIMESTAMP
-        `;
+        // Check if user exists in database, create if not
+        let dbUser = await queryOne("SELECT id, email, name FROM users WHERE email = $1", [currentUser.email]);
 
-        const session = await queryOne(sessionQuery, [sessionId]);
+        if (!dbUser) {
+          // Get Discord provider ID
+          const discordProvider = await queryOne("SELECT id FROM providers WHERE provider_name = $1", ["discord"]);
+          if (!discordProvider) {
+            set.status = 500;
+            return {
+              success: false,
+              message: "Failed to create post",
+              error: "Discord provider not configured",
+            };
+          }
 
-        if (!session) {
-          return {
-            success: false,
-            message: "Authentication required",
-            error: "Invalid or expired session",
-          };
+          // Create user in database
+          dbUser = await queryOne(
+            "INSERT INTO users (email, name, picture, provider_id) VALUES ($1, $2, $3, $4) RETURNING id, email, name",
+            [currentUser.email, currentUser.name || currentUser.email, currentUser.picture || null, discordProvider.id]
+          );
         }
-
-        const user = {
-          id: session.user_id,
-          email: session.email,
-          name: session.name,
-          picture: session.picture,
-          provider: session.provider_name,
-        };
 
         const insertQuery = `
           INSERT INTO posts (title, content, author_id, game_id, published, visibility)
@@ -696,7 +549,7 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
         const result = await queryOne(insertQuery, [
           body.title,
           body.content,
-          user.id, // Use authenticated user's ID
+          dbUser.id,
           body.game_id || null,
           body.published ?? true,
           body.visibility || "public",
@@ -719,6 +572,7 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
         };
       } catch (error) {
         console.error("Error creating post:", error);
+        set.status = 500;
         return {
           success: false,
           message: "Failed to create post",
@@ -727,7 +581,7 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
       }
     },
     {
-      body: CreatePostSchema,
+      body: Schemas.CreatePost,
       response: t.Object({
         success: t.Boolean(),
         message: t.String(),
@@ -743,24 +597,60 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
       detail: {
         tags: ["Posts"],
         summary: "Create new post",
-        description: `
-        Create a new blog post.
-
-        **Request Body:**
-        - \`title\`: Post title (required, 1-255 characters)
-        - \`content\`: Post content (required, markdown supported)
-        - \`game_id\`: Game category UUID (optional)
-        - \`post_type\`: Type of post (optional)
-        - \`tags\`: Array of tag strings (optional)
-        - \`visibility\`: Visibility level (optional, default: public)
-        - \`published\`: Publication status (optional, default: true)
-        `,
+        description: `Create a new blog post. Authentication via Supabase JWT token is required.`,
+        responses: {
+          "200": {
+            description: "Post created successfully",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean" },
+                    message: { type: "string" },
+                    data: { type: "object" },
+                  },
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Authentication required or invalid token",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", enum: [false] },
+                    message: { type: "string" },
+                    error: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal server error",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", enum: [false] },
+                    message: { type: "string" },
+                    error: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     }
   )
   .put(
     "/:id",
-    async ({ params, body }) => {
+    async ({ params, body, set }) => {
       try {
         // Check if post exists
         const existingPost = await queryOne(
@@ -769,6 +659,7 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
         );
 
         if (!existingPost) {
+          set.status = 404;
           return {
             success: false,
             message: "Post not found",
@@ -818,6 +709,7 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
 
         if (updateFields.length === 1) {
           // Only updated_at was added
+          set.status = 400;
           return {
             success: false,
             message: "No fields to update",
@@ -845,6 +737,7 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
         };
       } catch (error) {
         console.error("Error updating post:", error);
+        set.status = 500;
         return {
           success: false,
           message: "Failed to update post",
@@ -856,7 +749,7 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
       params: t.Object({
         id: t.String({ format: "uuid", description: "Post unique identifier" }),
       }),
-      body: UpdatePostSchema,
+      body: Schemas.UpdatePost,
       response: t.Object({
         success: t.Boolean(),
         message: t.String(),
@@ -871,27 +764,75 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
       detail: {
         tags: ["Posts"],
         summary: "Update post",
-        description: `
-        Update an existing post. Only the author or admin can update a post.
-
-        **Path Parameters:**
-        - \`id\`: Post UUID
-
-        **Request Body:** (all fields optional)
-        - \`title\`: New post title
-        - \`content\`: New post content
-        - \`game_id\`: New game category UUID
-        - \`post_type\`: New post type
-        - \`tags\`: New tags array
-        - \`visibility\`: New visibility level
-        - \`published\`: New publication status
-        `,
+        description: `Update an existing post. Only the author or admin can update a post.`,
+        responses: {
+          "200": {
+            description: "Post updated successfully",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean" },
+                    message: { type: "string" },
+                    data: { type: "object" },
+                  },
+                },
+              },
+            },
+          },
+          "400": {
+            description: "No fields to update",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", enum: [false] },
+                    message: { type: "string" },
+                    error: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Post not found",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", enum: [false] },
+                    message: { type: "string" },
+                    error: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal server error",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", enum: [false] },
+                    message: { type: "string" },
+                    error: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     }
   )
   .delete(
     "/:id",
-    async ({ params }) => {
+    async ({ params, set }) => {
       try {
         // Check if post exists
         const existingPost = await queryOne(
@@ -900,6 +841,7 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
         );
 
         if (!existingPost) {
+          set.status = 404;
           return {
             success: false,
             message: "Post not found",
@@ -922,6 +864,7 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
         };
       } catch (error) {
         console.error("Error deleting post:", error);
+        set.status = 500;
         return {
           success: false,
           message: "Failed to delete post",
@@ -947,14 +890,54 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
       detail: {
         tags: ["Posts"],
         summary: "Delete post",
-        description: `
-        Delete a post permanently. Only the author or admin can delete a post.
-
-        **Path Parameters:**
-        - \`id\`: Post UUID
-
-        **Warning:** This action cannot be undone
-        `,
+        description: `Delete a post permanently. Only the author or admin can delete a post.`,
+        responses: {
+          "200": {
+            description: "Post deleted successfully",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean" },
+                    message: { type: "string" },
+                    data: { type: "object" },
+                  },
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Post not found",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", enum: [false] },
+                    message: { type: "string" },
+                    error: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal server error",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", enum: [false] },
+                    message: { type: "string" },
+                    error: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     }
   )
@@ -962,56 +945,40 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
   // Like/Unlike a post
   .post(
     "/:id/like",
-    async ({ params: { id }, set, cookie, headers }) => {
+    async ({ params: { id }, set, user, headers }) => {
       try {
-        // Manual authentication check (same as create post)
-        let sessionId: string | null = null;
-
-        // Check Authorization header (Bearer token)
-        const authHeader = headers.authorization;
-        if (authHeader && authHeader.startsWith("Bearer ")) {
-          sessionId = authHeader.substring(7);
-        }
-
-        // Check X-Session-ID header
-        const sessionHeader = headers["x-session-id"];
-        if (sessionHeader && !sessionId) {
-          sessionId = sessionHeader;
-        }
-
-        // Check cookie as fallback
-        const cookieName = "astral_session";
-        if (!sessionId && cookie && cookie[cookieName]?.value) {
-          sessionId = cookie[cookieName].value;
-        }
-
-        if (!sessionId) {
+        // Get authenticated user with fallback to manual verification
+        const currentUser = await getAuthenticatedUser(user, headers);
+        
+        if (!currentUser) {
           set.status = 401;
           return {
             success: false,
             error: "Authentication required",
-            message: "No session found",
+            message: "No valid authentication token",
           };
         }
 
-        // Get session from database
-        const sessionQuery = `
-          SELECT s.*, u.id as user_id, u.email, u.name, u.picture, p.provider_name
-          FROM sessions s
-          JOIN users u ON s.user_id = u.id
-          JOIN providers p ON u.provider_id = p.id
-          WHERE s.id = $1 AND s.expires_at > CURRENT_TIMESTAMP
-        `;
+        // Check if user exists in database, create if not
+        let dbUser = await queryOne("SELECT id FROM users WHERE email = $1", [currentUser.email]);
 
-        const session = await queryOne(sessionQuery, [sessionId]);
+        if (!dbUser) {
+          // Get Discord provider ID
+          const discordProvider = await queryOne("SELECT id FROM providers WHERE provider_name = $1", ["discord"]);
+          if (!discordProvider) {
+            set.status = 500;
+            return {
+              success: false,
+              error: "Failed to like post",
+              message: "Discord provider not configured",
+            };
+          }
 
-        if (!session) {
-          set.status = 401;
-          return {
-            success: false,
-            error: "Authentication required",
-            message: "Invalid or expired session",
-          };
+          // Create user in database
+          dbUser = await queryOne(
+            "INSERT INTO users (email, name, picture, provider_id) VALUES ($1, $2, $3, $4) RETURNING id",
+            [user.email, user.name || user.email, user.picture || null, discordProvider.id]
+          );
         }
 
         // Check if post exists
@@ -1032,14 +999,14 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
         // Check if user already liked this post
         const existingLike = await queryOne(
           "SELECT post_id FROM post_likes WHERE post_id = $1 AND user_id = $2",
-          [id, session.user_id]
+          [id, dbUser.id]
         );
 
         if (existingLike) {
           // Unlike the post
           await queryOne(
             "DELETE FROM post_likes WHERE post_id = $1 AND user_id = $2",
-            [id, session.user_id]
+            [id, dbUser.id]
           );
 
           return {
@@ -1051,7 +1018,7 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
           // Like the post
           await queryOne(
             "INSERT INTO post_likes (post_id, user_id) VALUES ($1, $2)",
-            [id, session.user_id]
+            [id, dbUser.id]
           );
 
           return {
@@ -1088,15 +1055,69 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
       detail: {
         tags: ["Posts"],
         summary: "Like/Unlike post",
-        description: `
-        Toggle like status for a post. If user already liked the post, it will be unliked.
-        If user hasn't liked the post, it will be liked.
-
-        **Path Parameters:**
-        - \`id\`: Post UUID
-
-        **Authentication:** Required
-        `,
+        description: `Toggle like status for a post. If user already liked the post, it will be unliked. Authentication via Supabase JWT token is required.`,
+        responses: {
+          "200": {
+            description: "Post like status toggled successfully",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean" },
+                    message: { type: "string" },
+                    data: { type: "object" },
+                  },
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Authentication required or invalid token",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", enum: [false] },
+                    error: { type: "string" },
+                    message: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Post not found",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", enum: [false] },
+                    error: { type: "string" },
+                    message: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal server error",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", enum: [false] },
+                    error: { type: "string" },
+                    message: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     }
   );

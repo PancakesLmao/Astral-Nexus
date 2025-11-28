@@ -5,13 +5,21 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'Landing',
-      component: () => import('../views/LandingView.vue'),
+      name: 'Callback',
+      component: () => import('../views/CallbackView.vue'),
+      meta: { requiresAuth: false }
     },
     {
       path: '/login',
       name: 'Login',
       component: () => import('../views/LoginView.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/landing',
+      name: 'Landing',
+      component: () => import('../views/LandingView.vue'),
+      meta: { requiresAuth: false }
     },
   ],
 })

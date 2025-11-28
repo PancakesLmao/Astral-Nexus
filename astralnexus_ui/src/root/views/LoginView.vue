@@ -67,66 +67,9 @@ const error = ref('')
 onMounted(async () => {
   languageStore.initializeLanguage()
 
-  // Check for OAuth callback parameters
-  const urlParams = new URLSearchParams(window.location.search)
-  const code = urlParams.get('code')
-  const oauthError = urlParams.get('error')
-  const errorDescription = urlParams.get('error_description')
-
-  if (oauthError) {
-    error.value = errorDescription || oauthError
-    // Clean up URL
-    window.history.replaceState({}, document.title, window.location.pathname)
-    return
-  }
-
-  // If we have a code, this is an OAuth callback
-  if (code) {
-    console.log('OAuth callback detected, processing...')
-    loading.value = true
-
-    // Clean up URL immediately
-    window.history.replaceState({}, document.title, window.location.pathname)
-
-    // Listen for auth state change instead of polling
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth state change during callback:', event, session?.user?.id)
-
-      if (event === 'SIGNED_IN' && session) {
-        console.log('Session established via auth state change, redirecting to blog...')
-        // Unsubscribe before redirecting
-        subscription.unsubscribe()
-        // Redirect to blog subdomain
-        window.location.href = getBlogUrl()
-      }
-    })
-
-    // Fallback: Check session after a short delay in case event already fired
-    setTimeout(async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
-      if (session) {
-        console.log('Session found on fallback check, redirecting to blog...')
-        subscription.unsubscribe()
-        window.location.href = getBlogUrl()
-      } else {
-        // If no session after 5 seconds, show error
-        console.error('OAuth callback failed to establish session')
-        error.value = 'Authentication failed. Please try again.'
-        loading.value = false
-        subscription.unsubscribe()
-      }
-    }, 5000)
-
-    return
-  }
-
-  // Note: We don't check if user is already authenticated here
-  // Let them see the login page - we'll check when they click the button
+  // Note: OAuth callback is now handled by CallbackView component at root path (/)
+  // LoginView is only shown when user navigates to /login directly
+  // or after OAuth callback redirects back with an error
 })
 
 // Discord Sign In handler

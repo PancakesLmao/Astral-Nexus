@@ -1,5 +1,32 @@
-import { Elysia } from "elysia";
+import { Elysia, t } from "elysia";
 import { testConnection } from "../config/database";
+
+// Response schemas
+const RootResponseSchema = t.Object({
+  message: t.String(),
+  version: t.String(),
+  timestamp: t.String({ format: "date-time" }),
+});
+
+const HealthResponseSchema = t.Object({
+  status: t.Union([t.Literal("healthy"), t.Literal("unhealthy")]),
+  uptime: t.Number(),
+  timestamp: t.String({ format: "date-time" }),
+  environment: t.String(),
+  database: t.Union([t.Literal("connected"), t.Literal("disconnected")]),
+});
+
+const VersionResponseSchema = t.Object({
+  version: t.String(),
+  name: t.String(),
+  build: t.String(),
+});
+
+const ErrorSchema = t.Object({
+  error: t.String(),
+  message: t.String(),
+  timestamp: t.String({ format: "date-time" }),
+});
 
 // Application routes (health check, status, etc.)
 export const appRoutes = new Elysia()
@@ -13,11 +40,10 @@ export const appRoutes = new Elysia()
       };
     },
     {
-      detail: {
-        tags: ["App"],
-        summary: "Root endpoint",
-        description: "Welcome message and API information",
-      },
+      tags: ["App"],
+      summary: "Root endpoint",
+      description: "Welcome message and API information",
+      response: RootResponseSchema,
     }
   )
   .get(
@@ -33,10 +59,27 @@ export const appRoutes = new Elysia()
       };
     },
     {
-      detail: {
-        tags: ["App"],
-        summary: "Health check",
-        description: "Check API health status including database connectivity",
+      tags: ["App"],
+      summary: "Health check",
+      description: "Check API health status including database connectivity",
+      response: HealthResponseSchema,
+      responses: {
+        200: {
+          description: "API is healthy",
+          content: {
+            "application/json": {
+              schema: HealthResponseSchema,
+            },
+          },
+        },
+        503: {
+          description: "Service unavailable",
+          content: {
+            "application/json": {
+              schema: ErrorSchema,
+            },
+          },
+        },
       },
     }
   )
@@ -50,10 +93,19 @@ export const appRoutes = new Elysia()
       };
     },
     {
-      detail: {
-        tags: ["App"],
-        summary: "API Version",
-        description: "Get API version information",
+      tags: ["App"],
+      summary: "API Version",
+      description: "Get API version information",
+      response: VersionResponseSchema,
+      responses: {
+        200: {
+          description: "Version information retrieved successfully",
+          content: {
+            "application/json": {
+              schema: VersionResponseSchema,
+            },
+          },
+        },
       },
     }
   );

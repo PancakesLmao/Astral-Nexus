@@ -30,11 +30,10 @@ services:
     build:
       context: ./astralnexus_be
       dockerfile: Dockerfile
-      target: base  # Use base stage for development
     ports:
       - "3001:3001"
     environment:
-      - NODE_ENV=${NODE_ENV:-development}
+      - NODE_ENV=production
       - PORT=${PORT:-3001}
       - HOST=${HOST:-api.localtest.me}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@astralnexus_db:5432/${POSTGRES_DB}
@@ -43,23 +42,13 @@ services:
       - DB_NAME=${POSTGRES_DB}
       - DB_USER=${POSTGRES_USER}
       - DB_PASSWORD=${POSTGRES_PASSWORD}
-      - DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID}
-      - DISCORD_CLIENT_SECRET=${DISCORD_CLIENT_SECRET}
-      - DISCORD_REDIRECT_URI=${DISCORD_REDIRECT_URI}
-      - FRONTEND_SUCCESS_REDIRECT=${FRONTEND_SUCCESS_REDIRECT}
-      - FRONTEND_ERROR_REDIRECT=${FRONTEND_ERROR_REDIRECT}
-      - SESSION_SECRET=${SESSION_SECRET}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - SESSION_DOMAIN=${SESSION_DOMAIN:-localhost}
-      - SESSION_SECURE=${SESSION_SECURE:-false}
-      - SESSION_SAME_SITE=${SESSION_SAME_SITE:-lax}
-      - SESSION_HTTP_ONLY=${SESSION_HTTP_ONLY:-true}
       - CORS_ORIGIN=${CORS_ORIGIN}
       - POSTGRES_LOG_STATEMENT=${POSTGRES_LOG_STATEMENT:-all}
       - POSTGRES_INITDB_ARGS=${POSTGRES_INITDB_ARGS}
-    volumes:
-      - ./astralnexus_be:/usr/src/app
-      - /usr/src/app/node_modules
-    command: bun run dev
     networks:
       - astral_network
     depends_on:

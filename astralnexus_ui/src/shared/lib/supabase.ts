@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import type { SupabaseClientOptions } from '@supabase/supabase-js'
-import { getSessionDomain, getBlogUrl, getAppUrl } from '../utils'
+import { getSessionDomain, getAppUrl } from '../utils'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -163,7 +163,7 @@ export const signInWithDiscord = async () => {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'discord',
     options: {
-      redirectTo: `${getBlogUrl()}`,
+      redirectTo: `${getAppUrl()}/`,  // Redirect to root domain for OAuth callback handling
       skipBrowserRedirect: false,
     },
   })

@@ -1,17 +1,16 @@
 import { Elysia } from "elysia";
 import { authMiddleware } from "../middleware/auth";
-import { appConfig } from "../config/app";
+import { Schemas } from "../schemas";
 
 // Simplified authentication routes for Supabase
 export const authRoutes = new Elysia({ prefix: "/auth" })
   .use(authMiddleware)
   
-  // Get current authenticated user - works with both Supabase JWT and legacy sessions
+  // Get current authenticated user - Supabase JWT only
   .get(
     "/me",
     async (context) => {
       try {
-        // The authMiddleware provides these properties
         const { user, isAuthenticated, set } = context as any;
         
         if (isAuthenticated && user) {
@@ -36,38 +35,31 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
       }
     },
     {
+      response: {
+        200: Schemas.UserResponse,
+        401: Schemas.NotAuthenticatedError,
+        500: Schemas.InternalServerError,
+      },
       detail: {
+        tags: ["Authentication"],
         summary: "Get current user",
         description: "Get the currently authenticated user information",
-        tags: ["Authentication"],
+        responses: {
+          200: { description: "User retrieved successfully" },
+          401: { description: "Not authenticated" },
+          500: { description: "Server error" },
+        },
       },
     }
   )
 
-  // Logout endpoint - clears legacy sessions if they exist
+  // Logout endpoint - Supabase handles session management
   .post(
     "/logout",
-    async ({ cookie, set }) => {
+    async ({ set }) => {
       try {
-        // If there's a legacy session, clear it
-        const sessionCookie = cookie['astral_session'];
-        if (sessionCookie?.value) {
-          // Import deleteSession only if we have a legacy session
-          const { deleteSession } = await import("../middleware/auth");
-          await deleteSession(sessionCookie.value);
-          
-          // Clear the cookie
-          sessionCookie.set({
-            value: '',
-            expires: new Date(0),
-            domain: appConfig.cookies.session.domain,
-            path: '/',
-            httpOnly: true,
-            secure: false, // Set to true in production with HTTPS
-            sameSite: 'lax'
-          });
-        }
-
+        // Supabase handles logout client-side via supabase.auth.signOut()
+        // This endpoint exists for API consistency
         return {
           success: true,
           message: "Logged out successfully",
@@ -82,10 +74,18 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
       }
     },
     {
+      response: {
+        200: Schemas.LogoutResponse,
+        500: Schemas.LogoutError,
+      },
       detail: {
-        summary: "Logout",
-        description: "Logout and clear session",
         tags: ["Authentication"],
+        summary: "Logout",
+        description: "Logout endpoint (Supabase handles session client-side)",
+        responses: {
+          200: { description: "Logged out successfully" },
+          500: { description: "Server error" },
+        },
       },
     }
   );

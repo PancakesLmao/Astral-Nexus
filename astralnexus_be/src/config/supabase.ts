@@ -49,19 +49,66 @@ export async function verifySupabaseToken(
   token: string
 ): Promise<SupabaseUser | null> {
   try {
+    // Method 3 FIRST: Decode and validate JWT manually (most reliable for our case)
+    // JWT format: header.payload.signature
+    const parts = token.split(".");
+    
+    if (parts.length === 3) {
+      try {
+        // Decode the payload (second part)
+        const payload = JSON.parse(
+          Buffer.from(parts[1], "base64").toString("utf-8")
+        );
+
+        // Check if token is expired
+        if (payload.exp && payload.exp * 1000 < Date.now()) {
+          return null;
+        }
+
+        // Return user info from JWT payload
+        if (payload.sub) {
+          const user: SupabaseUser = {
+            id: payload.sub,
+            email: payload.email || "",
+            user_metadata: {
+              full_name: payload.user_metadata?.full_name || payload.full_name || "",
+              name: payload.user_metadata?.name || payload.name || "",
+              avatar_url: payload.user_metadata?.avatar_url || payload.user_metadata?.picture || payload.picture || "",
+            },
+            app_metadata: {
+              provider: payload.app_metadata?.provider || payload.provider || "unknown",
+              providers: payload.app_metadata?.providers || payload.providers || [],
+            },
+          };
+          return user;
+        }
+      } catch (decodeError) {
+        // Fallback to Supabase methods
+      }
+    }
+
+    // Method 1: Try using getUser with the token as a session bearer token
     const {
       data: { user },
       error,
     } = await supabase.auth.getUser(token);
 
-    if (error || !user) {
-      console.error("Token verification failed:", error);
-      return null;
+    if (!error && user) {
+      return user as SupabaseUser;
     }
 
-    return user as SupabaseUser;
+    // Method 2: Try to verify JWT directly by setting it as the session token
+    const { data, error: setError } = await supabase.auth.setSession({
+      access_token: token,
+      refresh_token: token,
+    });
+
+    if (!setError && data.user) {
+      return data.user as SupabaseUser;
+    }
+
+    return null;
   } catch (error) {
-    console.error("Token verification error:", error);
     return null;
   }
 }

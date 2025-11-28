@@ -50,7 +50,7 @@ export class ApiClient {
 
   async fetchGameCategories(): Promise<GameCategory[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/game-categories`)
+      const response = await createAuthenticatedRequest(`${this.baseUrl}/api/game-categories`)
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
@@ -90,7 +90,7 @@ export class ApiClient {
       if (params?.author_id) searchParams.append('author_id', params.author_id)
 
       const url = `${this.baseUrl}/api/posts${searchParams.toString() ? '?' + searchParams.toString() : ''}`
-      const response = await fetch(url)
+      const response = await createAuthenticatedRequest(url)
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
@@ -142,12 +142,8 @@ export class ApiClient {
         Object.entries(postData).filter(([, value]) => value !== undefined && value !== null),
       )
 
-      const response = await fetch(`${this.baseUrl}/api/posts`, {
+      const response = await createAuthenticatedRequest(`${this.baseUrl}/api/posts`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // Include cookies for authentication
         body: JSON.stringify(cleanedData),
       })
 
@@ -184,13 +180,7 @@ export class ApiClient {
 
   async fetchSinglePost(postId: string): Promise<Post> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/posts/${postId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // Include cookies for authentication
-      })
+      const response = await createAuthenticatedRequest(`${this.baseUrl}/api/posts/${postId}`)
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
@@ -211,12 +201,8 @@ export class ApiClient {
 
   async likePost(postId: string): Promise<{ action: 'liked' | 'unliked' }> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/posts/${postId}/like`, {
+      const response = await createAuthenticatedRequest(`${this.baseUrl}/api/posts/${postId}/like`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // Include cookies for authentication
       })
 
       if (!response.ok) {
@@ -238,12 +224,8 @@ export class ApiClient {
 
   async likeComment(commentId: string): Promise<{ action: 'liked' | 'unliked' }> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/comments/${commentId}/like`, {
+      const response = await createAuthenticatedRequest(`${this.baseUrl}/api/comments/${commentId}/like`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // Include cookies for authentication
       })
 
       if (!response.ok) {
@@ -276,7 +258,7 @@ export class ApiClient {
       if (params?.limit) searchParams.append('limit', params.limit.toString())
 
       const url = `${this.baseUrl}/api/notifications?${searchParams.toString()}`
-      const response = await fetch(url)
+      const response = await createAuthenticatedRequest(url)
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
@@ -300,11 +282,8 @@ export class ApiClient {
 
   async deleteNotification(notificationId: string): Promise<void> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/notifications/${notificationId}`, {
+      const response = await createAuthenticatedRequest(`${this.baseUrl}/api/notifications/${notificationId}`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
       })
 
       if (!response.ok) {
@@ -330,7 +309,7 @@ export class ApiClient {
     followers: number
   }> {
     try {
-      const response = await fetch(`${this.baseUrl}/users/stats/${userId}`)
+      const response = await createAuthenticatedRequest(`${this.baseUrl}/users/stats/${userId}`)
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
@@ -351,13 +330,7 @@ export class ApiClient {
 
   async fetchComments(postId: string): Promise<Comment[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/comments/${postId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // Include cookies for authentication
-      })
+      const response = await createAuthenticatedRequest(`${this.baseUrl}/api/comments/${postId}`)
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
@@ -378,12 +351,8 @@ export class ApiClient {
 
   async createComment(commentData: { postId: string; content: string }): Promise<Comment> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/comments`, {
+      const response = await createAuthenticatedRequest(`${this.baseUrl}/api/comments`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // Include cookies for authentication
         body: JSON.stringify(commentData),
       })
 

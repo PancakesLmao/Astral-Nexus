@@ -1,5 +1,6 @@
 import { Elysia, t } from "elysia";
 import { db } from "../config/database";
+import { Schemas } from "../schemas";
 
 // Utility function to create welcome notification for new users
 export async function createWelcomeNotification(userId: string) {
@@ -100,6 +101,7 @@ export const notificationsRoutes = new Elysia({ prefix: "/api/notifications" })
         const hasNext = pageNum < totalPages;
         const hasPrev = pageNum > 1;
 
+        set.status = 200;
         return {
           success: true,
           message: "Notifications retrieved successfully",
@@ -130,7 +132,64 @@ export const notificationsRoutes = new Elysia({ prefix: "/api/notifications" })
         tags: ["Notifications"],
         summary: "Get user notifications",
         description:
-          "Retrieve notifications for a specific user with pagination and filtering options",
+          "Retrieve notifications for a specific user with pagination and filtering options. Returns an array of notifications paginated according to the limit parameter.",
+        responses: {
+          "200": {
+            description: "Notifications retrieved successfully",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    message: { type: "string" },
+                    data: {
+                      type: "object",
+                      properties: {
+                        notifications: {
+                          type: "array",
+                          items: { $ref: "#/components/schemas/Notification" },
+                          description: "Array of notification objects",
+                        },
+                        pagination: { $ref: "#/components/schemas/Pagination" },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Invalid request - Missing or invalid user_id parameter. The user_id query parameter is required and must be a valid UUID.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: false },
+                    message: { type: "string", example: "User ID is required" },
+                    error: { type: "string", example: "Missing user_id parameter" },
+                  },
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal server error - Failed to fetch notifications from database. Check server logs for details.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: false },
+                    message: { type: "string", example: "Failed to fetch notifications" },
+                    error: { type: "string", description: "Detailed error message" },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
       query: t.Object({
         user_id: t.String({ description: "User ID to get notifications for" }),
@@ -164,6 +223,7 @@ export const notificationsRoutes = new Elysia({ prefix: "/api/notifications" })
           comment_id || null,
         ]);
 
+        set.status = 201;
         return {
           success: true,
           message: "Notification created successfully",
@@ -185,7 +245,59 @@ export const notificationsRoutes = new Elysia({ prefix: "/api/notifications" })
       detail: {
         tags: ["Notifications"],
         summary: "Create a new notification",
-        description: "Create a new notification for a user",
+        description: "Create a new notification for a user. The notification will include the provided type, title, and message. Optional post_id and comment_id can link the notification to specific entities.",
+        responses: {
+          "201": {
+            description: "Notification created successfully",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    message: { type: "string" },
+                    data: {
+                      type: "object",
+                      properties: {
+                        notification: { $ref: "#/components/schemas/Notification" },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Invalid request body - Missing or invalid required fields. Ensure user_id is provided and type is one of: like, comment, follow, mention, system.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: false },
+                    message: { type: "string", example: "Invalid request body" },
+                    error: { type: "string", description: "Details about validation error" },
+                  },
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal server error - Failed to create notification in database. Check server logs for details.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: false },
+                    message: { type: "string", example: "Failed to create notification" },
+                    error: { type: "string", description: "Detailed error message" },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
       body: t.Object({
         user_id: t.String({ description: "User ID to send notification to" }),
@@ -227,6 +339,7 @@ export const notificationsRoutes = new Elysia({ prefix: "/api/notifications" })
           };
         }
 
+        set.status = 200;
         return {
           success: true,
           message: "Notification deleted successfully",
@@ -248,10 +361,272 @@ export const notificationsRoutes = new Elysia({ prefix: "/api/notifications" })
       detail: {
         tags: ["Notifications"],
         summary: "Delete a notification",
-        description: "Delete a specific notification",
+        description: "Delete a specific notification by ID. Returns the ID of the deleted notification. If the notification does not exist, returns a 404 error.",
+        responses: {
+          "200": {
+            description: "Notification deleted successfully",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    message: { type: "string" },
+                    data: {
+                      type: "object",
+                      properties: {
+                        deleted_id: { type: "string", format: "uuid", description: "ID of the deleted notification" },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Notification not found - The notification with the provided ID does not exist.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: false },
+                    message: { type: "string", example: "Notification not found" },
+                    error: { type: "string", example: "No notification found with the provided ID" },
+                  },
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal server error - Failed to delete notification from database. Check server logs for details.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: false },
+                    message: { type: "string", example: "Failed to delete notification" },
+                    error: { type: "string", description: "Detailed error message" },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
       params: t.Object({
         id: t.String({ description: "Notification ID to delete" }),
+      }),
+    }
+  )
+  .get(
+    "/count",
+    async ({ query, set }) => {
+      try {
+        const { user_id } = query;
+
+        if (!user_id) {
+          set.status = 400;
+          return {
+            success: false,
+            message: "User ID is required",
+            error: "Missing user_id parameter",
+          };
+        }
+
+        const countQuery = `
+          SELECT COUNT(*) as count
+          FROM notifications
+          WHERE user_id = $1 AND read = false
+        `;
+
+        const result = await db.query(countQuery, [user_id]);
+        const count = parseInt(result.rows[0]?.count || "0");
+
+        set.status = 200;
+        return {
+          success: true,
+          message: "Notification count retrieved successfully",
+          data: {
+            count,
+          },
+        };
+      } catch (error) {
+        console.error("Error fetching notification count:", error);
+        set.status = 500;
+        return {
+          success: false,
+          message: "Failed to fetch notification count",
+          error: error instanceof Error ? error.message : "Unknown error",
+        };
+      }
+    },
+    {
+      detail: {
+        tags: ["Notifications"],
+        summary: "Get unread notification count",
+        description: "Get the count of unread notifications for a specific user. Useful for displaying notification badges in the UI.",
+        responses: {
+          "200": {
+            description: "Notification count retrieved successfully",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    message: { type: "string" },
+                    data: {
+                      type: "object",
+                      properties: {
+                        count: { type: "number", minimum: 0, description: "Number of unread notifications" },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Invalid request - Missing or invalid user_id parameter. The user_id query parameter is required and must be a valid UUID.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: false },
+                    message: { type: "string", example: "User ID is required" },
+                    error: { type: "string", example: "Missing user_id parameter" },
+                  },
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal server error - Failed to fetch notification count from database. Check server logs for details.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: false },
+                    message: { type: "string", example: "Failed to fetch notification count" },
+                    error: { type: "string", description: "Detailed error message" },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      query: t.Object({
+        user_id: t.String({ description: "User ID to get notification count for" }),
+      }),
+    }
+  )
+  .post(
+    "/:id/read",
+    async ({ params, set }) => {
+      try {
+        const { id } = params;
+
+        const query = `
+          UPDATE notifications
+          SET read = true
+          WHERE id = $1
+          RETURNING id
+        `;
+
+        const result = await db.query(query, [id]);
+
+        if (result.rows.length === 0) {
+          set.status = 404;
+          return {
+            success: false,
+            message: "Notification not found",
+            error: "No notification found with the provided ID",
+          };
+        }
+
+        set.status = 200;
+        return {
+          success: true,
+          message: "Notification marked as read successfully",
+          data: {
+            notification_id: result.rows[0].id,
+          },
+        };
+      } catch (error) {
+        console.error("Error marking notification as read:", error);
+        set.status = 500;
+        return {
+          success: false,
+          message: "Failed to mark notification as read",
+          error: error instanceof Error ? error.message : "Unknown error",
+        };
+      }
+    },
+    {
+      detail: {
+        tags: ["Notifications"],
+        summary: "Mark notification as read",
+        description: "Mark a specific notification as read. This updates the read flag to true and returns the notification ID. If the notification does not exist, returns a 404 error.",
+        responses: {
+          "200": {
+            description: "Notification marked as read successfully",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    message: { type: "string" },
+                    data: {
+                      type: "object",
+                      properties: {
+                        notification_id: { type: "string", format: "uuid", description: "ID of the marked notification" },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Notification not found - The notification with the provided ID does not exist.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: false },
+                    message: { type: "string", example: "Notification not found" },
+                    error: { type: "string", example: "No notification found with the provided ID" },
+                  },
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal server error - Failed to update notification in database. Check server logs for details.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: false },
+                    message: { type: "string", example: "Failed to mark notification as read" },
+                    error: { type: "string", description: "Detailed error message" },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      params: t.Object({
+        id: t.String({ description: "Notification ID to mark as read" }),
       }),
     }
   )
@@ -287,6 +662,7 @@ export const notificationsRoutes = new Elysia({ prefix: "/api/notifications" })
           };
         }
 
+        set.status = 201;
         return {
           success: true,
           message: "Welcome notification created successfully",
@@ -308,7 +684,59 @@ export const notificationsRoutes = new Elysia({ prefix: "/api/notifications" })
       detail: {
         tags: ["Notifications"],
         summary: "Create welcome notification",
-        description: "Manually create a welcome notification for a user",
+        description: "Manually create a welcome notification for a user. This endpoint sends a system notification to welcome new users to the platform. It retrieves the admin user and generates a personalized welcome message.",
+        responses: {
+          "201": {
+            description: "Welcome notification created successfully",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    message: { type: "string" },
+                    data: {
+                      type: "object",
+                      properties: {
+                        notification: { $ref: "#/components/schemas/Notification" },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "404": {
+            description: "User not found - The user with the provided ID does not exist, or the admin user could not be found.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: false },
+                    message: { type: "string", example: "User not found" },
+                    error: { type: "string", example: "No user found with the provided ID" },
+                  },
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal server error - Failed to create welcome notification. This may occur if the admin user is not found or database operations fail. Check server logs for details.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: false },
+                    message: { type: "string", example: "Failed to create welcome notification" },
+                    error: { type: "string", description: "Detailed error message" },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
       body: t.Object({
         user_id: t.String({

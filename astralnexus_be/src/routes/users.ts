@@ -1,6 +1,7 @@
 import { Elysia, t } from "elysia";
 import { appConfig } from "../config/app";
 import { db } from "../config/database";
+import { Schemas } from "../schemas";
 
 // User management routes
 export const userRoutes = new Elysia({ prefix: "/users" })
@@ -60,6 +61,22 @@ export const userRoutes = new Elysia({ prefix: "/users" })
       params: t.Object({
         id: t.String(),
       }),
+      response: {
+        200: t.Object({
+          success: t.Literal(true),
+          data: Schemas.User,
+        }),
+        404: t.Object({
+          success: t.Literal(false),
+          message: t.String(),
+          error: t.String(),
+        }),
+        500: t.Object({
+          success: t.Literal(false),
+          message: t.String(),
+          error: t.String(),
+        }),
+      },
       detail: {
         tags: ["Users"],
         summary: "Get user profile",
@@ -164,6 +181,35 @@ export const userRoutes = new Elysia({ prefix: "/users" })
         name: t.Optional(t.String({ minLength: 1 })),
         email: t.Optional(t.String({ format: "email" })),
       }),
+      response: {
+        200: t.Object({
+          success: t.Literal(true),
+          message: t.String(),
+          data: t.Object({
+            user: Schemas.User,
+          }),
+        }),
+        400: t.Object({
+          success: t.Literal(false),
+          message: t.String(),
+          error: t.String(),
+        }),
+        404: t.Object({
+          success: t.Literal(false),
+          message: t.String(),
+          error: t.String(),
+        }),
+        409: t.Object({
+          success: t.Literal(false),
+          message: t.String(),
+          error: t.String(),
+        }),
+        500: t.Object({
+          success: t.Literal(false),
+          message: t.String(),
+          error: t.String(),
+        }),
+      },
       detail: {
         tags: ["Users"],
         summary: "Update user profile",
@@ -243,6 +289,20 @@ export const userRoutes = new Elysia({ prefix: "/users" })
         page: t.Optional(t.String()),
         limit: t.Optional(t.String()),
       }),
+      response: {
+        200: t.Object({
+          success: t.Literal(true),
+          data: t.Object({
+            users: t.Array(Schemas.User),
+            pagination: Schemas.Pagination,
+          }),
+        }),
+        500: t.Object({
+          success: t.Literal(false),
+          message: t.String(),
+          error: t.String(),
+        }),
+      },
       detail: {
         tags: ["Users"],
         summary: "Get users list",
@@ -323,20 +383,28 @@ export const userRoutes = new Elysia({ prefix: "/users" })
           minLength: 1,
         }),
       }),
-      response: t.Object({
-        success: t.Boolean(),
-        data: t.Optional(
-          t.Object({
+      response: {
+        200: t.Object({
+          success: t.Literal(true),
+          data: t.Object({
             posts: t.Number(),
             comments: t.Number(),
             notifications: t.Number(),
             following: t.Number(),
             followers: t.Number(),
-          })
-        ),
-        message: t.Optional(t.String()),
-        error: t.Optional(t.String()),
-      }),
+          }),
+        }),
+        404: t.Object({
+          success: t.Literal(false),
+          message: t.String(),
+          error: t.String(),
+        }),
+        500: t.Object({
+          success: t.Literal(false),
+          message: t.String(),
+          error: t.String(),
+        }),
+      },
       detail: {
         tags: ["Users"],
         summary: "Get user statistics",

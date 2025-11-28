@@ -187,9 +187,6 @@ export async function checkUserAuth(
       return { isAuthenticated: true, user: data.user }
     } else {
       console.log('checkUserAuth: Failed, response not ok')
-      // Clear any invalid session data (legacy)
-      localStorage.removeItem('astral_session')
-      deleteCookie('astral_session', { domain: getSessionDomain(), path: '/' })
       return { isAuthenticated: false }
     }
   } catch (error) {

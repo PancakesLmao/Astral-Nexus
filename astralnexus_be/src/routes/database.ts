@@ -1,5 +1,23 @@
-import { Elysia } from "elysia";
+import { Elysia, t } from "elysia";
 import { queryAll, queryOne, exists, count } from "../utils/database";
+
+// Response schemas
+const DatabaseTestResponse = t.Object({
+  success: t.Boolean(),
+  message: t.String(),
+  data: t.Optional(
+    t.Object({
+      current_time: t.String(),
+      db_version: t.String(),
+    })
+  ),
+});
+
+const ErrorResponse = t.Object({
+  success: t.Boolean(),
+  message: t.String(),
+  error: t.String(),
+});
 
 // Database test routes for development
 export const dbRoutes = new Elysia({ prefix: "/api/db" })
@@ -25,6 +43,10 @@ export const dbRoutes = new Elysia({ prefix: "/api/db" })
       }
     },
     {
+      response: {
+        200: DatabaseTestResponse,
+        500: ErrorResponse,
+      },
       detail: {
         tags: ["Database"],
         summary: "Test database connection",
@@ -58,6 +80,19 @@ export const dbRoutes = new Elysia({ prefix: "/api/db" })
       }
     },
     {
+      response: {
+        200: t.Object({
+          success: t.Boolean(),
+          message: t.String(),
+          tables: t.Array(
+            t.Object({
+              table_name: t.String(),
+              table_type: t.String(),
+            })
+          ),
+        }),
+        500: ErrorResponse,
+      },
       detail: {
         tags: ["Database"],
         summary: "Get database schema",
@@ -102,6 +137,22 @@ export const dbRoutes = new Elysia({ prefix: "/api/db" })
       }
     },
     {
+      response: {
+        200: t.Object({
+          success: t.Boolean(),
+          message: t.String(),
+          stats: t.Object({
+            users: t.Number(),
+            posts: t.Number(),
+            comments: t.Number(),
+            post_likes: t.Number(),
+            comment_likes: t.Number(),
+            providers: t.Number(),
+            game_categories: t.Number(),
+          }),
+        }),
+        500: ErrorResponse,
+      },
       detail: {
         tags: ["Database"],
         summary: "Get database statistics",

@@ -1,5 +1,6 @@
 import "dotenv/config"; // Load environment variables from .env file
 import { Elysia } from "elysia";
+import { openapi } from "@elysiajs/openapi";
 import { swagger } from "@elysiajs/swagger";
 import { cookie } from "@elysiajs/cookie";
 
@@ -36,6 +37,7 @@ const app = new Elysia()
   .use(corsMiddleware)
   .use(errorMiddleware)
   .use(cookie())
+  .use(openapi())
 
   // Swagger documentation
   .use(

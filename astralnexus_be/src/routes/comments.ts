@@ -1,52 +1,40 @@
 import { Elysia, t } from "elysia";
 import { queryAll, queryOne, query } from "../utils/database";
+import { Schemas } from "../schemas";
+import { authMiddleware } from "../middleware/auth";
+
+// Helper: Extract and verify user with fallback to manual token verification
+async function getAuthenticatedUser(user: any, headers: any) {
+  if (user) return user;
+  
+  // Fallback: manually verify token if middleware didn't provide user
+  if (headers?.authorization) {
+    const { extractBearerToken, verifySupabaseToken } = await import("../config/supabase");
+    const token = extractBearerToken(headers.authorization);
+    if (token) {
+      const verifiedUser = await verifySupabaseToken(token);
+      if (verifiedUser) {
+        return {
+          id: verifiedUser.id,
+          email: verifiedUser.email || '',
+          name: verifiedUser.user_metadata?.full_name || verifiedUser.user_metadata?.name || '',
+          picture: verifiedUser.user_metadata?.avatar_url || '',
+          provider: verifiedUser.app_metadata?.provider || 'discord'
+        };
+      }
+    }
+  }
+  return null;
+}
 
 // Comment handler for Honkai Blog
 export const commentRoutes = new Elysia({ prefix: "/api/comments" })
+  .use(authMiddleware)
   // Get all comments for a specific post
   .get(
     "/:postId",
-    async ({ params: { postId }, set, headers, cookie }) => {
+    async ({ params: { postId }, set, user }) => {
       try {
-        // Get user session for like status
-        let userId: string | null = null;
-
-        // Manual authentication check (same as posts)
-        let sessionId: string | null = null;
-
-        // Check Authorization header (Bearer token)
-        const authHeader = headers.authorization;
-        if (authHeader && authHeader.startsWith("Bearer ")) {
-          sessionId = authHeader.substring(7);
-        }
-
-        // Check X-Session-ID header
-        const sessionHeader = headers["x-session-id"];
-        if (sessionHeader && !sessionId) {
-          sessionId = sessionHeader;
-        }
-
-        // Check cookie as fallback
-        const cookieName = "astral_session";
-        if (!sessionId && cookie && cookie[cookieName]?.value) {
-          sessionId = cookie[cookieName].value;
-        }
-
-        // Get user ID from session if available
-        if (sessionId) {
-          try {
-            const session = await queryOne(
-              "SELECT user_id FROM user_sessions WHERE session_id = $1 AND expires_at > NOW()",
-              [sessionId]
-            );
-            if (session) {
-              userId = session.user_id;
-            }
-          } catch (error) {
-            console.warn("Failed to validate session:", error);
-          }
-        }
-
         // Query real comments from database with like information
         const commentsQuery = `
           SELECT 
@@ -71,12 +59,14 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
           ORDER BY c.created_at DESC
         `;
 
-        const comments = await queryAll(commentsQuery, [postId, userId]);
+        const comments = await queryAll(commentsQuery, [postId, user?.id || null]);
 
         // Transform comments to match expected format
         const transformedComments = comments.map((comment: any) => ({
           id: comment.id.toString(),
           postId: comment.post_id.toString(),
+          post_id: comment.post_id.toString(),
+          author_id: comment.author_id.toString(),
           author: {
             id: comment.author_id.toString(),
             name: comment.author_name,
@@ -85,8 +75,9 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
           },
           content: comment.content,
           likes_count: parseInt(comment.likes_count) || 0,
-          is_liked: comment.is_liked,
-          created_at: new Date(comment.created_at).toISOString(),
+          isLiked: comment.is_liked,
+          createdAt: new Date(comment.created_at).toISOString(),
+          updatedAt: new Date(comment.updated_at).toISOString(),
         }));
 
         set.status = 200;
@@ -113,33 +104,45 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
           description: "UUID of the blog post",
         }),
       }),
-      response: t.Object({
-        success: t.Boolean(),
-        data: t.Optional(
-          t.Array(
-            t.Object({
-              id: t.String(),
-              postId: t.String(),
-              author: t.Object({
-                id: t.String(),
-                name: t.String(),
-                email: t.String(),
-                picture: t.Optional(t.String()),
-              }),
-              content: t.String(),
-              likes_count: t.Number(),
-              is_liked: t.Boolean(),
-              created_at: t.String(),
-            })
-          )
-        ),
-        message: t.String(),
-        error: t.Optional(t.String()),
-      }),
+      response: {
+        200: t.Object({
+          success: t.Literal(true),
+          data: t.Array(Schemas.Comment),
+          message: t.String(),
+        }),
+        401: Schemas.ErrorResponse,
+        500: Schemas.ErrorResponse,
+      },
       detail: {
         tags: ["Comments"],
         summary: "Get comments for a post",
-        description: "Retrieves all comments for a specific blog post",
+        description: "Retrieves all comments for a specific blog post with pagination support",
+        responses: {
+          200: {
+            description: "Successfully retrieved comments",
+            content: {
+              "application/json": {
+                schema: Schemas.CommentsListResponse,
+              },
+            },
+          },
+          401: {
+            description: "Unauthorized - invalid or missing session",
+            content: {
+              "application/json": {
+                schema: Schemas.ErrorResponse,
+              },
+            },
+          },
+          500: {
+            description: "Internal server error",
+            content: {
+              "application/json": {
+                schema: Schemas.ErrorResponse,
+              },
+            },
+          },
+        },
       },
     }
   )
@@ -147,56 +150,40 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
   // Create a new comment
   .post(
     "/",
-    async ({ body, set, cookie, headers }) => {
+    async ({ body, set, user, headers }) => {
       try {
-        // Manual authentication check (same as posts)
-        let sessionId: string | null = null;
-
-        // Check Authorization header (Bearer token)
-        const authHeader = headers.authorization;
-        if (authHeader && authHeader.startsWith("Bearer ")) {
-          sessionId = authHeader.substring(7);
-        }
-
-        // Check X-Session-ID header
-        const sessionHeader = headers["x-session-id"];
-        if (sessionHeader && !sessionId) {
-          sessionId = sessionHeader;
-        }
-
-        // Check cookie as fallback
-        const cookieName = "astral_session";
-        if (!sessionId && cookie && cookie[cookieName]?.value) {
-          sessionId = cookie[cookieName].value;
-        }
-
-        if (!sessionId) {
+        // Get authenticated user with fallback to manual verification
+        const currentUser = await getAuthenticatedUser(user, headers);
+        
+        if (!currentUser) {
           set.status = 401;
           return {
             success: false,
             error: "Authentication required",
-            message: "No session found",
+            message: "No valid authentication token",
           };
         }
 
-        // Get session from database
-        const sessionQuery = `
-          SELECT s.*, u.id as user_id, u.email, u.name, u.picture, p.provider_name
-          FROM sessions s
-          JOIN users u ON s.user_id = u.id
-          JOIN providers p ON u.provider_id = p.id
-          WHERE s.id = $1 AND s.expires_at > CURRENT_TIMESTAMP
-        `;
+        // Check if user exists in database, create if not
+        let dbUser = await queryOne("SELECT id, email, name FROM users WHERE email = $1", [currentUser.email]);
 
-        const session = await queryOne(sessionQuery, [sessionId]);
+        if (!dbUser) {
+          // Get Discord provider ID
+          const discordProvider = await queryOne("SELECT id FROM providers WHERE provider_name = $1", ["discord"]);
+          if (!discordProvider) {
+            set.status = 500;
+            return {
+              success: false,
+              error: "Failed to create comment",
+              message: "Discord provider not configured",
+            };
+          }
 
-        if (!session) {
-          set.status = 401;
-          return {
-            success: false,
-            error: "Authentication required",
-            message: "Invalid or expired session",
-          };
+          // Create user in database
+          dbUser = await queryOne(
+            "INSERT INTO users (email, name, picture, provider_id) VALUES ($1, $2, $3, $4) RETURNING id, email, name, picture",
+            [currentUser.email, currentUser.name || currentUser.email, currentUser.picture || null, discordProvider.id]
+          );
         }
 
         // Validate required fields
@@ -218,23 +205,26 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
 
         const result = await queryOne(insertQuery, [
           body.postId,
-          session.user_id,
+          dbUser.id,
           body.content,
         ]);
 
         const newComment = {
           id: result.id.toString(),
           postId: body.postId,
+          post_id: body.postId,
+          author_id: dbUser.id.toString(),
           author: {
-            id: session.user_id.toString(),
-            name: session.name,
-            email: session.email,
-            picture: session.picture,
+            id: dbUser.id.toString(),
+            name: dbUser.name,
+            email: dbUser.email,
+            picture: dbUser.picture,
           },
           content: body.content,
           likes_count: 0,
-          is_liked: false,
-          created_at: new Date(result.created_at).toISOString(),
+          isLiked: false,
+          createdAt: new Date(result.created_at).toISOString(),
+          updatedAt: new Date(result.created_at).toISOString(),
         };
 
         set.status = 201;
@@ -255,43 +245,55 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
       }
     },
     {
-      body: t.Object({
-        postId: t.String({
-          format: "uuid",
-          description: "UUID of the blog post",
+      body: Schemas.CreateComment,
+      response: {
+        201: t.Object({
+          success: t.Literal(true),
+          data: Schemas.Comment,
+          message: t.String(),
         }),
-        content: t.String({
-          minLength: 1,
-          maxLength: 1000,
-          description: "Comment content",
-        }),
-      }),
-      response: t.Object({
-        success: t.Boolean(),
-        data: t.Optional(
-          t.Object({
-            id: t.String(),
-            postId: t.String(),
-            author: t.Object({
-              id: t.String(),
-              name: t.String(),
-              email: t.String(),
-              picture: t.Optional(t.String()),
-            }),
-            content: t.String(),
-            likes_count: t.Number(),
-            is_liked: t.Boolean(),
-            created_at: t.String(),
-          })
-        ),
-        message: t.String(),
-        error: t.Optional(t.String()),
-      }),
+        400: Schemas.ErrorResponse,
+        401: Schemas.ErrorResponse,
+        500: Schemas.ErrorResponse,
+      },
       detail: {
         tags: ["Comments"],
         summary: "Create a new comment",
-        description:
-          "Adds a new comment to a blog post about Honkai Impact 3rd",
+        description: "Adds a new comment to a blog post (authentication required)",
+        responses: {
+          201: {
+            description: "Comment created successfully",
+            content: {
+              "application/json": {
+                schema: Schemas.CommentResponse,
+              },
+            },
+          },
+          400: {
+            description: "Bad request - missing required fields",
+            content: {
+              "application/json": {
+                schema: Schemas.ErrorResponse,
+              },
+            },
+          },
+          401: {
+            description: "Unauthorized - authentication required",
+            content: {
+              "application/json": {
+                schema: Schemas.ErrorResponse,
+              },
+            },
+          },
+          500: {
+            description: "Internal server error",
+            content: {
+              "application/json": {
+                schema: Schemas.ErrorResponse,
+              },
+            },
+          },
+        },
       },
     }
   )
@@ -299,55 +301,27 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
   // Update a comment (only by author)
   .put(
     "/:id",
-    async ({ params: { id }, body, set, cookie, headers }) => {
+    async ({ params: { id }, body, set, user, headers }) => {
       try {
-        // Manual authentication check (same as posts)
-        let sessionId: string | null = null;
-
-        // Check Authorization header (Bearer token)
-        const authHeader = headers.authorization;
-        if (authHeader && authHeader.startsWith("Bearer ")) {
-          sessionId = authHeader.substring(7);
-        }
-
-        // Check X-Session-ID header
-        const sessionHeader = headers["x-session-id"];
-        if (sessionHeader && !sessionId) {
-          sessionId = sessionHeader;
-        }
-
-        // Check cookie as fallback
-        const cookieName = "astral_session";
-        if (!sessionId && cookie && cookie[cookieName]?.value) {
-          sessionId = cookie[cookieName].value;
-        }
-
-        if (!sessionId) {
+        // Get authenticated user with fallback to manual verification
+        const currentUser = await getAuthenticatedUser(user, headers);
+        if (!currentUser) {
           set.status = 401;
           return {
             success: false,
             error: "Authentication required",
-            message: "No session found",
+            message: "No valid authentication token",
           };
         }
 
-        // Get session from database
-        const sessionQuery = `
-          SELECT s.*, u.id as user_id, u.email, u.name, u.picture, p.provider_name
-          FROM sessions s
-          JOIN users u ON s.user_id = u.id
-          JOIN providers p ON u.provider_id = p.id
-          WHERE s.id = $1 AND s.expires_at > CURRENT_TIMESTAMP
-        `;
-
-        const session = await queryOne(sessionQuery, [sessionId]);
-
-        if (!session) {
+        // Get user from database
+        const dbUser = await queryOne("SELECT id FROM users WHERE email = $1", [currentUser.email]);
+        if (!dbUser) {
           set.status = 401;
           return {
             success: false,
             error: "Authentication required",
-            message: "Invalid or expired session",
+            message: "User not found",
           };
         }
 
@@ -356,7 +330,7 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
         // Check if comment exists and user owns it
         const existingComment = await queryOne(
           "SELECT * FROM comments WHERE id = $1 AND author_id = $2",
-          [commentId, session.user_id]
+          [commentId, dbUser.id]
         );
 
         if (!existingComment) {
@@ -389,14 +363,23 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
         const result = await queryOne(updateQuery, [
           body.content,
           commentId,
-          session.user_id,
+          dbUser.id,
         ]);
 
         const updatedComment = {
           id: result.id.toString(),
           postId: result.post_id.toString(),
-          author: session.name,
+          post_id: result.post_id.toString(),
+          author_id: dbUser.id.toString(),
+          author: {
+            id: dbUser.id.toString(),
+            name: dbUser.name,
+            email: dbUser.email,
+            picture: dbUser.picture,
+          },
           content: result.content,
+          likes_count: 0,
+          isLiked: false,
           createdAt: new Date(result.created_at).toISOString(),
           updatedAt: new Date(result.updated_at).toISOString(),
         };
@@ -424,17 +407,64 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
           description: "Comment UUID",
         }),
       }),
-      body: t.Object({
-        content: t.String({
-          minLength: 1,
-          maxLength: 1000,
-          description: "Updated comment content",
+      body: Schemas.UpdateComment,
+      response: {
+        200: t.Object({
+          success: t.Literal(true),
+          data: Schemas.Comment,
+          message: t.String(),
         }),
-      }),
+        400: Schemas.ErrorResponse,
+        401: Schemas.ErrorResponse,
+        404: Schemas.ErrorResponse,
+        500: Schemas.ErrorResponse,
+      },
       detail: {
         tags: ["Comments"],
         summary: "Update a comment",
-        description: "Updates an existing comment (author only)",
+        description: "Updates an existing comment (author only, authentication required)",
+        responses: {
+          200: {
+            description: "Comment updated successfully",
+            content: {
+              "application/json": {
+                schema: Schemas.CommentResponse,
+              },
+            },
+          },
+          400: {
+            description: "Bad request - content is required",
+            content: {
+              "application/json": {
+                schema: Schemas.ErrorResponse,
+              },
+            },
+          },
+          401: {
+            description: "Unauthorized - authentication required",
+            content: {
+              "application/json": {
+                schema: Schemas.ErrorResponse,
+              },
+            },
+          },
+          404: {
+            description: "Not found - comment does not exist or user is not the author",
+            content: {
+              "application/json": {
+                schema: Schemas.ErrorResponse,
+              },
+            },
+          },
+          500: {
+            description: "Internal server error",
+            content: {
+              "application/json": {
+                schema: Schemas.ErrorResponse,
+              },
+            },
+          },
+        },
       },
     }
   )
@@ -442,55 +472,28 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
   // Delete a comment
   .delete(
     "/:id",
-    async ({ params: { id }, set, cookie, headers }) => {
+    async ({ params: { id }, set, user, headers }) => {
       try {
-        // Manual authentication check (same as posts)
-        let sessionId: string | null = null;
-
-        // Check Authorization header (Bearer token)
-        const authHeader = headers.authorization;
-        if (authHeader && authHeader.startsWith("Bearer ")) {
-          sessionId = authHeader.substring(7);
-        }
-
-        // Check X-Session-ID header
-        const sessionHeader = headers["x-session-id"];
-        if (sessionHeader && !sessionId) {
-          sessionId = sessionHeader;
-        }
-
-        // Check cookie as fallback
-        const cookieName = "astral_session";
-        if (!sessionId && cookie && cookie[cookieName]?.value) {
-          sessionId = cookie[cookieName].value;
-        }
-
-        if (!sessionId) {
+        // Get authenticated user with fallback to manual verification
+        const currentUser = await getAuthenticatedUser(user, headers);
+        
+        if (!currentUser) {
           set.status = 401;
           return {
             success: false,
             error: "Authentication required",
-            message: "No session found",
+            message: "No valid authentication token",
           };
         }
 
-        // Get session from database
-        const sessionQuery = `
-          SELECT s.*, u.id as user_id, u.email, u.name, u.picture, p.provider_name
-          FROM sessions s
-          JOIN users u ON s.user_id = u.id
-          JOIN providers p ON u.provider_id = p.id
-          WHERE s.id = $1 AND s.expires_at > CURRENT_TIMESTAMP
-        `;
-
-        const session = await queryOne(sessionQuery, [sessionId]);
-
-        if (!session) {
+        // Get user from database
+        const dbUser = await queryOne("SELECT id FROM users WHERE email = $1", [currentUser.email]);
+        if (!dbUser) {
           set.status = 401;
           return {
             success: false,
             error: "Authentication required",
-            message: "Invalid or expired session",
+            message: "User not found",
           };
         }
 
@@ -499,7 +502,7 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
         // Check if comment exists and user owns it
         const existingComment = await queryOne(
           "SELECT * FROM comments WHERE id = $1 AND author_id = $2",
-          [commentId, session.user_id]
+          [commentId, dbUser.id]
         );
 
         if (!existingComment) {
@@ -515,7 +518,7 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
         // Delete comment from database
         await queryOne(
           "DELETE FROM comments WHERE id = $1 AND author_id = $2",
-          [commentId, session.user_id]
+          [commentId, dbUser.id]
         );
 
         set.status = 200;
@@ -540,10 +543,53 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
           description: "Comment UUID",
         }),
       }),
+      response: {
+        200: t.Object({
+          success: t.Literal(true),
+          message: t.String(),
+        }),
+        401: Schemas.ErrorResponse,
+        404: Schemas.ErrorResponse,
+        500: Schemas.ErrorResponse,
+      },
       detail: {
         tags: ["Comments"],
         summary: "Delete a comment",
-        description: "Deletes a comment (author only)",
+        description: "Deletes a comment (author only, authentication required)",
+        responses: {
+          200: {
+            description: "Comment deleted successfully",
+            content: {
+              "application/json": {
+                schema: Schemas.SuccessResponse,
+              },
+            },
+          },
+          401: {
+            description: "Unauthorized - authentication required",
+            content: {
+              "application/json": {
+                schema: Schemas.ErrorResponse,
+              },
+            },
+          },
+          404: {
+            description: "Not found - comment does not exist or user is not the author",
+            content: {
+              "application/json": {
+                schema: Schemas.ErrorResponse,
+              },
+            },
+          },
+          500: {
+            description: "Internal server error",
+            content: {
+              "application/json": {
+                schema: Schemas.ErrorResponse,
+              },
+            },
+          },
+        },
       },
     }
   )
@@ -551,56 +597,40 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
   // Like/Unlike a comment
   .post(
     "/:id/like",
-    async ({ params: { id }, set, cookie, headers }) => {
+    async ({ params: { id }, set, user, headers }) => {
       try {
-        // Manual authentication check (same as create comment)
-        let sessionId: string | null = null;
-
-        // Check Authorization header (Bearer token)
-        const authHeader = headers.authorization;
-        if (authHeader && authHeader.startsWith("Bearer ")) {
-          sessionId = authHeader.substring(7);
-        }
-
-        // Check X-Session-ID header
-        const sessionHeader = headers["x-session-id"];
-        if (sessionHeader && !sessionId) {
-          sessionId = sessionHeader;
-        }
-
-        // Check cookie as fallback
-        const cookieName = "astral_session";
-        if (!sessionId && cookie && cookie[cookieName]?.value) {
-          sessionId = cookie[cookieName].value;
-        }
-
-        if (!sessionId) {
+        // Get authenticated user with fallback to manual verification
+        const currentUser = await getAuthenticatedUser(user, headers);
+        
+        if (!currentUser) {
           set.status = 401;
           return {
             success: false,
             error: "Authentication required",
-            message: "No session found",
+            message: "No valid authentication token",
           };
         }
 
-        // Get session from database
-        const sessionQuery = `
-          SELECT s.*, u.id as user_id, u.email, u.name, u.picture, p.provider_name
-          FROM sessions s
-          JOIN users u ON s.user_id = u.id
-          JOIN providers p ON u.provider_id = p.id
-          WHERE s.id = $1 AND s.expires_at > CURRENT_TIMESTAMP
-        `;
+        // Check if user exists in database, create if not
+        let dbUser = await queryOne("SELECT id FROM users WHERE email = $1", [currentUser.email]);
 
-        const session = await queryOne(sessionQuery, [sessionId]);
+        if (!dbUser) {
+          // Get Discord provider ID
+          const discordProvider = await queryOne("SELECT id FROM providers WHERE provider_name = $1", ["discord"]);
+          if (!discordProvider) {
+            set.status = 500;
+            return {
+              success: false,
+              error: "Failed to like comment",
+              message: "Discord provider not configured",
+            };
+          }
 
-        if (!session) {
-          set.status = 401;
-          return {
-            success: false,
-            error: "Authentication required",
-            message: "Invalid or expired session",
-          };
+          // Create user in database
+          dbUser = await queryOne(
+            "INSERT INTO users (email, name, picture, provider_id) VALUES ($1, $2, $3, $4) RETURNING id",
+            [currentUser.email, currentUser.name || currentUser.email, currentUser.picture || null, discordProvider.id]
+          );
         }
 
         // Check if comment exists
@@ -621,14 +651,14 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
         // Check if user already liked this comment
         const existingLike = await queryOne(
           "SELECT comment_id FROM comment_likes WHERE comment_id = $1 AND user_id = $2",
-          [id, session.user_id]
+          [id, dbUser.id]
         );
 
         if (existingLike) {
           // Unlike the comment
           await queryOne(
             "DELETE FROM comment_likes WHERE comment_id = $1 AND user_id = $2",
-            [id, session.user_id]
+            [id, dbUser.id]
           );
 
           // Update likes count
@@ -646,7 +676,7 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
           // Like the comment
           await queryOne(
             "INSERT INTO comment_likes (comment_id, user_id) VALUES ($1, $2)",
-            [id, session.user_id]
+            [id, dbUser.id]
           );
 
           // Update likes count
@@ -679,28 +709,50 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
           description: "Comment unique identifier",
         }),
       }),
-      response: t.Object({
-        success: t.Boolean(),
-        message: t.String(),
-        data: t.Optional(
-          t.Object({
-            action: t.Union([t.Literal("liked"), t.Literal("unliked")]),
-          })
-        ),
-        error: t.Optional(t.String()),
-      }),
+      response: {
+        200: Schemas.LikeResponse,
+        401: Schemas.ErrorResponse,
+        404: Schemas.ErrorResponse,
+        500: Schemas.ErrorResponse,
+      },
       detail: {
         tags: ["Comments"],
-        summary: "Like/Unlike comment",
-        description: `
-        Toggle like status for a comment. If user already liked the comment, it will be unliked.
-        If user hasn't liked the comment, it will be liked.
-
-        **Path Parameters:**
-        - \`id\`: Comment UUID
-
-        **Authentication:** Required
-        `,
+        summary: "Like/Unlike a comment",
+        description: "Toggle like status for a comment (authentication required). If user already liked the comment, it will be unliked. If not, it will be liked.",
+        responses: {
+          200: {
+            description: "Comment like status toggled successfully",
+            content: {
+              "application/json": {
+                schema: Schemas.LikeResponse,
+              },
+            },
+          },
+          401: {
+            description: "Unauthorized - authentication required",
+            content: {
+              "application/json": {
+                schema: Schemas.ErrorResponse,
+              },
+            },
+          },
+          404: {
+            description: "Not found - comment does not exist",
+            content: {
+              "application/json": {
+                schema: Schemas.ErrorResponse,
+              },
+            },
+          },
+          500: {
+            description: "Internal server error",
+            content: {
+              "application/json": {
+                schema: Schemas.ErrorResponse,
+              },
+            },
+          },
+        },
       },
     }
   );

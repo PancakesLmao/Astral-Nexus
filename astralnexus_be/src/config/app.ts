@@ -32,16 +32,6 @@ export const appConfig = {
 
   // Cookie Configuration
   cookies: {
-    // Session cookie settings
-    session: {
-      name: "astral_session",
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: "lax" as "lax",
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      path: "/",
-      domain: defaultSessionDomain,
-    },
     // User preferences cookie settings
     preferences: {
       name: "preferred-language",
@@ -51,15 +41,6 @@ export const appConfig = {
       maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
       path: "/",
       domain: defaultSessionDomain,
-    },
-    // OAuth state cookie settings
-    oauthState: {
-      name: "oauth_state",
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: "strict" as "strict",
-      maxAge: 10 * 60 * 1000, // 10 minutes
-      path: "/auth",
     },
   },
 };

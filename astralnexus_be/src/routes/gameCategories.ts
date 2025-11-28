@@ -1,26 +1,6 @@
 import { Elysia, t } from "elysia";
 import { queryAll } from "../utils/database";
-
-// Game Category response schemas for Swagger documentation
-const GameCategorySchema = t.Object({
-  id: t.String({
-    format: "uuid",
-    description: "Game category unique identifier",
-  }),
-  game_name: t.String({ description: "Game category display name" }),
-  created_at: t.String({
-    format: "date-time",
-    description: "Category creation timestamp",
-  }),
-});
-
-const GameCategoriesListResponse = t.Object({
-  success: t.Boolean({ description: "Request success status" }),
-  message: t.String({ description: "Response message" }),
-  data: t.Object({
-    categories: t.Array(GameCategorySchema),
-  }),
-});
+import { Schemas } from "../schemas";
 
 // Game Categories API routes
 export const gameCategoriesRoutes = new Elysia({
@@ -44,7 +24,7 @@ export const gameCategoriesRoutes = new Elysia({
       const transformedCategories = categories.map((category: any) => ({
         id: category.id,
         game_name: category.game_name,
-        created_at: new Date(category.created_at).toISOString(),
+        createdAt: new Date(category.created_at).toISOString(),
       }));
 
       return {
@@ -59,22 +39,61 @@ export const gameCategoriesRoutes = new Elysia({
       return {
         success: false,
         message: "Failed to fetch game categories",
-        data: {
-          categories: [],
-        },
         error: error instanceof Error ? error.message : "Unknown error",
       };
     }
   },
   {
-    response: GameCategoriesListResponse,
+    response: t.Object({
+      success: t.Boolean(),
+      message: t.String(),
+      data: t.Object({
+        categories: t.Array(Schemas.GameCategory),
+      }),
+      error: t.Optional(t.String()),
+    }),
     detail: {
       tags: ["Game Categories"],
       summary: "Get all game categories",
-      description: `
-        Retrieve a list of all available game categories (a-z).
-        Includes UUID for API calls and human-readable names for display
-        `,
+      description:
+        "Retrieve a list of all available game categories sorted alphabetically. Includes UUID for API calls and human-readable names for display.",
+      responses: {
+        200: {
+          description: "Successfully retrieved all game categories",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  success: { type: "boolean" },
+                  message: { type: "string" },
+                  data: {
+                    type: "object",
+                    properties: {
+                      categories: {
+                        type: "array",
+                        items: {
+                          $ref: "#/components/schemas/GameCategory",
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        500: {
+          description: "Internal server error while fetching game categories",
+          content: {
+            "application/json": {
+              schema: {
+                $ref: "#/components/schemas/InternalServerError",
+              },
+            },
+          },
+        },
+      },
     },
   }
 );

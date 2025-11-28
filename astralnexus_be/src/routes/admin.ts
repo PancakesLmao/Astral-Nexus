@@ -1,6 +1,101 @@
 import { Elysia, t } from "elysia";
 import { db } from "../config/database";
 import { stringUtils } from "../utils/helpers";
+import { Schemas } from "../schemas";
+
+// Admin-specific response schemas
+const AdminInfo = t.Object(
+  {
+    id: t.String({ description: "Administrator ID", format: "uuid" }),
+    email: t.String({ description: "Administrator email", format: "email" }),
+    name: t.String({ description: "Administrator name" }),
+    role: t.String({ description: "Administrator role" }),
+  },
+  { description: "Administrator information" }
+);
+
+const AdminLoginResponse = t.Object(
+  {
+    success: t.Literal(true),
+    message: t.String(),
+    admin: AdminInfo,
+  },
+  { description: "Successful admin login response" }
+);
+
+const AdminMeResponse = t.Object(
+  {
+    success: t.Literal(true),
+    admin: t.Object(
+      {
+        id: t.String({ format: "uuid" }),
+        email: t.String({ format: "email" }),
+        name: t.String(),
+        role: t.String(),
+        expiresAt: t.String({ format: "date-time" }),
+      },
+      { description: "Current admin session info" }
+    ),
+  },
+  { description: "Current admin session information" }
+);
+
+const DashboardStats = t.Object(
+  {
+    success: t.Literal(true),
+    stats: t.Object(
+      {
+        totalUsers: t.Number({ minimum: 0, int: true }),
+        totalPosts: t.Number({ minimum: 0, int: true }),
+        totalComments: t.Number({ minimum: 0, int: true }),
+      },
+      { description: "Dashboard statistics" }
+    ),
+  },
+  { description: "Admin dashboard statistics response" }
+);
+
+const AdminUserItem = t.Object(
+  {
+    id: t.String({ format: "uuid" }),
+    email: t.String({ format: "email" }),
+    name: t.String(),
+    picture: t.Optional(t.String()),
+    provider: t.String(),
+    createdAt: t.String({ format: "date-time" }),
+  },
+  { description: "User item for admin listing" }
+);
+
+const AdminUsersResponse = t.Object(
+  {
+    success: t.Literal(true),
+    data: t.Object(
+      {
+        users: t.Array(AdminUserItem),
+        pagination: Schemas.Pagination,
+      },
+      { description: "Users list with pagination" }
+    ),
+  },
+  { description: "Admin users list response" }
+);
+
+const UnauthorizedError = t.Object(
+  {
+    success: t.Literal(false),
+    message: t.String(),
+  },
+  { description: "Unauthorized error (401)" }
+);
+
+const InternalServerError = t.Object(
+  {
+    success: t.Literal(false),
+    message: t.String(),
+  },
+  { description: "Internal server error (500)" }
+);
 
 export const adminRoutes = new Elysia({ prefix: "/admin" })
   // Admin login endpoint
@@ -78,9 +173,19 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
     },
     {
       body: t.Object({
-        email: t.String({ format: "email" }),
-        password: t.String({ minLength: 1 }),
+        email: t.String({ format: "email", description: "Administrator email address" }),
+        password: t.String({ minLength: 1, description: "Administrator password" }),
       }),
+      response: {
+        200: AdminLoginResponse,
+        401: UnauthorizedError,
+        500: InternalServerError,
+      },
+      detail: {
+        tags: ["Admin"],
+        summary: "Admin login",
+        description: "Authenticate an administrator with email and password. Returns session cookie.",
+      },
     }
   )
 
@@ -109,6 +214,19 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
         message: "Internal server error",
       };
     }
+  }, {
+    response: {
+      200: t.Object({
+        success: t.Literal(true),
+        message: t.String(),
+      }),
+      500: InternalServerError,
+    },
+    detail: {
+      tags: ["Admin"],
+      summary: "Admin logout",
+      description: "Logout the current administrator by clearing the session cookie and removing the session from database.",
+    },
   })
 
   // Get current admin session info
@@ -163,6 +281,17 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
         message: "Internal server error",
       };
     }
+  }, {
+    response: {
+      200: AdminMeResponse,
+      401: UnauthorizedError,
+      500: InternalServerError,
+    },
+    detail: {
+      tags: ["Admin"],
+      summary: "Get current admin session",
+      description: "Retrieve current authenticated administrator information and session details. Requires valid admin session cookie.",
+    },
   })
 
   // Admin dashboard stats (requires authentication)
@@ -219,6 +348,17 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
         message: "Internal server error",
       };
     }
+  }, {
+    response: {
+      200: DashboardStats,
+      401: UnauthorizedError,
+      500: InternalServerError,
+    },
+    detail: {
+      tags: ["Admin"],
+      summary: "Get dashboard statistics",
+      description: "Retrieve overall dashboard statistics including total users, posts, and comments. Requires admin authentication.",
+    },
   })
 
   // Get all users (admin only)
@@ -314,6 +454,21 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
         message: "Internal server error",
       };
     }
+  }, {
+    query: t.Object({
+      page: t.Optional(t.String({ description: "Page number (default: 1)" })),
+      limit: t.Optional(t.String({ description: "Items per page (default: 100)" })),
+    }),
+    response: {
+      200: AdminUsersResponse,
+      401: UnauthorizedError,
+      500: InternalServerError,
+    },
+    detail: {
+      tags: ["Admin"],
+      summary: "List all users",
+      description: "Retrieve a paginated list of all users in the system. Requires admin authentication.",
+    },
   })
 
   // Delete post endpoint (admin only)
@@ -381,7 +536,24 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
     },
     {
       params: t.Object({
-        id: t.String(),
+        id: t.String({ format: "uuid", description: "Post ID to delete" }),
       }),
+      response: {
+        200: t.Object({
+          success: t.Literal(true),
+          message: t.String(),
+        }),
+        401: UnauthorizedError,
+        404: t.Object({
+          success: t.Literal(false),
+          message: t.String(),
+        }),
+        500: InternalServerError,
+      },
+      detail: {
+        tags: ["Admin"],
+        summary: "Delete a post",
+        description: "Delete a post by ID. Cascading deletes will remove related comments and likes. Requires admin authentication.",
+      },
     }
   );

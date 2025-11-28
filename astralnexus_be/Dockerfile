@@ -1,40 +1,32 @@
-# Use Bun official image
-FROM oven/bun AS base
+FROM oven/bun AS build
 
-WORKDIR /usr/src/app
+WORKDIR /app
 
-# Copy package files
-COPY package.json bun.lock* ./
+# Cache packages installation
+COPY package.json package.json
+COPY bun.lock bun.lock
 
-# Install dependencies
-RUN bun install --frozen-lockfile --production
+RUN bun install
 
-COPY . .
+COPY ./src ./src
 
-RUN bun run build
+ENV NODE_ENV=production
 
-# Production stage
-FROM oven/bun AS production
+RUN bun build \
+    --compile \
+    --minify-whitespace \
+    --minify-syntax \
+    --outfile server \
+    src/index.ts
 
-WORKDIR /usr/src/app
+FROM gcr.io/distroless/base
 
-# Copy built application and dependencies from base stage
-COPY --from=base /usr/src/app/dist ./dist
-COPY --from=base /usr/src/app/node_modules ./node_modules
-COPY --from=base /usr/src/app/package.json ./
+WORKDIR /app
 
-# Create non-root user for security
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S bunjs -u 1001
+COPY --from=build /app/server server
 
-# Change ownership of app directory
-RUN chown -R bunjs:nodejs /usr/src/app
-USER bunjs
+ENV NODE_ENV=production
+
+CMD ["./server"]
 
 EXPOSE 3001
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:3001/health || exit 1
-
-CMD ["bun", "run", "start"]
