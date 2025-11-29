@@ -1,6 +1,7 @@
 import { Elysia, t } from "elysia";
 import { db } from "../config/database";
 import { Schemas } from "../schemas";
+import { authGuard } from "../middleware/auth";
 
 // Utility function to create welcome notification for new users
 export async function createWelcomeNotification(userId: string) {
@@ -44,7 +45,8 @@ export async function createWelcomeNotification(userId: string) {
   }
 }
 
-export const notificationsRoutes = new Elysia({ prefix: "/api/notifications" })
+export const notificationsRoutes = new Elysia({ prefix: "/api/blog/notifications" })
+  .use(authGuard)
   .get(
     "/",
     async ({ query, set }) => {
@@ -129,7 +131,7 @@ export const notificationsRoutes = new Elysia({ prefix: "/api/notifications" })
     },
     {
       detail: {
-        tags: ["Notifications"],
+        tags: ["Blog"],
         summary: "Get user notifications",
         description:
           "Retrieve notifications for a specific user with pagination and filtering options. Returns an array of notifications paginated according to the limit parameter.",
@@ -243,7 +245,7 @@ export const notificationsRoutes = new Elysia({ prefix: "/api/notifications" })
     },
     {
       detail: {
-        tags: ["Notifications"],
+        tags: ["Blog"],
         summary: "Create a new notification",
         description: "Create a new notification for a user. The notification will include the provided type, title, and message. Optional post_id and comment_id can link the notification to specific entities.",
         responses: {
@@ -359,7 +361,7 @@ export const notificationsRoutes = new Elysia({ prefix: "/api/notifications" })
     },
     {
       detail: {
-        tags: ["Notifications"],
+        tags: ["Blog"],
         summary: "Delete a notification",
         description: "Delete a specific notification by ID. Returns the ID of the deleted notification. If the notification does not exist, returns a 404 error.",
         responses: {
@@ -464,7 +466,7 @@ export const notificationsRoutes = new Elysia({ prefix: "/api/notifications" })
     },
     {
       detail: {
-        tags: ["Notifications"],
+        tags: ["Blog"],
         summary: "Get unread notification count",
         description: "Get the count of unread notifications for a specific user. Useful for displaying notification badges in the UI.",
         responses: {
@@ -569,7 +571,7 @@ export const notificationsRoutes = new Elysia({ prefix: "/api/notifications" })
     },
     {
       detail: {
-        tags: ["Notifications"],
+        tags: ["Blog"],
         summary: "Mark notification as read",
         description: "Mark a specific notification as read. This updates the read flag to true and returns the notification ID. If the notification does not exist, returns a 404 error.",
         responses: {
@@ -682,7 +684,7 @@ export const notificationsRoutes = new Elysia({ prefix: "/api/notifications" })
     },
     {
       detail: {
-        tags: ["Notifications"],
+        tags: ["Blog - Notifications"],
         summary: "Create welcome notification",
         description: "Manually create a welcome notification for a user. This endpoint sends a system notification to welcome new users to the platform. It retrieves the admin user and generates a personalized welcome message.",
         responses: {

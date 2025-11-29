@@ -1,35 +1,10 @@
 import { Elysia, t } from "elysia";
 import { queryAll, queryOne, query } from "../utils/database";
 import { Schemas } from "../schemas";
-import { authMiddleware } from "../middleware/auth";
-
-// Helper: Extract and verify user with fallback to manual token verification
-async function getAuthenticatedUser(user: any, headers: any) {
-  if (user) return user;
-  
-  // Fallback: manually verify token if middleware didn't provide user
-  if (headers?.authorization) {
-    const { extractBearerToken, verifySupabaseToken } = await import("../config/supabase");
-    const token = extractBearerToken(headers.authorization);
-    if (token) {
-      const verifiedUser = await verifySupabaseToken(token);
-      if (verifiedUser) {
-        return {
-          id: verifiedUser.id,
-          email: verifiedUser.email || '',
-          name: verifiedUser.user_metadata?.full_name || verifiedUser.user_metadata?.name || '',
-          picture: verifiedUser.user_metadata?.avatar_url || '',
-          provider: verifiedUser.app_metadata?.provider || 'discord'
-        };
-      }
-    }
-  }
-  return null;
-}
+import { authGuard } from "../middleware/auth";
 
 // Comment handler for Honkai Blog
-export const commentRoutes = new Elysia({ prefix: "/api/comments" })
-  .use(authMiddleware)
+export const commentRoutes = new Elysia({ prefix: "/api/blog/comments" })
   // Get all comments for a specific post
   .get(
     "/:postId",
@@ -114,7 +89,7 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
         500: Schemas.ErrorResponse,
       },
       detail: {
-        tags: ["Comments"],
+        tags: ["Blog"],
         summary: "Get comments for a post",
         description: "Retrieves all comments for a specific blog post with pagination support",
         responses: {
@@ -148,12 +123,13 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
   )
 
   // Create a new comment
+  .use(authGuard)
   .post(
     "/",
     async ({ body, set, user, headers }) => {
       try {
-        // Get authenticated user with fallback to manual verification
-        const currentUser = await getAuthenticatedUser(user, headers);
+        // User is already authenticated by requireAuthMiddleware
+        const currentUser = user;
         
         if (!currentUser) {
           set.status = 401;
@@ -257,7 +233,7 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
         500: Schemas.ErrorResponse,
       },
       detail: {
-        tags: ["Comments"],
+        tags: ["Blog"],
         summary: "Create a new comment",
         description: "Adds a new comment to a blog post (authentication required)",
         responses: {
@@ -299,12 +275,13 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
   )
 
   // Update a comment (only by author)
+  .use(authGuard)
   .put(
     "/:id",
     async ({ params: { id }, body, set, user, headers }) => {
       try {
-        // Get authenticated user with fallback to manual verification
-        const currentUser = await getAuthenticatedUser(user, headers);
+        // User is already authenticated by requireAuthMiddleware
+        const currentUser = user;
         if (!currentUser) {
           set.status = 401;
           return {
@@ -420,7 +397,7 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
         500: Schemas.ErrorResponse,
       },
       detail: {
-        tags: ["Comments"],
+        tags: ["Blog"],
         summary: "Update a comment",
         description: "Updates an existing comment (author only, authentication required)",
         responses: {
@@ -470,12 +447,13 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
   )
 
   // Delete a comment
+  .use(authGuard)
   .delete(
     "/:id",
     async ({ params: { id }, set, user, headers }) => {
       try {
-        // Get authenticated user with fallback to manual verification
-        const currentUser = await getAuthenticatedUser(user, headers);
+        // User is already authenticated by requireAuthMiddleware
+        const currentUser = user;
         
         if (!currentUser) {
           set.status = 401;
@@ -553,7 +531,7 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
         500: Schemas.ErrorResponse,
       },
       detail: {
-        tags: ["Comments"],
+        tags: ["Blog"],
         summary: "Delete a comment",
         description: "Deletes a comment (author only, authentication required)",
         responses: {
@@ -595,12 +573,13 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
   )
 
   // Like/Unlike a comment
+  .use(authGuard)
   .post(
     "/:id/like",
     async ({ params: { id }, set, user, headers }) => {
       try {
-        // Get authenticated user with fallback to manual verification
-        const currentUser = await getAuthenticatedUser(user, headers);
+        // User is already authenticated by requireAuthMiddleware
+        const currentUser = user;
         
         if (!currentUser) {
           set.status = 401;
@@ -716,7 +695,7 @@ export const commentRoutes = new Elysia({ prefix: "/api/comments" })
         500: Schemas.ErrorResponse,
       },
       detail: {
-        tags: ["Comments"],
+        tags: ["Blog"],
         summary: "Like/Unlike a comment",
         description: "Toggle like status for a comment (authentication required). If user already liked the comment, it will be unliked. If not, it will be liked.",
         responses: {

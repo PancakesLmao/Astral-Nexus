@@ -97,7 +97,7 @@ const InternalServerError = t.Object(
   { description: "Internal server error (500)" }
 );
 
-export const adminRoutes = new Elysia({ prefix: "/admin" })
+export const adminRoutes = new Elysia({ prefix: "/api/admin" })
   // Admin login endpoint
   .post(
     "/login",

@@ -175,7 +175,7 @@ export async function checkUserAuth(
     // Use the createAuthenticatedRequest function which properly handles Supabase tokens
     const { createAuthenticatedRequest } = await import('../api')
 
-    const response = await createAuthenticatedRequest(`${apiBaseUrl}/auth/me`, {
+    const response = await createAuthenticatedRequest(`${apiBaseUrl}/api/auth/me`, {
       credentials: 'include', // This will include cookies for legacy sessions
     })
 

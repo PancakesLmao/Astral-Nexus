@@ -1,35 +1,10 @@
 import { Elysia, t } from "elysia";
 import { queryAll, queryOne, query, exists, count } from "../utils/database";
-import { authMiddleware } from "../middleware/auth";
 import { Schemas } from "../schemas";
-
-// Helper: Extract and verify user with fallback to manual token verification
-async function getAuthenticatedUser(user: any, headers: any) {
-  if (user) return user;
-  
-  // Fallback: manually verify token if middleware didn't provide user
-  if (headers.authorization) {
-    const { extractBearerToken, verifySupabaseToken } = await import("../config/supabase");
-    const token = extractBearerToken(headers.authorization);
-    if (token) {
-      const verifiedUser = await verifySupabaseToken(token);
-      if (verifiedUser) {
-        return {
-          id: verifiedUser.id,
-          email: verifiedUser.email || '',
-          name: verifiedUser.user_metadata?.full_name || verifiedUser.user_metadata?.name || '',
-          picture: verifiedUser.user_metadata?.avatar_url || '',
-          provider: verifiedUser.app_metadata?.provider || 'discord'
-        };
-      }
-    }
-  }
-  return null;
-}
+import { authGuard } from "../middleware/auth";
 
 // Posts API routes
-export const postsRoutes = new Elysia({ prefix: "/api/posts" })
-  .use(authMiddleware)
+export const postsRoutes = new Elysia({ prefix: "/api/blog/posts" })
   .get(
     "/",
     async ({ query, user, set }) => {
@@ -293,7 +268,7 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
         }),
       }),
       detail: {
-        tags: ["Posts"],
+        tags: ["Admin"],
         summary: "Get all posts",
         description: `Retrieve a paginated list of posts with optional filtering and sorting.`,
         responses: {
@@ -446,7 +421,7 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
         }),
       }),
       detail: {
-        tags: ["Posts"],
+        tags: ["Blog"],
         summary: "Get post by ID",
         description: `Retrieve a specific post by its unique identifier.`,
         responses: {
@@ -501,25 +476,14 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
   )
 
   // Create post endpoint - requires Supabase authentication via JWT token
-  .use(authMiddleware)
+  .use(authGuard)
   .post(
     "/",
     async ({ body, user, set, headers }) => {
       try {
-        // Get authenticated user with fallback to manual verification
-        const currentUser = await getAuthenticatedUser(user, headers);
-        
-        if (!currentUser) {
-          set.status = 401;
-          return {
-            success: false,
-            message: "Authentication required",
-            error: "No valid authentication token",
-          };
-        }
-
+        console.log('[Create Post] User:', user ? 'present' : 'missing');
         // Check if user exists in database, create if not
-        let dbUser = await queryOne("SELECT id, email, name FROM users WHERE email = $1", [currentUser.email]);
+        let dbUser = await queryOne("SELECT id, email, name FROM users WHERE email = $1", [user.email]);
 
         if (!dbUser) {
           // Get Discord provider ID
@@ -536,7 +500,7 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
           // Create user in database
           dbUser = await queryOne(
             "INSERT INTO users (email, name, picture, provider_id) VALUES ($1, $2, $3, $4) RETURNING id, email, name",
-            [currentUser.email, currentUser.name || currentUser.email, currentUser.picture || null, discordProvider.id]
+            [user.email, user.name || user.email, user.picture || null, discordProvider.id]
           );
         }
 
@@ -595,7 +559,7 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
         error: t.Optional(t.String()),
       }),
       detail: {
-        tags: ["Posts"],
+        tags: ["Blog"],
         summary: "Create new post",
         description: `Create a new blog post. Authentication via Supabase JWT token is required.`,
         responses: {
@@ -648,6 +612,7 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
       },
     }
   )
+  .use(authGuard)
   .put(
     "/:id",
     async ({ params, body, set }) => {
@@ -762,7 +727,7 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
         error: t.Optional(t.String()),
       }),
       detail: {
-        tags: ["Posts"],
+        tags: ["Blog"],
         summary: "Update post",
         description: `Update an existing post. Only the author or admin can update a post.`,
         responses: {
@@ -830,6 +795,7 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
       },
     }
   )
+  .use(authGuard)
   .delete(
     "/:id",
     async ({ params, set }) => {
@@ -888,7 +854,7 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
         error: t.Optional(t.String()),
       }),
       detail: {
-        tags: ["Posts"],
+        tags: ["Blog"],
         summary: "Delete post",
         description: `Delete a post permanently. Only the author or admin can delete a post.`,
         responses: {
@@ -941,26 +907,15 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
       },
     }
   )
-
+  .use(authGuard)
   // Like/Unlike a post
   .post(
     "/:id/like",
     async ({ params: { id }, set, user, headers }) => {
       try {
-        // Get authenticated user with fallback to manual verification
-        const currentUser = await getAuthenticatedUser(user, headers);
-        
-        if (!currentUser) {
-          set.status = 401;
-          return {
-            success: false,
-            error: "Authentication required",
-            message: "No valid authentication token",
-          };
-        }
-
+        console.log('[Like Endpoint] User:', user ? 'present' : 'missing');
         // Check if user exists in database, create if not
-        let dbUser = await queryOne("SELECT id FROM users WHERE email = $1", [currentUser.email]);
+        let dbUser = await queryOne("SELECT id FROM users WHERE email = $1", [user.email]);
 
         if (!dbUser) {
           // Get Discord provider ID
@@ -1053,7 +1008,7 @@ export const postsRoutes = new Elysia({ prefix: "/api/posts" })
         error: t.Optional(t.String()),
       }),
       detail: {
-        tags: ["Posts"],
+        tags: ["Blog"],
         summary: "Like/Unlike post",
         description: `Toggle like status for a post. If user already liked the post, it will be unliked. Authentication via Supabase JWT token is required.`,
         responses: {

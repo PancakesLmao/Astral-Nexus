@@ -11,9 +11,6 @@ import { testConnection } from "./config/database";
 // Import routes
 import {
   authRoutes,
-  supabaseAuthRoutes,
-  supabaseAuthMiddleware,
-  requireAuth,
   userRoutes,
   appRoutes,
   commentRoutes,
@@ -29,9 +26,73 @@ import {
   loggerMiddleware,
   corsMiddleware,
   errorMiddleware,
+  authMiddleware,
 } from "./middleware";
 
+const isDevelopment = process.env.NODE_ENV === "development";
+const displayHostname = isDevelopment ? "api.localtest.me" : process.env.HOST || "localhost";
+
+// Simple response logging helper
+const createResponseLogger = () => {
+  return new Elysia({ name: "response-logger" })
+    .onRequest(({ request }) => {
+      (request as any).__startTime = Date.now();
+      
+      const url = new URL(request.url);
+      const path = url.pathname + url.search;
+      const method = request.method.padEnd(6);
+      
+      // Method color
+      const methodColors: any = {
+        GET: "\x1b[36m",
+        POST: "\x1b[33m",
+        PUT: "\x1b[35m",
+        DELETE: "\x1b[31m",
+        PATCH: "\x1b[34m",
+        OPTIONS: "\x1b[37m",
+      };
+      const methodColor = methodColors[request.method.toUpperCase()] || "\x1b[0m";
+      
+      console.log(
+        `${new Date().toISOString()} ${methodColor}\x1b[1m→ ${method}\x1b[0m ${path}`
+      );
+    })
+    .onAfterHandle(({ request, set }: any) => {
+      // Log response after handler executes
+      const startTime = (request as any).__startTime || Date.now();
+      const duration = Date.now() - startTime;
+      const status = set.status || 200;
+      
+      const url = new URL(request.url);
+      const path = url.pathname + url.search;
+      const method = request.method.padEnd(6);
+      
+      // Status color
+      let statusColor = "\x1b[0m";
+      if (status >= 200 && status < 300) statusColor = "\x1b[32m";
+      else if (status >= 300 && status < 400) statusColor = "\x1b[36m";
+      else if (status >= 400 && status < 500) statusColor = "\x1b[33m";
+      else if (status >= 500) statusColor = "\x1b[31m";
+      
+      // Method color
+      const methodColors: any = {
+        GET: "\x1b[36m",
+        POST: "\x1b[33m",
+        PUT: "\x1b[35m",
+        DELETE: "\x1b[31m",
+        PATCH: "\x1b[34m",
+        OPTIONS: "\x1b[37m",
+      };
+      const methodColor = methodColors[request.method.toUpperCase()] || "\x1b[0m";
+      
+      console.log(
+        `${new Date().toISOString()} ${statusColor}\x1b[1m${status}\x1b[0m ${methodColor}\x1b[1m${method}\x1b[0m ${path} ${duration}ms`
+      );
+    });
+};
+
 const app = new Elysia()
+  .use(createResponseLogger())
   // Apply middleware
   .use(loggerMiddleware)
   .use(corsMiddleware)
@@ -52,41 +113,33 @@ const app = new Elysia()
         tags: [
           {
             name: "App",
-            description: "Application endpoints (health, status, etc.)",
+            description: "Application endpoints (health, status, version)",
           },
           {
-            name: "Auth",
-            description: "Authentication endpoints (sign-in, logout)",
+            name: "Authentication",
+            description: "Authentication endpoints (verify token, logout, get current user)",
           },
           {
             name: "Users",
-            description: "User management endpoints",
+            description: "User profile endpoints (requires authentication)",
           },
           {
-            name: "Posts",
-            description: "Blog post management endpoints",
+            name: "Blog",
+            description: "Blog management (posts, comments, notifications, game categories) - requires authentication",
           },
           {
-            name: "Comments",
-            description: "Blog comment management endpoints",
-          },
-          {
-            name: "Notifications",
-            description: "User notification management endpoints",
-          },
-          {
-            name: "Game Categories",
-            description: "Game category management endpoints",
+            name: "Admin",
+            description: "Admin endpoints for user/content management and analytics - requires admin role",
           },
           {
             name: "Database",
-            description: "Database testing and utility endpoints",
+            description: "Database testing and utility endpoints (development only)",
           },
         ],
         servers: [
           {
-            url: `http://${appConfig.host}:${appConfig.port}`,
-            description: "Development server",
+            url: `http://${displayHostname}:${appConfig.port}`,
+            description: isDevelopment ? "Development server" : "Production server",
           },
         ],
       },
@@ -95,14 +148,16 @@ const app = new Elysia()
 
   .use(appRoutes)
   .use(authRoutes)
-  .use(supabaseAuthRoutes)
+  // Apply global authentication middleware to protected routes
+  .use(authMiddleware)
   .use(userRoutes)
   .use(commentRoutes)
-  .use(dbRoutes)
   .use(postsRoutes)
   .use(gameCategoriesRoutes)
   .use(notificationsRoutes)
   .use(adminRoutes)
+  // Unprotected database routes
+  .use(dbRoutes)
 
   .listen(
     {
@@ -110,8 +165,6 @@ const app = new Elysia()
       hostname: "0.0.0.0", // Listen on all interfaces
     },
     async ({ hostname, port }) => {
-      const isDevelopment = process.env.NODE_ENV === "development"
-      const displayHostname = isDevelopment ? "api.localtest.me" : process.env.HOST || "localhost"
       const displayUrl = `http://${displayHostname}:${port}`
 
       console.log(`🦊 Elysia server is running at ${displayUrl}`)

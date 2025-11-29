@@ -49,6 +49,7 @@ export async function verifySupabaseToken(
   token: string
 ): Promise<SupabaseUser | null> {
   try {
+    console.log('[VerifyToken] Starting token verification');
     // Method 3 FIRST: Decode and validate JWT manually (most reliable for our case)
     // JWT format: header.payload.signature
     const parts = token.split(".");
@@ -60,8 +61,11 @@ export async function verifySupabaseToken(
           Buffer.from(parts[1], "base64").toString("utf-8")
         );
 
+        console.log('[VerifyToken] Decoded payload - sub:', payload.sub, 'email:', payload.email, 'exp:', payload.exp);
+
         // Check if token is expired
         if (payload.exp && payload.exp * 1000 < Date.now()) {
+          console.log('[VerifyToken] Token is expired');
           return null;
         }
 
@@ -80,9 +84,11 @@ export async function verifySupabaseToken(
               providers: payload.app_metadata?.providers || payload.providers || [],
             },
           };
+          console.log('[VerifyToken] Token verified successfully');
           return user;
         }
       } catch (decodeError) {
+        console.log('[VerifyToken] Error decoding token:', decodeError);
         // Fallback to Supabase methods
       }
     }

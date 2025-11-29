@@ -2,9 +2,10 @@ import { Elysia, t } from "elysia";
 import { appConfig } from "../config/app";
 import { db } from "../config/database";
 import { Schemas } from "../schemas";
+import { authGuard } from "../middleware/auth";
 
 // User management routes
-export const userRoutes = new Elysia({ prefix: "/users" })
+export const userRoutes = new Elysia({ prefix: "/api/users" })
   .get(
     "/profile/:id",
     async ({ params: { id }, set }) => {
@@ -84,6 +85,7 @@ export const userRoutes = new Elysia({ prefix: "/users" })
       },
     }
   )
+  .use(authGuard)
   .put(
     "/profile/:id",
     async ({ params: { id }, body, set }) => {
@@ -214,99 +216,6 @@ export const userRoutes = new Elysia({ prefix: "/users" })
         tags: ["Users"],
         summary: "Update user profile",
         description: "Update user profile information",
-      },
-    }
-  )
-  .get(
-    "/",
-    async ({ query, set }) => {
-      try {
-        const { page = "1", limit = "10" } = query as {
-          page?: string;
-          limit?: string;
-        };
-
-        const pageNum = parseInt(page);
-        const limitNum = parseInt(limit);
-        const offset = (pageNum - 1) * limitNum;
-
-        // Get total count
-        const countQuery = `SELECT COUNT(*) as total FROM users`;
-        const countResult = await db.query(countQuery);
-        const total = parseInt(countResult.rows[0]?.total || "0");
-
-        // Get users with pagination
-        const usersQuery = `
-          SELECT 
-            u.id,
-            u.email,
-            u.name,
-            u.picture,
-            u.created_at,
-            p.provider_name
-          FROM users u
-          JOIN providers p ON u.provider_id = p.id
-          ORDER BY u.created_at DESC
-          LIMIT $1 OFFSET $2
-        `;
-
-        const result = await db.query(usersQuery, [limitNum, offset]);
-        const totalPages = Math.ceil(total / limitNum);
-
-        return {
-          success: true,
-          data: {
-            users: result.rows.map((user) => ({
-              id: user.id,
-              email: user.email,
-              name: user.name,
-              picture: user.picture,
-              provider: user.provider_name,
-              createdAt: user.created_at,
-            })),
-            pagination: {
-              page: pageNum,
-              limit: limitNum,
-              total,
-              totalPages,
-              hasNext: pageNum < totalPages,
-              hasPrev: pageNum > 1,
-            },
-          },
-        };
-      } catch (error) {
-        console.error("Error fetching users:", error);
-        set.status = 500;
-        return {
-          success: false,
-          message: "Failed to fetch users",
-          error: error instanceof Error ? error.message : "Unknown error",
-        };
-      }
-    },
-    {
-      query: t.Object({
-        page: t.Optional(t.String()),
-        limit: t.Optional(t.String()),
-      }),
-      response: {
-        200: t.Object({
-          success: t.Literal(true),
-          data: t.Object({
-            users: t.Array(Schemas.User),
-            pagination: Schemas.Pagination,
-          }),
-        }),
-        500: t.Object({
-          success: t.Literal(false),
-          message: t.String(),
-          error: t.String(),
-        }),
-      },
-      detail: {
-        tags: ["Users"],
-        summary: "Get users list",
-        description: "Get paginated list of users",
       },
     }
   )

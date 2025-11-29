@@ -4,8 +4,9 @@ import { Schemas } from "../schemas";
 
 // Game Categories API routes
 export const gameCategoriesRoutes = new Elysia({
-  prefix: "/api/game-categories",
-}).get(
+  prefix: "/api/blog/game-categories",
+})
+  .get(
   "/",
   async () => {
     try {
@@ -53,7 +54,7 @@ export const gameCategoriesRoutes = new Elysia({
       error: t.Optional(t.String()),
     }),
     detail: {
-      tags: ["Game Categories"],
+      tags: ["Blog"],
       summary: "Get all game categories",
       description:
         "Retrieve a list of all available game categories sorted alphabetically. Includes UUID for API calls and human-readable names for display.",

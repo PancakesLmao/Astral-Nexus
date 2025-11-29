@@ -64,7 +64,7 @@ export const useUserStore = defineStore('user', () => {
   const handleLogout = async () => {
     try {
       // Call backend logout to clear HTTP-only cookies
-      await fetch(`${getApiUrl()}/auth/logout`, {
+      await fetch(`${getApiUrl()}/api/auth/logout`, {
         method: 'POST',
         credentials: 'include', // Include cookies for session clearing
       })

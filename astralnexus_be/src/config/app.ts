@@ -16,7 +16,7 @@ export const appConfig = {
 
   // API Configuration
   api: {
-    version: "1.0.0",
+    version: "1.0.1",
     prefix: "/api",
     swagger: {
       path: "/swagger",
