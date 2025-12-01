@@ -26,7 +26,6 @@ import {
   loggerMiddleware,
   corsMiddleware,
   errorMiddleware,
-  authMiddleware,
 } from "./middleware";
 
 const isDevelopment = process.env.NODE_ENV === "development";
@@ -148,8 +147,6 @@ const app = new Elysia()
 
   .use(appRoutes)
   .use(authRoutes)
-  // Apply global authentication middleware to protected routes
-  .use(authMiddleware)
   .use(userRoutes)
   .use(commentRoutes)
   .use(postsRoutes)

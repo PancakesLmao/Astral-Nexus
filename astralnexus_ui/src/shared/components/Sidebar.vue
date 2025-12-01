@@ -23,11 +23,19 @@
           <p class="profile-bio text-sm text-gray-400 leading-tight" v-if="user.bio">
             {{ user.bio }}
           </p>
-          <p class="profile-bio text-sm text-gray-400 leading-tight" v-else>
-            Exploring the gaming universe
-          </p>
         </div>
       </div>
+    </div>
+
+    <!-- Quick Actions - Moved to top after profile -->
+    <div class="quick-actions flex flex-col gap-3 mb-8">
+      <button
+        class="action-btn primary flex items-center justify-center gap-2 py-3 px-4 rounded font-medium text-sm text-white bg-gradient-to-br from-[#542f87] to-[#b8aff7] cursor-pointer transition-all duration-300"
+        @click="openCreatePostDialog"
+      >
+        <Plus :size="18" />
+        <span>{{ languageStore.t('newPost') }}</span>
+      </button>
     </div>
 
     <!-- User stats -->
@@ -78,52 +86,30 @@
       </div>
     </div>
 
-    <!-- Recent activity -->
-    <div class="recent-activity mb-8">
-      <h4
-        class="section-title text-base font-semibold text-[#b8aff7] mb-4 pb-2 border-b border-[rgba(184,175,247,0.2)]"
-      >
-        {{ languageStore.t('recentActivity') }}
+    <!-- Recent Activities -->
+    <div class="recent-activities mb-8" v-if="user">
+      <h4 class="section-title text-xs font-semibold text-[#b8aff7] mb-4 tracking-wider">
+        Recent Activities
       </h4>
-      <div class="activity-list">
+      <div class="activities-list space-y-3">
         <div
           v-for="activity in recentActivities"
           :key="activity.id"
-          class="activity-item flex items-start gap-3 p-3 bg-[rgba(39,12,59,0.3)] border border-[rgba(184,175,247,0.1)] rounded-lg mb-3 transition-all duration-300"
+          class="activity-item flex items-start gap-3 p-3 rounded-lg border border-[rgba(184,175,247,0.1)] bg-[rgba(39,12,59,0.2)] transition-all duration-200 cursor-pointer"
         >
-          <div
-            class="activity-icon flex items-center justify-center w-7 h-7 bg-[rgba(184,175,247,0.2)] rounded-full text-[#b8aff7] flex-shrink-0"
-          >
-            <component :is="getActivityIcon(activity.type)" :size="16" />
+          <div class="activity-icon flex-shrink-0 mt-0.5">
+            <component :is="getActivityIcon(activity.type)" :size="16" class="text-[#b8aff7]" />
           </div>
           <div class="activity-content flex-1 min-w-0">
-            <p class="activity-text text-sm text-gray-400 mb-1 leading-tight">
+            <p class="activity-text text-sm text-gray-300 leading-tight">
               {{ activity.text }}
             </p>
-            <span class="activity-time text-xs text-gray-600">{{
-              formatTime(activity.timestamp)
-            }}</span>
+            <p class="activity-time text-xs text-gray-600 mt-1">
+              {{ formatTime(activity.timestamp) }}
+            </p>
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- Quick Actions -->
-    <div class="quick-actions flex flex-col gap-3 mt-auto pt-4">
-      <button
-        class="action-btn primary flex items-center justify-center gap-2 py-3 px-4 rounded font-medium text-sm text-white bg-gradient-to-br from-[#542f87] to-[#b8aff7] cursor-pointer transition-all duration-300"
-        @click="openCreatePostDialog"
-      >
-        <Plus :size="18" />
-        <span>{{ languageStore.t('newPost') }}</span>
-      </button>
-      <button
-        class="action-btn secondary flex items-center justify-center gap-2 py-3 px-4 rounded font-medium text-sm text-[#b8aff7] border border-[rgba(184,175,247,0.3)] bg-[rgba(184,175,247,0.1)] cursor-pointer transition-all duration-300"
-        @click="editProfile"
-      >
-        <Edit :size="18" />
-        <span>{{ languageStore.t('editProfile') }}</span>
-      </button>
     </div>
 
     <!-- New Post Dialog -->
@@ -164,7 +150,7 @@ const emit = defineEmits<{
 
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, Edit, Heart, MessageCircle, BookOpen, Award } from 'lucide-vue-next'
+import { Plus, Heart, MessageCircle, BookOpen, Award } from 'lucide-vue-next'
 import { useLanguageStore } from '@/shared/stores/language'
 import { useUser } from '@/shared/composables/useUser'
 import { UserStats, Activity } from '../types'
@@ -250,11 +236,6 @@ const handlePostCreated = async (post: unknown) => {
   emit('refresh-stats')
 }
 
-const editProfile = () => {
-  console.log('Sidebar: Navigating to edit profile')
-  router.push('/profile')
-}
-
 onMounted(async () => {
   await initializeUser()
 })
@@ -296,8 +277,8 @@ onMounted(async () => {
   display: none;
 }
 
-/* Media Query (kept as raw CSS) */
-@media (max-width: 991.98px) {
+/* Media Query - Hide sidebar on medium screens and below */
+@media (max-width: 1199.98px) {
   .user-sidebar {
     display: none;
   }

@@ -21,7 +21,7 @@
         <!-- Dialog Header and Visibility -->
         <div class="mb-4">
           <div class="flex items-center justify-between">
-            <h3 class="text-lg font-semibold text-accent">Create New Post</h3>
+            <h3 class="text-xs font-semibold text-accent">Create New Post</h3>
             <button
               @click="closeDialog"
               class="text-gray-300 hover:text-white transition-colors"
@@ -222,7 +222,7 @@
       <div class="profile-modal w-full max-w-[400px] overflow-y-auto" @click.stop>
         <!-- Dialog Header -->
         <div class="modal-header">
-          <h3 class="text-lg font-semibold text-[#b8aff7]">Create New Post</h3>
+          <h3 class="text-xs font-semibold text-[#b8aff7]">Create New Post</h3>
           <button class="close-btn" @click="closeDialog" aria-label="Close dialog">
             <X :size="18" />
           </button>

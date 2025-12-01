@@ -13,7 +13,7 @@
       >
         <!-- Dialog Header -->
         <div class="flex items-center justify-between p-6 border-b border-dark-700">
-          <h2 class="text-xl font-semibold text-foreground">Post Details</h2>
+          <h2 class="text-xs font-semibold text-foreground">Post Details</h2>
           <button
             class="text-dark-400 hover:text-foreground transition-colors"
             @click="$emit('close')"
@@ -120,7 +120,7 @@
 
             <!-- Comments Section -->
             <div class="bg-dark-800/30 border border-dark-700 rounded-lg p-6">
-              <h3 class="text-xl font-semibold text-foreground mb-4">Comments</h3>
+              <h3 class="text-xs font-semibold text-foreground mb-4">Comments</h3>
 
               <!-- Comment Form -->
               <div class="mb-6" v-if="allowComments">

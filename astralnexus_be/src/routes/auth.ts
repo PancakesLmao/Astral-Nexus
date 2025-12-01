@@ -1,19 +1,39 @@
 import { Elysia, t } from "elysia";
-import { requireAuthMiddleware } from "../middleware/auth";
-import { authMiddleware } from "../middleware/auth";
+import { authGuard } from "../middleware/auth";
 import { Schemas } from "../schemas";
 
 // Authentication routes for Supabase
 export const authRoutes = new Elysia({ prefix: "/api/auth" })
-  // Apply optional auth middleware first
-  .use(authMiddleware)
   
   // Public endpoints (no auth required)
   .get(
     "/verify",
-    async ({ user, set }: any) => {
+    async ({ headers, set }: any) => {
       try {
-        if (user) {
+        // Manual token verification for public endpoint
+        const authHeader = headers.authorization;
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+          set.status = 401;
+          return { 
+            success: false,
+            error: "Invalid or no token provided" 
+          };
+        }
+
+        const token = authHeader.substring(7);
+        // Import and use verifySupabaseToken directly
+        const { verifySupabaseToken } = await import("../config/supabase");
+        const supabaseUser = await verifySupabaseToken(token);
+        
+        if (supabaseUser) {
+          const user = {
+            id: supabaseUser.id,
+            email: supabaseUser.email || '',
+            name: supabaseUser.user_metadata?.full_name || supabaseUser.user_metadata?.name || '',
+            picture: supabaseUser.user_metadata?.avatar_url || '',
+            provider: supabaseUser.app_metadata?.provider || 'discord'
+          };
+          
           return {
             success: true,
             user: user,
@@ -77,8 +97,8 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
     }
   )
   
-  // Apply strict auth middleware for protected endpoints
-  .use(requireAuthMiddleware)
+  // Protected endpoints (require auth)
+  .use(authGuard)
   
   .get(
     "/me",

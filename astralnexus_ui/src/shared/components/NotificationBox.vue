@@ -29,7 +29,7 @@
 
     <!-- Empty State -->
     <div v-else-if="notifications.length === 0" class="p-8 text-center">
-      <h3 class="text-lg font-semibold text-[#b8aff7] mb-2">
+      <h3 class="text-xs font-semibold text-[#b8aff7] mb-2">
         {{ languageStore.t('noNotifications') }}
       </h3>
       <p class="text-gray-400 max-w-sm mx-auto">

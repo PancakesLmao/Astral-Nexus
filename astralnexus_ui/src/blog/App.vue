@@ -118,18 +118,18 @@ onMounted(async () => {
   position: relative;
 }
 
-/* Hide TrendingBar on mobile */
-@media (max-width: 991.98px) {
+/* Hide TrendingBar on medium screens and below */
+@media (max-width: 1199.98px) {
   :deep(.trending-bar) {
     display: none;
   }
 }
 
-/* Mobile view */
-@media (max-width: 991.98px) {
+/* Medium screens and below - no sidebar */
+@media (max-width: 1199.98px) {
   .main-content {
-    margin-left: 0; /* No sidebar on mobile */
-    width: 100vw; /* Full width when both sidebar and trending bar are hidden */
+    margin-left: 0; /* No sidebar on medium screens and below */
+    width: 100vw; /* Full width when sidebar is hidden */
     padding: 0 1rem;
   }
 }

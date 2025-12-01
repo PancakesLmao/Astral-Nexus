@@ -7,7 +7,7 @@
       <!-- Trending Hashtags Section -->
       <div class="mb-8">
         <div class="trending-card p-6 rounded-xl bg-dark-800/50 backdrop-blur-sm">
-          <h3 class="flex items-center gap-2 text-accent font-semibold text-xl mb-4 pb-2">
+          <h3 class="flex items-center gap-2 text-accent font-semibold text-[10px] mb-4 pb-2">
             Trending Hashtags
           </h3>
           <div class="space-y-3">
@@ -34,7 +34,7 @@
       <!-- Popular Games Section -->
       <div class="mb-8">
         <div class="trending-card p-6 rounded-xl bg-dark-800/50 backdrop-blur-sm">
-          <h3 class="flex items-center gap-2 text-accent font-semibold text-xl mb-4 pb-2">
+          <h3 class="flex items-center gap-2 text-accent font-semibold text-[10px] mb-4 pb-2">
             Popular Games
           </h3>
           <div class="space-y-3">

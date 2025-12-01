@@ -104,7 +104,7 @@ export const corsMiddleware = new Elysia({ name: "cors" }).use(
 );
 
 // Export auth middleware
-export { authMiddleware, authGuard, requireAuthMiddleware } from "./auth";
+export { authGuard } from "./auth";
 
 // Middleware for error handling
 export const errorMiddleware = new Elysia({ name: "error" }).onError(
