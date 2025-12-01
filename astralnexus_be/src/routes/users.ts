@@ -221,10 +221,31 @@ export const userRoutes = new Elysia({ prefix: "/api/users" })
   )
 
   // Get user statistics (posts count, followers, following, etc.)
+  // Uses authenticated user from JWT token to look up database user by email
+  .use(authGuard)
   .get(
     "/stats/:id",
-    async ({ params: { id }, set }) => {
+    async ({ params: { id }, user, set }) => {
       try {
+        console.log('[Stats] Getting stats for user email:', user?.email);
+        
+        // Look up database user by email from the authenticated Supabase user
+        // This ensures we get the correct database user ID regardless of Supabase ID format
+        const userLookup = await db.query("SELECT id FROM users WHERE email = $1", [user.email]);
+        
+        if (userLookup.rows.length === 0) {
+          console.warn(`[Stats] No database user found for email: ${user.email}`);
+          set.status = 404;
+          return {
+            success: false,
+            message: "User not found",
+            error: "No user found in database for authenticated email",
+          };
+        }
+        
+        const dbUserId = userLookup.rows[0].id;
+        console.log('[Stats] Found database user ID:', dbUserId);
+
         // Get user posts count
         const postsCountQuery = `
           SELECT COUNT(*) as posts_count
@@ -232,8 +253,9 @@ export const userRoutes = new Elysia({ prefix: "/api/users" })
           WHERE author_id = $1
         `;
 
-        const postsResult = await db.query(postsCountQuery, [id]);
+        const postsResult = await db.query(postsCountQuery, [dbUserId]);
         const postsCount = parseInt(postsResult.rows[0].posts_count) || 0;
+        console.log('[Stats] Posts count:', postsCount);
 
         // Get user comments count
         const commentsCountQuery = `
@@ -242,7 +264,7 @@ export const userRoutes = new Elysia({ prefix: "/api/users" })
           WHERE author_id = $1
         `;
 
-        const commentsResult = await db.query(commentsCountQuery, [id]);
+        const commentsResult = await db.query(commentsCountQuery, [dbUserId]);
         const commentsCount =
           parseInt(commentsResult.rows[0].comments_count) || 0;
 
@@ -254,7 +276,7 @@ export const userRoutes = new Elysia({ prefix: "/api/users" })
         `;
 
         const notificationsResult = await db.query(notificationsCountQuery, [
-          id,
+          dbUserId,
         ]);
         const notificationsCount =
           parseInt(notificationsResult.rows[0].notifications_count) || 0;
@@ -319,6 +341,222 @@ export const userRoutes = new Elysia({ prefix: "/api/users" })
         summary: "Get user statistics",
         description:
           "Get user statistics including posts count, comments count, followers and following",
+      },
+    }
+  )
+
+  // Get user's posts
+  // Uses authenticated user from JWT token to look up database user by email
+  .use(authGuard)
+  .get(
+    "/profile/:id/posts",
+    async ({ params: { id }, query, user, set }) => {
+      try {
+        const page = Math.max(1, parseInt(query.page as string) || 1);
+        const limit = Math.min(
+          50,
+          Math.max(1, parseInt(query.limit as string) || 10)
+        );
+        const offset = (page - 1) * limit;
+        const sortBy = (query.sort_by as string) || "created_at";
+        const sortOrder = (query.sort_order as string) || "DESC";
+
+        // console.log('[GetUserPosts] Getting posts for user email:', user!.email);
+
+        // Look up database user by email from the authenticated Supabase user
+        const userLookup = await db.query("SELECT id FROM users WHERE email = $1", [user!.email]);
+
+        if (userLookup.rows.length === 0) {
+          // console.warn(`[GetUserPosts] No database user found for email: ${user!.email}`);
+          set.status = 404;
+          return {
+            success: false,
+            message: "User not found",
+            error: "No user found in database for authenticated email",
+          };
+        }
+
+        const dbUserId = userLookup.rows[0].id;
+        // console.log('[GetUserPosts] Found database user ID:', dbUserId);
+
+        // Build WHERE conditions - only get posts for this user
+        const whereConditions = ["p.author_id = $1", "p.published = TRUE"];
+        const queryParams: any[] = [dbUserId];
+        let paramIndex = 2;
+
+        // Build ORDER BY clause
+        const validSortFields = [
+          "created_at",
+          "updated_at",
+          "title",
+          "likes_count",
+          "comments_count",
+        ];
+        const validSortOrders = ["ASC", "DESC"];
+        const orderField = validSortFields.includes(sortBy)
+          ? sortBy
+          : "created_at";
+        const orderDirection = validSortOrders.includes(sortOrder.toUpperCase())
+          ? sortOrder.toUpperCase()
+          : "DESC";
+
+        const whereClause = `WHERE ${whereConditions.join(" AND ")}`;
+
+        // Get total count
+        const totalQuery = `
+          SELECT COUNT(*) as total
+          FROM posts p
+          WHERE p.author_id = $1 AND p.published = TRUE
+        `;
+        const totalResult = await db.query(totalQuery, [dbUserId]);
+        const total = parseInt(totalResult.rows[0]?.total || "0");
+
+        // Get posts with pagination
+        const postsQuery = `
+          SELECT
+            p.id,
+            p.title,
+            p.content,
+            p.published,
+            p.visibility,
+            p.likes_count,
+            p.comments_count,
+            p.shares_count,
+            p.created_at,
+            p.updated_at,
+            u.id as author_id,
+            u.name as author_name,
+            u.email as author_email,
+            u.picture as author_picture,
+            gc.game_name as game_category,
+            CASE
+              WHEN pl.post_id IS NOT NULL THEN true
+              ELSE false
+            END as is_liked
+          FROM posts p
+          LEFT JOIN users u ON p.author_id = u.id
+          LEFT JOIN game_categories gc ON p.game_id = gc.id
+          LEFT JOIN post_likes pl ON p.id = pl.post_id AND pl.user_id = $${paramIndex}
+          ${whereClause}
+          ORDER BY p.${orderField} ${orderDirection}
+          LIMIT $${paramIndex + 1} OFFSET $${paramIndex + 2}
+        `;
+        queryParams.push(dbUserId, limit, offset);
+        const posts = await db.query(postsQuery, queryParams);
+
+        // Transform posts to match frontend format
+        const transformedPosts = posts.rows.map((post: any) => {
+          // Convert timestamps to ISO string format
+          let createdAtISO = post.created_at;
+          let updatedAtISO = post.updated_at;
+
+          if (post.created_at instanceof Date) {
+            createdAtISO = post.created_at.toISOString();
+          } else if (typeof post.created_at === 'string') {
+            createdAtISO = new Date(post.created_at).toISOString();
+          }
+
+          if (post.updated_at instanceof Date) {
+            updatedAtISO = post.updated_at.toISOString();
+          } else if (typeof post.updated_at === 'string') {
+            updatedAtISO = new Date(post.updated_at).toISOString();
+          }
+
+          return {
+            id: post.id,
+            title: post.title,
+            content: post.content,
+            author: {
+              id: post.author_id,
+              username: post.author_name || "",
+              name: post.author_name || "",
+              email: post.author_email || "",
+              picture: post.author_picture || undefined,
+              bio: "",
+              createdAt: createdAtISO,
+            },
+            author_id: post.author_id,
+            game_id: post.game_id || undefined,
+            game_category: post.game_category || undefined,
+            post_type: "Discussion",
+            tags: [],
+            visibility: post.visibility,
+            published: post.published,
+            likes_count: post.likes_count || 0,
+            comments_count: post.comments_count || 0,
+            shares_count: post.shares_count || 0,
+            is_liked: post.is_liked || false,
+            isLiked: post.is_liked || false,
+            created_at: createdAtISO,
+            createdAt: createdAtISO,
+            updated_at: updatedAtISO,
+            updatedAt: updatedAtISO,
+          };
+        });
+
+        const totalPages = Math.ceil(total / limit);
+
+        return {
+          success: true,
+          message: "User posts retrieved successfully",
+          data: {
+            posts: transformedPosts,
+            pagination: {
+              page,
+              limit,
+              total,
+              totalPages,
+              hasNext: page < totalPages,
+              hasPrev: page > 1,
+            },
+          },
+        };
+      } catch (error) {
+        console.error("Error fetching user posts:", error);
+        set.status = 500;
+        return {
+          success: false,
+          message: "Failed to fetch user posts",
+          error: error instanceof Error ? error.message : "Unknown error",
+        };
+      }
+    },
+    {
+      params: t.Object({
+        id: t.String({
+          description: "User ID",
+          minLength: 1,
+        }),
+      }),
+      query: t.Object({
+        page: t.Optional(t.String({ description: "Page number (default: 1)" })),
+        limit: t.Optional(
+          t.String({ description: "Posts per page (default: 10, max: 50)" })
+        ),
+        sort_by: t.Optional(
+          t.String({
+            description:
+              "Sort field (created_at, updated_at, title, likes_count, comments_count)",
+          })
+        ),
+        sort_order: t.Optional(
+          t.String({ description: "Sort order (ASC, DESC)" })
+        ),
+      }),
+      response: t.Object({
+        success: t.Boolean(),
+        message: t.String(),
+        data: t.Optional(t.Object({
+          posts: t.Array(Schemas.Post),
+          pagination: Schemas.Pagination,
+        })),
+        error: t.Optional(t.String()),
+      }),
+      detail: {
+        tags: ["Users"],
+        summary: "Get user's posts",
+        description:
+          "Get all posts created by a specific user with pagination and sorting",
       },
     }
   );

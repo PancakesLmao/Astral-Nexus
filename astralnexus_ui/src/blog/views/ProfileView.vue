@@ -58,11 +58,11 @@ const fetchUserPosts = async (page = 1) => {
       loadingMorePosts.value = true
     }
 
-    const response = await apiClient.fetchUserPosts(user.value.id, {
+    const response = await apiClient.fetchUserProfilePosts(user.value.id, {
       page,
       limit: 10,
       sort_by: 'created_at',
-      sort_order: 'desc',
+      sort_order: 'DESC',
     })
 
     if (page === 1) {

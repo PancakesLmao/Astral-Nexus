@@ -30,9 +30,7 @@
           <!-- Post Content -->
           <div class="flex-1">
             <div class="flex items-center gap-2 mb-2">
-              <span class="text-accent font-medium"
-                >@{{ post.author?.name || 'username' }}</span
-              >
+              <span class="text-accent font-medium">@{{ post.author?.name || 'Unknown' }}</span>
               <span class="text-dark-400 text-sm">•</span>
               <span class="text-dark-400 text-sm">{{ formatTimeAgo(post.created_at) }}</span>
             </div>
@@ -136,19 +134,33 @@ const getAvatarInitial = (name: string): string => {
   return name.charAt(0).toUpperCase()
 }
 
-const formatTimeAgo = (dateString: string): string => {
-  const now = new Date()
-  const postDate = new Date(dateString)
-  const diffInSeconds = Math.floor((now.getTime() - postDate.getTime()) / 1000)
+const formatTimeAgo = (dateString: string | undefined): string => {
+  try {
+    if (!dateString) {
+      return 'recently'
+    }
 
-  if (diffInSeconds < 60) {
-    return `${diffInSeconds}s ago`
-  } else if (diffInSeconds < 3600) {
-    return `${Math.floor(diffInSeconds / 60)}m ago`
-  } else if (diffInSeconds < 86400) {
-    return `${Math.floor(diffInSeconds / 3600)}h ago`
-  } else {
-    return `${Math.floor(diffInSeconds / 86400)}d ago`
+    const now = new Date()
+    const postDate = new Date(dateString)
+
+    // Check if the date is valid
+    if (isNaN(postDate.getTime())) {
+      return 'recently'
+    }
+
+    const diffInSeconds = Math.floor((now.getTime() - postDate.getTime()) / 1000)
+
+    if (diffInSeconds < 60) {
+      return `${diffInSeconds}s ago`
+    } else if (diffInSeconds < 3600) {
+      return `${Math.floor(diffInSeconds / 60)}m ago`
+    } else if (diffInSeconds < 86400) {
+      return `${Math.floor(diffInSeconds / 3600)}h ago`
+    } else {
+      return `${Math.floor(diffInSeconds / 86400)}d ago`
+    }
+  } catch (error) {
+    return 'recently'
   }
 }
 </script>

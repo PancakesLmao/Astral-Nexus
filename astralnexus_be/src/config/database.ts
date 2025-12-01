@@ -1,26 +1,19 @@
 import { Pool } from "pg";
 
-// Parse DATABASE_URL or use individual environment variables
+// Parse DATABASE_URL for database configuration
 const getDatabaseConfig = () => {
-  if (process.env.DATABASE_URL) {
-    // Parse DATABASE_URL format: postgresql://user:password@host:port/database
-    const url = new URL(process.env.DATABASE_URL);
-    return {
-      host: url.hostname,
-      port: parseInt(url.port) || 5432,
-      database: url.pathname.slice(1), // Remove leading slash
-      user: url.username,
-      password: url.password,
-    };
+  if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL environment variable is required');
   }
 
-  // Fallback to individual environment variables
+  // Parse DATABASE_URL format: postgresql://user:password@host:port/database
+  const url = new URL(process.env.DATABASE_URL);
   return {
-    host: process.env.DB_HOST,
-    port: parseInt(process.env.DB_PORT || "5432"),
-    database: process.env.DB_NAME || process.env.POSTGRES_DB,
-    user: process.env.DB_USER || process.env.POSTGRES_USER,
-    password: process.env.DB_PASSWORD || process.env.POSTGRES_PASSWORD,
+    host: url.hostname,
+    port: parseInt(url.port) || 5432,
+    database: url.pathname.slice(1), // Remove leading slash
+    user: url.username,
+    password: url.password,
   };
 };
 

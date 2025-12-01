@@ -15,13 +15,11 @@
           <router-link to="/notifications" class="nav-link relative">
             <Bell :size="18" />
             <span>{{ languageStore.t('notifications') }}</span>
-            <!-- Notification Badge -->
+            <!-- Notification Dot -->
             <span
               v-if="props.userStats?.notifications && props.userStats.notifications > 0"
-              class="notification-badge absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center leading-none"
-            >
-              {{ props.userStats.notifications > 99 ? '99+' : props.userStats.notifications }}
-            </span>
+              class="notification-dot absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full"
+            ></span>
           </router-link>
           <router-link to="/events" class="nav-link">
             <Calendar :size="18" />

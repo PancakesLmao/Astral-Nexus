@@ -163,34 +163,56 @@ export const postsRoutes = new Elysia({ prefix: "/api/blog/posts" })
         const posts = await queryAll(postsQuery, queryParams);
 
         // Transform posts to match frontend format
-        const transformedPosts = posts.map((post: any) => ({
-          id: post.id,
-          title: post.title,
-          content: post.content,
-          author: {
-            id: post.author_id,
-            username: post.author_name || "",
-            name: post.author_name || "",
-            email: post.author_email || "",
-            picture: post.author_picture || undefined,
-            bio: "",
-            createdAt: new Date(post.created_at).toISOString(),
-          },
-          author_id: post.author_id,
-          game_id: post.game_id || undefined,
-          game_category: post.game_category || undefined,
-          post_type: "Discussion",
-          tags: [],
-          visibility: post.visibility,
-          published: post.published,
-          likes_count: post.likes_count || 0,
-          comments_count: post.comments_count || 0,
-          shares_count: post.shares_count || 0,
-          is_liked: post.is_liked || false,
-          isLiked: post.is_liked || false,
-          createdAt: new Date(post.created_at).toISOString(),
-          updatedAt: new Date(post.updated_at).toISOString(),
-        }));
+        const transformedPosts = posts.map((post: any) => {
+          // Convert timestamps to ISO string format
+          let createdAtISO = post.created_at;
+          let updatedAtISO = post.updated_at;
+          
+          // Handle Date objects from pg driver
+          if (post.created_at instanceof Date) {
+            createdAtISO = post.created_at.toISOString();
+          } else if (typeof post.created_at === 'string') {
+            // Already a string, ensure it's ISO format
+            createdAtISO = new Date(post.created_at).toISOString();
+          }
+          
+          if (post.updated_at instanceof Date) {
+            updatedAtISO = post.updated_at.toISOString();
+          } else if (typeof post.updated_at === 'string') {
+            updatedAtISO = new Date(post.updated_at).toISOString();
+          }
+          
+          return {
+            id: post.id,
+            title: post.title,
+            content: post.content,
+            author: {
+              id: post.author_id,
+              username: post.author_name || "",
+              name: post.author_name || "",
+              email: post.author_email || "",
+              picture: post.author_picture || undefined,
+              bio: "",
+              createdAt: createdAtISO,
+            },
+            author_id: post.author_id,
+            game_id: post.game_id || undefined,
+            game_category: post.game_category || undefined,
+            post_type: "Discussion",
+            tags: [],
+            visibility: post.visibility,
+            published: post.published,
+            likes_count: post.likes_count || 0,
+            comments_count: post.comments_count || 0,
+            shares_count: post.shares_count || 0,
+            is_liked: post.is_liked || false,
+            isLiked: post.is_liked || false,
+            created_at: createdAtISO,
+            createdAt: createdAtISO,
+            updated_at: updatedAtISO,
+            updatedAt: updatedAtISO,
+          };
+        });
 
         const totalPages = Math.ceil(total / limit);
 
@@ -388,7 +410,9 @@ export const postsRoutes = new Elysia({ prefix: "/api/blog/posts" })
           shares_count: post.shares_count || 0,
           is_liked: post.is_liked || false,
           isLiked: post.is_liked || false,
+          created_at: new Date(post.created_at).toISOString(),
           createdAt: new Date(post.created_at).toISOString(),
+          updated_at: new Date(post.updated_at).toISOString(),
           updatedAt: new Date(post.updated_at).toISOString(),
         };
 

@@ -31,67 +31,76 @@ import {
 const isDevelopment = process.env.NODE_ENV === "development";
 const displayHostname = isDevelopment ? "api.localtest.me" : process.env.HOST || "localhost";
 
-// Simple response logging helper
-const createResponseLogger = () => {
-  return new Elysia({ name: "response-logger" })
-    .onRequest(({ request }) => {
-      (request as any).__startTime = Date.now();
-      
-      const url = new URL(request.url);
-      const path = url.pathname + url.search;
-      const method = request.method.padEnd(6);
-      
-      // Method color
-      const methodColors: any = {
-        GET: "\x1b[36m",
-        POST: "\x1b[33m",
-        PUT: "\x1b[35m",
-        DELETE: "\x1b[31m",
-        PATCH: "\x1b[34m",
-        OPTIONS: "\x1b[37m",
-      };
-      const methodColor = methodColors[request.method.toUpperCase()] || "\x1b[0m";
-      
-      console.log(
-        `${new Date().toISOString()} ${methodColor}\x1b[1m→ ${method}\x1b[0m ${path}`
-      );
-    })
-    .onAfterHandle(({ request, set }: any) => {
-      // Log response after handler executes
-      const startTime = (request as any).__startTime || Date.now();
-      const duration = Date.now() - startTime;
-      const status = set.status || 200;
-      
-      const url = new URL(request.url);
-      const path = url.pathname + url.search;
-      const method = request.method.padEnd(6);
-      
-      // Status color
-      let statusColor = "\x1b[0m";
-      if (status >= 200 && status < 300) statusColor = "\x1b[32m";
-      else if (status >= 300 && status < 400) statusColor = "\x1b[36m";
-      else if (status >= 400 && status < 500) statusColor = "\x1b[33m";
-      else if (status >= 500) statusColor = "\x1b[31m";
-      
-      // Method color
-      const methodColors: any = {
-        GET: "\x1b[36m",
-        POST: "\x1b[33m",
-        PUT: "\x1b[35m",
-        DELETE: "\x1b[31m",
-        PATCH: "\x1b[34m",
-        OPTIONS: "\x1b[37m",
-      };
-      const methodColor = methodColors[request.method.toUpperCase()] || "\x1b[0m";
-      
-      console.log(
-        `${new Date().toISOString()} ${statusColor}\x1b[1m${status}\x1b[0m ${methodColor}\x1b[1m${method}\x1b[0m ${path} ${duration}ms`
-      );
-    });
+// ANSI color codes for logging
+const colors = {
+  reset: "\x1b[0m",
+  bright: "\x1b[1m",
+  success: "\x1b[32m", // Green (2xx)
+  info: "\x1b[34m", // Blue (1xx)
+  redirect: "\x1b[36m", // Cyan (3xx)
+  clientError: "\x1b[33m", // Yellow (4xx)
+  serverError: "\x1b[31m", // Red (5xx)
+};
+
+const getStatusColor = (status: number): string => {
+  if (status >= 200 && status < 300) return colors.success;
+  if (status >= 100 && status < 200) return colors.info;
+  if (status >= 300 && status < 400) return colors.redirect;
+  if (status >= 400 && status < 500) return colors.clientError;
+  if (status >= 500 && status < 600) return colors.serverError;
+  return colors.reset;
+};
+
+const getMethodColor = (method: string): string => {
+  switch (method.toUpperCase()) {
+    case "GET":
+      return "\x1b[36m"; // Cyan
+    case "POST":
+      return "\x1b[33m"; // Yellow
+    case "PUT":
+      return "\x1b[35m"; // Magenta
+    case "DELETE":
+      return "\x1b[31m"; // Red
+    case "PATCH":
+      return "\x1b[34m"; // Blue
+    case "OPTIONS":
+      return "\x1b[37m"; // White
+    default:
+      return colors.reset;
+  }
 };
 
 const app = new Elysia()
-  .use(createResponseLogger())
+  .onBeforeHandle(({ request, store }: any) => {
+    // Store request info for logging
+    const url = new URL(request.url);
+    const path = url.pathname + url.search;
+    const method = request.method;
+    
+    store.__requestInfo = {
+      method,
+      path,
+      start: Date.now(),
+    };
+  })
+  .onAfterHandle(({ set, store }: any) => {
+    // Log response after handler executes
+    const requestInfo = store.__requestInfo;
+    
+    if (!requestInfo) return;
+    
+    const duration = Date.now() - requestInfo.start;
+    const status = set.status || 200;
+    
+    const timestamp = new Date().toISOString();
+    const methodColor = getMethodColor(requestInfo.method);
+    const statusColor = getStatusColor(status);
+    const method = requestInfo.method.padEnd(6);
+    
+    console.log(
+      `${timestamp} ${statusColor}${colors.bright}${status}${colors.reset} ${duration}ms ${methodColor}${colors.bright}${method}${colors.reset} ${requestInfo.path}`
+    );
+  })
   // Apply middleware
   .use(loggerMiddleware)
   .use(corsMiddleware)

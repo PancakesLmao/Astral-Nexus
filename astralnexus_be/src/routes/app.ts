@@ -51,11 +51,11 @@ export const appRoutes = new Elysia()
     async () => {
       const dbStatus = await testConnection();
       return {
-        status: dbStatus ? "healthy" : "unhealthy",
+        status: dbStatus ? ("healthy" as const) : ("unhealthy" as const),
         uptime: process.uptime(),
         timestamp: new Date().toISOString(),
         environment: process.env.NODE_ENV || "development",
-        database: dbStatus ? "connected" : "disconnected",
+        database: dbStatus ? ("connected" as const) : ("disconnected" as const),
       };
     },
     {

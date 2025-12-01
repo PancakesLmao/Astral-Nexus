@@ -189,8 +189,16 @@ export const Schemas = {
           description: "Whether the current user has liked this post",
         })
       ),
+      created_at: t.String({
+        description: "Post creation timestamp",
+        format: "date-time",
+      }),
       createdAt: t.String({
         description: "Post creation timestamp",
+        format: "date-time",
+      }),
+      updated_at: t.String({
+        description: "Post last update timestamp",
         format: "date-time",
       }),
       updatedAt: t.String({
@@ -282,8 +290,16 @@ export const Schemas = {
           description: "Whether the current user has liked this comment",
         })
       ),
+      created_at: t.String({
+        description: "Comment creation timestamp",
+        format: "date-time",
+      }),
       createdAt: t.String({
         description: "Comment creation timestamp",
+        format: "date-time",
+      }),
+      updated_at: t.String({
+        description: "Comment last update timestamp",
         format: "date-time",
       }),
       updatedAt: t.String({

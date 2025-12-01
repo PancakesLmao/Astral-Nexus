@@ -332,6 +332,46 @@ export class ApiClient {
     }
   }
 
+  async fetchUserProfilePosts(
+    userId: string,
+    params?: {
+      page?: number
+      limit?: number
+      sort_by?: string
+      sort_order?: string
+    },
+  ): Promise<{ posts: Post[]; pagination: PaginationInfo }> {
+    try {
+      const searchParams = new URLSearchParams()
+
+      if (params?.page) searchParams.append('page', params.page.toString())
+      if (params?.limit) searchParams.append('limit', params.limit.toString())
+      if (params?.sort_by) searchParams.append('sort_by', params.sort_by)
+      if (params?.sort_order) searchParams.append('sort_order', params.sort_order)
+
+      const url = `${this.baseUrl}/api/users/profile/${userId}/posts${searchParams.toString() ? '?' + searchParams.toString() : ''}`
+      const response = await createAuthenticatedRequest(url)
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to fetch user profile posts')
+      }
+
+      return {
+        posts: data.data.posts,
+        pagination: data.data.pagination,
+      }
+    } catch (error) {
+      console.error('Error fetching user profile posts:', error)
+      throw error
+    }
+  }
+
   async fetchComments(postId: string): Promise<Comment[]> {
     try {
       const response = await createAuthenticatedRequest(`${this.baseUrl}/api/blog/comments/${postId}`)

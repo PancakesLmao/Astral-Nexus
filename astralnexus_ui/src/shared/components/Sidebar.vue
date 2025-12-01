@@ -57,9 +57,11 @@
             class="stat-number text-3xl font-semibold text-[#b8aff7] leading-none"
             :class="{ 'opacity-50': props.loadingStats }"
           >
-            {{ props.loadingStats ? '...' : props.userStats.comments }}
+            {{ props.loadingStats ? '...' : props.userStats.notifications }}
           </div>
-          <div class="stat-label text-sm text-gray-600 mt-1 uppercase tracking-wider">Comments</div>
+          <div class="stat-label text-sm text-gray-600 mt-1 uppercase tracking-wider">
+            {{ languageStore.t('notifications') }}
+          </div>
         </div>
         <div class="stat-item text-center">
           <div
