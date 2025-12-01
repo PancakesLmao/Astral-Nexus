@@ -49,6 +49,7 @@ export interface Post {
   title: string
   content: string
   author: User
+  author_id: string // Direct reference to author ID for ownership checks
   created_at: string
   updated_at?: string
   published?: boolean

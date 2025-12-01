@@ -111,7 +111,6 @@ export const dbRoutes = new Elysia({ prefix: "/api/db" })
           count("comments"),
           count("post_likes"),
           count("comment_likes"),
-          count("providers"),
           count("game_categories"),
         ]);
 
@@ -124,8 +123,7 @@ export const dbRoutes = new Elysia({ prefix: "/api/db" })
             comments: stats[2],
             post_likes: stats[3],
             comment_likes: stats[4],
-            providers: stats[5],
-            game_categories: stats[6],
+            game_categories: stats[5],
           },
         };
       } catch (error) {
@@ -147,7 +145,6 @@ export const dbRoutes = new Elysia({ prefix: "/api/db" })
             comments: t.Number(),
             post_likes: t.Number(),
             comment_likes: t.Number(),
-            providers: t.Number(),
             game_categories: t.Number(),
           }),
         }),

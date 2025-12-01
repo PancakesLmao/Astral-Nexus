@@ -428,6 +428,56 @@ export class ApiClient {
       throw error
     }
   }
+
+  async deleteUserPost(userId: string, postId: string): Promise<{ id: string; deleted_at: string }> {
+    try {
+      const response = await createAuthenticatedRequest(
+        `${this.baseUrl}/api/users/profile/${userId}/posts/${postId}`,
+        {
+          method: 'DELETE',
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to delete post')
+      }
+
+      return data.data
+    } catch (error) {
+      console.error('Error deleting post:', error)
+      throw error
+    }
+  }
+
+  async deleteComment(commentId: string): Promise<void> {
+    try {
+      const response = await createAuthenticatedRequest(
+        `${this.baseUrl}/api/blog/comments/${commentId}`,
+        {
+          method: 'DELETE',
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to delete comment')
+      }
+    } catch (error) {
+      console.error('Error deleting comment:', error)
+      throw error
+    }
+  }
 }
 
 export const apiClient = new ApiClient()

@@ -414,10 +414,8 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
           u.email,
           u.name,
           u.picture,
-          u.created_at,
-          p.provider_name
+          u.created_at
         FROM users u
-        JOIN providers p ON u.provider_id = p.id
         ORDER BY u.created_at DESC
         LIMIT $1 OFFSET $2
       `;
@@ -433,7 +431,6 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
             email: user.email,
             name: user.name,
             picture: user.picture,
-            provider: user.provider_name,
             createdAt: user.created_at,
           })),
           pagination: {

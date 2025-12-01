@@ -3,12 +3,12 @@
   <Teleport to="body">
     <div
       v-if="isOpen"
-      class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[999] flex items-center justify-center p-4"
       @click="handleBackdropClick"
     >
       <!-- Dialog Content -->
       <div
-        class="bg-dark-800 border border-dark-700 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+        class="bg-dark-800 border border-dark-700 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto overflow-x-visible"
         @click.stop
       >
         <!-- Dialog Header -->
@@ -23,10 +23,10 @@
         </div>
 
         <!-- Post Content -->
-        <div class="p-6">
+        <div class="p-6" @click="closeMenu">
           <div v-if="post">
             <!-- Post Header -->
-            <article class="bg-[#542f87] border border-[#542f87] rounded-lg p-8 mb-6">
+            <article class="bg-[#542f87] border border-[#542f87] rounded-lg p-8 mb-6 relative">
               <div class="flex items-start gap-4 mb-6">
                 <!-- Author Avatar -->
                 <div
@@ -52,12 +52,55 @@
                 </div>
 
                 <!-- More Options -->
-                <button
-                  class="text-dark-400 hover:text-foreground transition-colors"
-                  @click="$emit('showPostOptions', post)"
-                >
-                  <Ellipsis class="w-6 h-6" />
-                </button>
+                <div class="relative group">
+                  <button
+                    class="text-dark-400 hover:text-foreground transition-colors p-2 hover:bg-dark-700 rounded"
+                    @click.stop="showOptions = !showOptions"
+                    title="Post options"
+                  >
+                    <Ellipsis class="w-6 h-6" />
+                  </button>
+
+                  <!-- Delete Menu -->
+                  <div
+                    v-show="showOptions"
+                    class="absolute right-0 top-full mt-1 border-2 border-accent rounded-lg shadow-xl z-50 min-w-[200px]"
+                    :style="{ backgroundColor: '#270C3B' }"
+                    @click.stop
+                  >
+                    <button
+                      v-if="isPostOwner"
+                      class="w-full px-4 py-2 text-left text-white font-medium hover:bg-white/10 transition-colors text-sm first:rounded-t-lg last:rounded-b-lg"
+                      @click="handleDeletePost"
+                      :disabled="deleting"
+                    >
+                      {{ deleting ? 'Deleting...' : 'Delete Post' }}
+                    </button>
+                    <button
+                      v-if="isPostOwner"
+                      class="w-full px-4 py-2 text-left text-white hover:bg-white/10 transition-colors text-sm opacity-50 cursor-not-allowed"
+                      disabled
+                      title="Edit functionality coming soon"
+                    >
+                      Edit (TODO)
+                    </button>
+                    <button
+                      v-if="!isPostOwner"
+                      class="w-full px-4 py-2 text-left text-white hover:bg-white/10 transition-colors text-sm opacity-50 cursor-not-allowed first:rounded-t-lg"
+                      disabled
+                      title="Report functionality coming soon"
+                    >
+                      Report (TODO)
+                    </button>
+                    <button
+                      class="w-full px-4 py-2 text-left text-white hover:bg-white/10 transition-colors text-sm opacity-50 cursor-not-allowed last:rounded-b-lg"
+                      disabled
+                      title="Copy link functionality coming soon"
+                    >
+                      Copy Link (TODO)
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <!-- Post Title -->
@@ -219,10 +262,12 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { MessageSquareMore, ThumbsUp, Ellipsis, Repeat2, X } from 'lucide-vue-next'
 import type { Post, Comment, User } from '@/shared/types'
 import { usePostsStore } from '@/shared/stores/posts'
+import { useUserStore } from '@/shared/stores/user'
+import { apiClient } from '@/shared/api'
 
 // Props
 interface Props {
@@ -252,13 +297,40 @@ const emit = defineEmits<{
   submitComment: [content: string, postId: number | string]
   replyToComment: [comment: Comment]
   toggleCommentLike: [comment: Comment]
+  deletePost: [postId: string | number]
+  openPostOptions: []
 }>()
 
 const newComment = ref('')
 const submittingComment = ref(false)
+const showOptions = ref(false)
+const deleting = ref(false)
 
-// Use the posts store for like functionality to ensure synchronization
+// Use the posts store and user store
 const postsStore = usePostsStore()
+const userStore = useUserStore()
+
+// Check if current user is the post owner
+const isPostOwner = computed(() => {
+  // First try to use the prop currentUser, then fall back to store user
+  const user = props.currentUser || userStore.user
+
+  if (!props.post || !user) {
+    console.log('PostDetail: Missing post or user', {
+      hasPost: !!props.post,
+      hasPropUser: !!props.currentUser,
+      hasStoreUser: !!userStore.user,
+    })
+    return false
+  }
+  const isOwner = props.post.author_id === user.id
+  console.log('PostDetail: Checking ownership', {
+    postAuthorId: props.post.author_id,
+    userId: user.id,
+    isOwner,
+  })
+  return isOwner
+})
 
 const handleToggleLike = async (post: Post) => {
   try {
@@ -268,9 +340,37 @@ const handleToggleLike = async (post: Post) => {
   }
 }
 
+// Delete post handler
+const handleDeletePost = async () => {
+  if (!props.post) return
+
+  // Use prop user if available, otherwise use store user
+  const user = props.currentUser || userStore.user
+  if (!user) return
+
+  if (!window.confirm('Are you sure you want to delete this post?')) return
+
+  deleting.value = true
+  try {
+    await apiClient.deleteUserPost(user.id, props.post.id.toString())
+    showOptions.value = false
+    emit('deletePost', props.post.id)
+    emit('close')
+  } catch (error) {
+    console.error('Failed to delete post:', error)
+    alert('Failed to delete post. Please try again.')
+  } finally {
+    deleting.value = false
+  }
+}
+
 // Methods
 const handleBackdropClick = () => {
   emit('close')
+}
+
+const closeMenu = () => {
+  showOptions.value = false
 }
 
 const submitComment = async () => {
@@ -322,6 +422,7 @@ watch(
     if (!isOpen) {
       newComment.value = ''
       submittingComment.value = false
+      showOptions.value = false
     }
   },
 )

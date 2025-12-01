@@ -10,7 +10,7 @@
       @toggle-like="handleLike"
       @toggle-comments="handleComments"
       @share-post="handleShare"
-      @show-post-options="showPostOptions"
+      @show-post-options="handleShowPostOptions"
       @load-more="loadMorePosts"
     />
     <PostDetail
@@ -25,6 +25,17 @@
       @reply-to-comment="handleReply"
       @toggle-comment-like="handleCommentLike"
     />
+    <PostOptions
+      :is-open="showPostOptions"
+      :post="optionsPost"
+      :position="optionsPosition"
+      :is-owner="isOptionsOwner"
+      :user-id="currentUser?.id"
+      @close="closePostOptions"
+      @delete="handlePostDelete"
+      @edit="handlePostEdit"
+      @report="handlePostReport"
+    />
   </div>
 </template>
 
@@ -32,6 +43,7 @@
 import { ref, onMounted, computed } from 'vue'
 import PostList from '@/shared/components/PostList.vue'
 import PostDetail from '@/shared/components/PostDetail.vue'
+import PostOptions from '@/shared/components/PostOptions.vue'
 import { usePostsStore } from '@/shared/stores/posts'
 import { useUser } from '@/shared/composables/useUser'
 import type { Post, Comment } from '@/shared/types'
@@ -43,7 +55,7 @@ const postsStore = usePostsStore()
 const { user: currentUser, initializeUser } = useUser()
 
 // Computed properties from store
-const posts = computed(() => postsStore.filteredPosts) // Use filtered posts instead of raw posts
+const posts = computed(() => postsStore.filteredPosts)
 const isLoading = computed(() => postsStore.isLoading)
 const hasMorePosts = computed(() => postsStore.hasMorePosts)
 const showPostDetail = computed(() => !!postsStore.selectedPost)
@@ -54,7 +66,24 @@ const loadingComments = computed(() => postsStore.loadingComments)
 // Component state
 const isLoadingMore = ref(false)
 
-// Methods - now just delegate to store
+// Post Options state
+const showPostOptions = ref(false)
+const optionsPost = ref<Post | null>(null)
+const optionsPosition = ref({ top: 0, left: 0 })
+const isOptionsOwner = computed(() => {
+  if (!optionsPost.value || !currentUser.value) {
+    return false
+  }
+  const isOwner = optionsPost.value.author_id === currentUser.value.id
+  console.log('[HomeView] Ownership check:', {
+    postAuthorId: optionsPost.value.author_id,
+    currentUserId: currentUser.value.id,
+    isOwner,
+  })
+  return isOwner
+})
+
+// Methods
 const fetchPosts = async (loadMore = false) => {
   try {
     if (loadMore) {
@@ -65,7 +94,6 @@ const fetchPosts = async (loadMore = false) => {
         ...postsStore.$state.currentFilter,
       })
     } else {
-      // For initial load, use the store's initialization method
       await postsStore.initializePosts()
     }
   } catch (error) {
@@ -81,7 +109,6 @@ const closePostDetail = () => {
   postsStore.closePostDetail()
 }
 
-// Like handler that uses the store directly for consistency with PostDetail
 const handleLike = async (post: Post) => {
   try {
     await postsStore.likePost(post.id.toString())
@@ -97,12 +124,42 @@ const handleComments = (post: Post) => {
 const handleShare = (post: Post) => {
   console.log('Sharing post:', post.id)
   navigator.clipboard.writeText(`Check out this post: ${post.title}`)
-  // Could show toast notification here
 }
 
-const showPostOptions = (post: Post) => {
-  console.log('Show options for post:', post.id)
-  // Implement options menu (edit, delete, report, etc.)
+const handleShowPostOptions = (post: Post, event?: MouseEvent) => {
+  optionsPost.value = post
+  showPostOptions.value = true
+
+  if (event) {
+    const rect = (event.target as HTMLElement).getBoundingClientRect()
+    optionsPosition.value = {
+      top: rect.bottom + 5,
+      left: rect.left,
+    }
+  }
+}
+
+const closePostOptions = () => {
+  showPostOptions.value = false
+  optionsPost.value = null
+}
+
+const handlePostDelete = (postId: string | number) => {
+  // Remove from posts array
+  postsStore.$patch((state) => {
+    state.posts = state.posts.filter((p) => p.id !== postId)
+  })
+  closePostOptions()
+}
+
+const handlePostEdit = (post: Post) => {
+  console.log('Edit post:', post.id)
+  // TODO: Implement edit functionality
+}
+
+const handlePostReport = (post: Post) => {
+  console.log('Report post:', post.id)
+  // TODO: Implement report functionality
 }
 
 const loadMorePosts = async () => {
@@ -110,7 +167,7 @@ const loadMorePosts = async () => {
 
   isLoadingMore.value = true
   try {
-    await fetchPosts(true) // Load more posts
+    await fetchPosts(true)
   } finally {
     isLoadingMore.value = false
   }

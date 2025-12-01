@@ -75,7 +75,7 @@
           <!-- More Options -->
           <button
             class="text-dark-400 hover:text-foreground transition-colors"
-            @click.stop="$emit('showPostOptions', post)"
+            @click.stop="$emit('showPostOptions', post, $event)"
           >
             <Ellipsis class="w-5 h-5" />
           </button>
@@ -125,7 +125,7 @@ defineEmits<{
   toggleLike: [post: Post]
   toggleComments: [post: Post]
   sharePost: [post: Post]
-  showPostOptions: [post: Post]
+  showPostOptions: [post: Post, event?: MouseEvent]
   loadMore: []
 }>()
 

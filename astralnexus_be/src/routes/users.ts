@@ -17,10 +17,8 @@ export const userRoutes = new Elysia({ prefix: "/api/users" })
             u.name,
             u.picture,
             u.created_at,
-            u.updated_at,
-            p.provider_name
+            u.updated_at
           FROM users u
-          JOIN providers p ON u.provider_id = p.id
           WHERE u.id = $1
         `;
 
@@ -43,7 +41,6 @@ export const userRoutes = new Elysia({ prefix: "/api/users" })
             email: user.email,
             name: user.name,
             picture: user.picture,
-            provider: user.provider_name,
             createdAt: user.created_at,
             updatedAt: user.updated_at,
           },
@@ -221,30 +218,26 @@ export const userRoutes = new Elysia({ prefix: "/api/users" })
   )
 
   // Get user statistics (posts count, followers, following, etc.)
-  // Uses authenticated user from JWT token to look up database user by email
+  // Uses authenticated user's Supabase UUID directly
   .use(authGuard)
   .get(
     "/stats/:id",
     async ({ params: { id }, user, set }) => {
       try {
-        console.log('[Stats] Getting stats for user email:', user?.email);
-        
-        // Look up database user by email from the authenticated Supabase user
-        // This ensures we get the correct database user ID regardless of Supabase ID format
-        const userLookup = await db.query("SELECT id FROM users WHERE email = $1", [user.email]);
-        
-        if (userLookup.rows.length === 0) {
-          console.warn(`[Stats] No database user found for email: ${user.email}`);
-          set.status = 404;
+        if (!user) {
+          set.status = 401;
           return {
             success: false,
-            message: "User not found",
-            error: "No user found in database for authenticated email",
+            message: "Authentication required",
+            error: "No valid authentication token",
           };
         }
+
+        console.log('[Stats] Getting stats for user ID:', user.id);
         
-        const dbUserId = userLookup.rows[0].id;
-        console.log('[Stats] Found database user ID:', dbUserId);
+        // Use the Supabase UUID directly as the user ID (no email lookup needed)
+        // The user.id from authGuard is already the Supabase UUID which matches users.id in database
+        const dbUserId = user.id;
 
         // Get user posts count
         const postsCountQuery = `
@@ -559,4 +552,111 @@ export const userRoutes = new Elysia({ prefix: "/api/users" })
           "Get all posts created by a specific user with pagination and sorting",
       },
     }
+  )
+
+  // Delete user's post
+  // Users can only delete their own posts
+  .use(authGuard)
+  .delete(
+    "/profile/:userId/posts/:postId",
+    async ({ params: { userId, postId }, user, set }) => {
+      try {
+        console.log('[DeleteUserPost] User:', user!.email, 'attempting to delete post:', postId);
+
+        // Look up database user by email from the authenticated Supabase user
+        const userLookup = await db.query("SELECT id FROM users WHERE email = $1", [user!.email]);
+
+        if (userLookup.rows.length === 0) {
+          console.warn(`[DeleteUserPost] No database user found for email: ${user!.email}`);
+          set.status = 404;
+          return {
+            success: false,
+            message: "User not found",
+            error: "No user found in database for authenticated email",
+          };
+        }
+
+        const dbUserId = userLookup.rows[0].id;
+
+        // Check if post exists and belongs to this user
+        const postLookup = await db.query(
+          "SELECT id, author_id FROM posts WHERE id = $1",
+          [postId]
+        );
+
+        if (postLookup.rows.length === 0) {
+          set.status = 404;
+          return {
+            success: false,
+            message: "Post not found",
+            error: "The requested post does not exist",
+          };
+        }
+
+        const post = postLookup.rows[0];
+
+        // Check if user owns this post
+        if (post.author_id !== dbUserId) {
+          console.warn(`[DeleteUserPost] User ${dbUserId} tried to delete post owned by ${post.author_id}`);
+          set.status = 403;
+          return {
+            success: false,
+            message: "Permission denied",
+            error: "You can only delete your own posts",
+          };
+        }
+
+        // Delete the post (cascade will handle related comments and likes)
+        await db.query("DELETE FROM posts WHERE id = $1", [postId]);
+
+        console.log('[DeleteUserPost] Post deleted successfully:', postId);
+
+        return {
+          success: true,
+          message: "Post deleted successfully",
+          data: {
+            id: postId,
+            deleted_at: new Date().toISOString(),
+          },
+        };
+      } catch (error) {
+        console.error("Error deleting user post:", error);
+        set.status = 500;
+        return {
+          success: false,
+          message: "Failed to delete post",
+          error: error instanceof Error ? error.message : "Unknown error",
+        };
+      }
+    },
+    {
+      params: t.Object({
+        userId: t.String({
+          description: "User ID",
+          minLength: 1,
+        }),
+        postId: t.String({
+          format: "uuid",
+          description: "Post ID to delete",
+        }),
+      }),
+      response: t.Object({
+        success: t.Boolean(),
+        message: t.String(),
+        data: t.Optional(
+          t.Object({
+            id: t.String({ format: "uuid" }),
+            deleted_at: t.String({ format: "date-time" }),
+          })
+        ),
+        error: t.Optional(t.String()),
+      }),
+      detail: {
+        tags: ["Users"],
+        summary: "Delete user's own post",
+        description:
+          "Delete a post created by the authenticated user. Users can only delete their own posts.",
+      },
+    }
   );
+

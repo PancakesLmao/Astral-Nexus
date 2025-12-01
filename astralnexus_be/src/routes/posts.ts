@@ -505,27 +505,21 @@ export const postsRoutes = new Elysia({ prefix: "/api/blog/posts" })
     "/",
     async ({ body, user, set, headers }) => {
       try {
-        console.log('[Create Post] User:', user ? 'present' : 'missing');
+        console.log('[Create Post] User:', user ? `present (${user.id})` : 'missing');
+        
+        // Use Supabase UUID directly as author_id (no database lookup needed)
+        const authorId = user.id;
+        
         // Check if user exists in database, create if not
-        let dbUser = await queryOne("SELECT id, email, name FROM users WHERE email = $1", [user.email]);
+        let dbUser = await queryOne("SELECT id FROM users WHERE id = $1", [authorId]);
 
         if (!dbUser) {
-          // Get Discord provider ID
-          const discordProvider = await queryOne("SELECT id FROM providers WHERE provider_name = $1", ["discord"]);
-          if (!discordProvider) {
-            set.status = 500;
-            return {
-              success: false,
-              message: "Failed to create post",
-              error: "Discord provider not configured",
-            };
-          }
-
-          // Create user in database
+          // Create user in database with Supabase UUID
           dbUser = await queryOne(
-            "INSERT INTO users (email, name, picture, provider_id) VALUES ($1, $2, $3, $4) RETURNING id, email, name",
-            [user.email, user.name || user.email, user.picture || null, discordProvider.id]
+            "INSERT INTO users (id, email, name, picture) VALUES ($1, $2, $3, $4) RETURNING id, email, name",
+            [authorId, user.email, user.name || user.email, user.picture || null]
           );
+          console.log('[Create Post] Created new user:', authorId);
         }
 
         const insertQuery = `
@@ -537,12 +531,14 @@ export const postsRoutes = new Elysia({ prefix: "/api/blog/posts" })
         const result = await queryOne(insertQuery, [
           body.title,
           body.content,
-          dbUser.id,
+          authorId,
           body.game_id || null,
           body.published ?? true,
           body.visibility || "public",
         ]);
 
+        console.log('[Create Post] Post created:', result.id, 'by', authorId);
+        
         return {
           success: true,
           message: "Post created successfully",
@@ -937,26 +933,28 @@ export const postsRoutes = new Elysia({ prefix: "/api/blog/posts" })
     "/:id/like",
     async ({ params: { id }, set, user, headers }) => {
       try {
-        console.log('[Like Endpoint] User:', user ? 'present' : 'missing');
+        if (!user) {
+          set.status = 401;
+          return {
+            success: false,
+            error: "Authentication required",
+            message: "No valid authentication token",
+          };
+        }
+        
+        console.log('[Like Endpoint] User:', `present (${user.id})`);
+        
+        // Use Supabase UUID directly as user_id (no database lookup needed)
+        const userId = user.id;
+        
         // Check if user exists in database, create if not
-        let dbUser = await queryOne("SELECT id FROM users WHERE email = $1", [user.email]);
+        let dbUser = await queryOne("SELECT id FROM users WHERE id = $1", [userId]);
 
         if (!dbUser) {
-          // Get Discord provider ID
-          const discordProvider = await queryOne("SELECT id FROM providers WHERE provider_name = $1", ["discord"]);
-          if (!discordProvider) {
-            set.status = 500;
-            return {
-              success: false,
-              error: "Failed to like post",
-              message: "Discord provider not configured",
-            };
-          }
-
-          // Create user in database
+          // Create user in database with Supabase UUID
           dbUser = await queryOne(
-            "INSERT INTO users (email, name, picture, provider_id) VALUES ($1, $2, $3, $4) RETURNING id",
-            [user.email, user.name || user.email, user.picture || null, discordProvider.id]
+            "INSERT INTO users (id, email, name, picture) VALUES ($1, $2, $3, $4) RETURNING id",
+            [userId, user.email, user.name || user.email, user.picture || null]
           );
         }
 
@@ -978,14 +976,14 @@ export const postsRoutes = new Elysia({ prefix: "/api/blog/posts" })
         // Check if user already liked this post
         const existingLike = await queryOne(
           "SELECT post_id FROM post_likes WHERE post_id = $1 AND user_id = $2",
-          [id, dbUser.id]
+          [id, userId]
         );
 
         if (existingLike) {
           // Unlike the post
           await queryOne(
             "DELETE FROM post_likes WHERE post_id = $1 AND user_id = $2",
-            [id, dbUser.id]
+            [id, userId]
           );
 
           return {
@@ -997,7 +995,7 @@ export const postsRoutes = new Elysia({ prefix: "/api/blog/posts" })
           // Like the post
           await queryOne(
             "INSERT INTO post_likes (post_id, user_id) VALUES ($1, $2)",
-            [id, dbUser.id]
+            [id, userId]
           );
 
           return {

@@ -26,8 +26,9 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
         const supabaseUser = await verifySupabaseToken(token);
         
         if (supabaseUser) {
+          // Use Supabase UUID directly as the user ID (no database lookup needed)
           const user = {
-            id: supabaseUser.id,
+            id: supabaseUser.id, // Supabase UUID is now the primary ID
             email: supabaseUser.email || '',
             name: supabaseUser.user_metadata?.full_name || supabaseUser.user_metadata?.name || '',
             picture: supabaseUser.user_metadata?.avatar_url || '',

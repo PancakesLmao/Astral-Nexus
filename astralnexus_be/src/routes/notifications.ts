@@ -6,11 +6,10 @@ import { authGuard } from "../middleware/auth";
 // Utility function to create welcome notification for new users
 export async function createWelcomeNotification(userId: string) {
   try {
-    // Get admin user ID
+    // Get admin user ID (fixed admin UUID used in init.sql)
     const adminQuery = `
-      SELECT u.id FROM users u
-      JOIN providers p ON u.provider_id = p.id
-      WHERE u.email = 'admin@astralnexus.com' AND p.provider_name = 'admin'
+      SELECT id FROM users
+      WHERE email = 'admin@astralnexus.com'
     `;
     const adminResult = await db.query(adminQuery);
 
@@ -318,21 +317,34 @@ export const notificationsRoutes = new Elysia({ prefix: "/api/blog/notifications
       }),
     }
   )
+  .use(authGuard)
   .delete(
     "/:id",
-    async ({ params, set }) => {
+    async ({ params, set, user }) => {
       try {
         const { id } = params;
 
-        const query = `
-          DELETE FROM notifications 
-          WHERE id = $1
-          RETURNING id
-        `;
+        // Get authenticated user from database
+        const userLookup = await db.query("SELECT id FROM users WHERE email = $1", [user!.email]);
 
-        const result = await db.query(query, [id]);
+        if (userLookup.rows.length === 0) {
+          set.status = 404;
+          return {
+            success: false,
+            message: "User not found",
+            error: "No user found in database for authenticated email",
+          };
+        }
 
-        if (result.rows.length === 0) {
+        const dbUserId = userLookup.rows[0].id;
+
+        // Check if notification belongs to this user
+        const notificationLookup = await db.query(
+          "SELECT id, user_id FROM notifications WHERE id = $1",
+          [id]
+        );
+
+        if (notificationLookup.rows.length === 0) {
           set.status = 404;
           return {
             success: false,
@@ -341,12 +353,27 @@ export const notificationsRoutes = new Elysia({ prefix: "/api/blog/notifications
           };
         }
 
+        const notification = notificationLookup.rows[0];
+
+        // Check if user owns this notification
+        if (notification.user_id !== dbUserId) {
+          set.status = 403;
+          return {
+            success: false,
+            message: "Permission denied",
+            error: "You can only delete your own notifications",
+          };
+        }
+
+        // Delete the notification
+        await db.query("DELETE FROM notifications WHERE id = $1", [id]);
+
         set.status = 200;
         return {
           success: true,
           message: "Notification deleted successfully",
           data: {
-            deleted_id: result.rows[0].id,
+            deleted_id: id,
           },
         };
       } catch (error) {
@@ -362,8 +389,8 @@ export const notificationsRoutes = new Elysia({ prefix: "/api/blog/notifications
     {
       detail: {
         tags: ["Blog"],
-        summary: "Delete a notification",
-        description: "Delete a specific notification by ID. Returns the ID of the deleted notification. If the notification does not exist, returns a 404 error.",
+        summary: "Delete user's notification",
+        description: "Delete a specific notification. Users can only delete their own notifications.",
         responses: {
           "200": {
             description: "Notification deleted successfully",
@@ -380,6 +407,21 @@ export const notificationsRoutes = new Elysia({ prefix: "/api/blog/notifications
                         deleted_id: { type: "string", format: "uuid", description: "ID of the deleted notification" },
                       },
                     },
+                  },
+                },
+              },
+            },
+          },
+          "403": {
+            description: "Permission denied - Cannot delete other users' notifications",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: false },
+                    message: { type: "string" },
+                    error: { type: "string" },
                   },
                 },
               },

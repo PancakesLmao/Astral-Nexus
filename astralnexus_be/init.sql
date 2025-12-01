@@ -3,13 +3,6 @@
 -- Create extension for UUID generation
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Providers table
-CREATE TABLE IF NOT EXISTS providers (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    provider_name VARCHAR(50) UNIQUE NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
 -- Game Categories table
 CREATE TABLE IF NOT EXISTS game_categories (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -17,23 +10,23 @@ CREATE TABLE IF NOT EXISTS game_categories (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Users table
+-- Users table - Now uses Supabase UUID directly as the primary ID
+-- This eliminates the need for legacy provider_id and maintains consistency
 CREATE TABLE IF NOT EXISTS users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id VARCHAR(255) PRIMARY KEY, -- Supabase UUID stored as VARCHAR for compatibility
     email VARCHAR(255) UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
     picture TEXT,
-    provider_id UUID NOT NULL REFERENCES providers(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Posts table
+-- Posts table - author_id now references Supabase user ID
 CREATE TABLE IF NOT EXISTS posts (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     title VARCHAR(255) NOT NULL,
     content TEXT NOT NULL,
-    author_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    author_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     published BOOLEAN DEFAULT FALSE,
     visibility VARCHAR(20) DEFAULT 'public' CHECK (visibility IN ('public', 'private', 'followers')),
     game_id UUID REFERENCES game_categories(id) ON DELETE SET NULL,
@@ -44,12 +37,12 @@ CREATE TABLE IF NOT EXISTS posts (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Comments table
+-- Comments table - author_id now references Supabase user ID
 CREATE TABLE IF NOT EXISTS comments (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     content TEXT NOT NULL,
     post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
-    author_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    author_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     parent_comment_id UUID REFERENCES comments(id) ON DELETE CASCADE,
     likes_count INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -59,7 +52,7 @@ CREATE TABLE IF NOT EXISTS comments (
 -- Post Likes table (Many-to-many relationship)
 CREATE TABLE IF NOT EXISTS post_likes (
     post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (post_id, user_id)
 );
@@ -67,7 +60,7 @@ CREATE TABLE IF NOT EXISTS post_likes (
 -- Comment Likes table (Many-to-many relationship)
 CREATE TABLE IF NOT EXISTS comment_likes (
     comment_id UUID NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (comment_id, user_id)
 );
@@ -75,7 +68,7 @@ CREATE TABLE IF NOT EXISTS comment_likes (
 -- Notifications table
 CREATE TABLE IF NOT EXISTS notifications (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     type VARCHAR(50) NOT NULL CHECK (type IN ('like', 'comment', 'follow', 'mention', 'system')),
     title VARCHAR(255) NOT NULL,
     message TEXT NOT NULL,
@@ -97,8 +90,11 @@ CREATE TABLE IF NOT EXISTS administrators (
 
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-CREATE INDEX IF NOT EXISTS idx_users_provider_id ON users(provider_id);
 CREATE INDEX IF NOT EXISTS idx_posts_author_id ON posts(author_id);
+CREATE INDEX IF NOT EXISTS idx_comments_author_id ON comments(author_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_post_likes_user_id ON post_likes(user_id);
+CREATE INDEX IF NOT EXISTS idx_comment_likes_user_id ON comment_likes(user_id);
 CREATE INDEX IF NOT EXISTS idx_posts_published ON posts(published);
 CREATE INDEX IF NOT EXISTS idx_posts_visibility ON posts(visibility);
 CREATE INDEX IF NOT EXISTS idx_posts_game_id ON posts(game_id);
@@ -183,13 +179,6 @@ CREATE TRIGGER update_post_comments_count_trigger AFTER INSERT OR DELETE ON comm
 CREATE TRIGGER update_comment_likes_count_trigger AFTER INSERT OR DELETE ON comment_likes FOR EACH ROW EXECUTE FUNCTION update_comment_likes_count();
 
 -- Insert sample data for development
--- Insert default providers first
-INSERT INTO providers (provider_name) VALUES
-('google'),
-('discord'),
-('admin')
-ON CONFLICT (provider_name) DO NOTHING;
-
 -- Insert game categories
 INSERT INTO game_categories (game_name) VALUES
 ('Genshin Impact'),
@@ -199,20 +188,19 @@ INSERT INTO game_categories (game_name) VALUES
 ('All Games')
 ON CONFLICT (game_name) DO NOTHING;
 
--- Insert sample admin user (fixed: removed ON CONFLICT for primary key)
+-- Insert sample admin user
 DO $$
 DECLARE
-    admin_provider_id UUID;
-    admin_user_id UUID;
+    admin_user_id VARCHAR(255);
     all_games_id UUID;
     welcome_post_id UUID;
 BEGIN
-    -- Get provider ID
-    SELECT id INTO admin_provider_id FROM providers WHERE provider_name = 'admin';
+    -- Define a fixed UUID for the admin user (for development/sample data)
+    admin_user_id := '00000000-0000-0000-0000-000000000001';
     
     -- Insert admin user if not exists
-    INSERT INTO users (email, name, picture, provider_id) 
-    VALUES ('admin@astralnexus.com', 'AstralNexus Admin', 'https://korekawaii.com/cdn/shop/files/Sdb20e75f940c4a6a91a5f540f45a8a48c.webp?v=1695314987', admin_provider_id)
+    INSERT INTO users (id, email, name, picture) 
+    VALUES (admin_user_id, 'admin@astralnexus.com', 'AstralNexus Admin', 'https://korekawaii.com/cdn/shop/files/Sdb20e75f940c4a6a91a5f540f45a8a48c.webp?v=1695314987')
     ON CONFLICT (email) DO NOTHING;
     
     -- Get user ID
@@ -311,6 +299,6 @@ Let''s build an amazing gaming community together! 🎊',
 END $$;
 
 -- Insert default administrator account
-INSERT INTO administrators (email, name, password_hash, role) 
-VALUES ('admin@astralnexus.com', 'AstralNexus Admin', 'admin', 'super_admin')
+INSERT INTO administrators (email, name, role) 
+VALUES ('admin@astralnexus.com', 'AstralNexus Admin', 'super_admin')
 ON CONFLICT (email) DO NOTHING;

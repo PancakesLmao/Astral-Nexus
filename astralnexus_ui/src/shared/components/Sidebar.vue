@@ -1,6 +1,6 @@
 <template>
   <div
-    class="user-sidebar fixed bg-[#0a0b0f] border-r border-white/10 top-0 left-0 w-[280px] h-screen z-[1000] overflow-y-auto p-6"
+    class="user-sidebar fixed bg-[#0a0b0f] border-r border-white/10 top-0 left-0 w-[280px] h-screen z-[1100] overflow-y-auto p-6"
     style="scrollbar-width: none; -ms-overflow-style: none"
   >
     <!-- Profile header -->

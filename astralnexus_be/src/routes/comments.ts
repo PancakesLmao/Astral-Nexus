@@ -37,23 +37,29 @@ export const commentRoutes = new Elysia({ prefix: "/api/blog/comments" })
         const comments = await queryAll(commentsQuery, [postId, user?.id || null]);
 
         // Transform comments to match expected format
-        const transformedComments = comments.map((comment: any) => ({
-          id: comment.id.toString(),
-          postId: comment.post_id.toString(),
-          post_id: comment.post_id.toString(),
-          author_id: comment.author_id.toString(),
-          author: {
-            id: comment.author_id.toString(),
-            name: comment.author_name,
-            email: comment.author_email,
-            picture: comment.author_picture,
-          },
-          content: comment.content,
-          likes_count: parseInt(comment.likes_count) || 0,
-          isLiked: comment.is_liked,
-          createdAt: new Date(comment.created_at).toISOString(),
-          updatedAt: new Date(comment.updated_at).toISOString(),
-        }));
+        const transformedComments = comments.map((comment: any) => {
+          const createdAtIso = new Date(comment.created_at).toISOString();
+          const updatedAtIso = new Date(comment.updated_at).toISOString();
+          return {
+            id: comment.id.toString(),
+            postId: comment.post_id.toString(),
+            post_id: comment.post_id.toString(),
+            author_id: comment.author_id.toString(),
+            author: {
+              id: comment.author_id.toString(),
+              name: comment.author_name,
+              email: comment.author_email,
+              picture: comment.author_picture,
+            },
+            content: comment.content,
+            likes_count: parseInt(comment.likes_count) || 0,
+            isLiked: comment.is_liked,
+            created_at: createdAtIso,
+            createdAt: createdAtIso,
+            updated_at: updatedAtIso,
+            updatedAt: updatedAtIso,
+          };
+        });
 
         set.status = 200;
         return {
@@ -140,25 +146,17 @@ export const commentRoutes = new Elysia({ prefix: "/api/blog/comments" })
           };
         }
 
+        // Use Supabase UUID directly as author_id (no database lookup needed)
+        const authorId = currentUser.id;
+        
         // Check if user exists in database, create if not
-        let dbUser = await queryOne("SELECT id, email, name FROM users WHERE email = $1", [currentUser.email]);
+        let dbUser = await queryOne("SELECT id, email, name, picture FROM users WHERE id = $1", [authorId]);
 
         if (!dbUser) {
-          // Get Discord provider ID
-          const discordProvider = await queryOne("SELECT id FROM providers WHERE provider_name = $1", ["discord"]);
-          if (!discordProvider) {
-            set.status = 500;
-            return {
-              success: false,
-              error: "Failed to create comment",
-              message: "Discord provider not configured",
-            };
-          }
-
-          // Create user in database
+          // Create user in database with Supabase UUID
           dbUser = await queryOne(
-            "INSERT INTO users (email, name, picture, provider_id) VALUES ($1, $2, $3, $4) RETURNING id, email, name, picture",
-            [currentUser.email, currentUser.name || currentUser.email, currentUser.picture || null, discordProvider.id]
+            "INSERT INTO users (id, email, name, picture) VALUES ($1, $2, $3, $4) RETURNING id, email, name, picture",
+            [authorId, currentUser.email, currentUser.name || currentUser.email, currentUser.picture || null]
           );
         }
 
@@ -181,17 +179,18 @@ export const commentRoutes = new Elysia({ prefix: "/api/blog/comments" })
 
         const result = await queryOne(insertQuery, [
           body.postId,
-          dbUser.id,
+          authorId,
           body.content,
         ]);
 
+        const createdAtIso = new Date(result.created_at).toISOString();
         const newComment = {
           id: result.id.toString(),
           postId: body.postId,
           post_id: body.postId,
-          author_id: dbUser.id.toString(),
+          author_id: authorId,
           author: {
-            id: dbUser.id.toString(),
+            id: authorId,
             name: dbUser.name,
             email: dbUser.email,
             picture: dbUser.picture,
@@ -199,8 +198,10 @@ export const commentRoutes = new Elysia({ prefix: "/api/blog/comments" })
           content: body.content,
           likes_count: 0,
           isLiked: false,
-          createdAt: new Date(result.created_at).toISOString(),
-          updatedAt: new Date(result.created_at).toISOString(),
+          created_at: createdAtIso,
+          createdAt: createdAtIso,
+          updated_at: createdAtIso,
+          updatedAt: createdAtIso,
         };
 
         set.status = 201;
@@ -357,7 +358,9 @@ export const commentRoutes = new Elysia({ prefix: "/api/blog/comments" })
           content: result.content,
           likes_count: 0,
           isLiked: false,
+          created_at: new Date(result.created_at).toISOString(),
           createdAt: new Date(result.created_at).toISOString(),
+          updated_at: new Date(result.updated_at).toISOString(),
           updatedAt: new Date(result.updated_at).toISOString(),
         };
 
@@ -590,25 +593,17 @@ export const commentRoutes = new Elysia({ prefix: "/api/blog/comments" })
           };
         }
 
+        // Use Supabase UUID directly as user_id (no database lookup needed)
+        const userId = currentUser.id;
+        
         // Check if user exists in database, create if not
-        let dbUser = await queryOne("SELECT id FROM users WHERE email = $1", [currentUser.email]);
+        let dbUser = await queryOne("SELECT id FROM users WHERE id = $1", [userId]);
 
         if (!dbUser) {
-          // Get Discord provider ID
-          const discordProvider = await queryOne("SELECT id FROM providers WHERE provider_name = $1", ["discord"]);
-          if (!discordProvider) {
-            set.status = 500;
-            return {
-              success: false,
-              error: "Failed to like comment",
-              message: "Discord provider not configured",
-            };
-          }
-
-          // Create user in database
+          // Create user in database with Supabase UUID
           dbUser = await queryOne(
-            "INSERT INTO users (email, name, picture, provider_id) VALUES ($1, $2, $3, $4) RETURNING id",
-            [currentUser.email, currentUser.name || currentUser.email, currentUser.picture || null, discordProvider.id]
+            "INSERT INTO users (id, email, name, picture) VALUES ($1, $2, $3, $4) RETURNING id",
+            [userId, currentUser.email, currentUser.name || currentUser.email, currentUser.picture || null]
           );
         }
 
@@ -630,14 +625,14 @@ export const commentRoutes = new Elysia({ prefix: "/api/blog/comments" })
         // Check if user already liked this comment
         const existingLike = await queryOne(
           "SELECT comment_id FROM comment_likes WHERE comment_id = $1 AND user_id = $2",
-          [id, dbUser.id]
+          [id, userId]
         );
 
         if (existingLike) {
           // Unlike the comment
           await queryOne(
             "DELETE FROM comment_likes WHERE comment_id = $1 AND user_id = $2",
-            [id, dbUser.id]
+            [id, userId]
           );
 
           // Update likes count
@@ -655,7 +650,7 @@ export const commentRoutes = new Elysia({ prefix: "/api/blog/comments" })
           // Like the comment
           await queryOne(
             "INSERT INTO comment_likes (comment_id, user_id) VALUES ($1, $2)",
-            [id, dbUser.id]
+            [id, userId]
           );
 
           // Update likes count

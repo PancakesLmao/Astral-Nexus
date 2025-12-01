@@ -4,6 +4,7 @@ import ProfileHeader from '../../shared/components/ProfileHeader.vue'
 import ProfileTabs from '../../shared/components/ProfileTabs.vue'
 import ProfilePosts from '../../shared/components/ProfilePosts.vue'
 import PostDetail from '../../shared/components/PostDetail.vue'
+import PostOptions from '../../shared/components/PostOptions.vue'
 import { apiClient } from '../../shared/api'
 import { useUser } from '../../shared/composables/useUser'
 import { usePostInteractions } from '../../shared/composables/usePostInteractions'
@@ -24,6 +25,9 @@ const hasMorePosts = ref(true)
 const currentPage = ref(1)
 
 // Post interactions
+const postInteractions = usePostInteractions(posts)
+
+// Use most of the interactions from composable, but override handleShowPostOptions
 const {
   selectedPost,
   showPostDetail,
@@ -32,8 +36,7 @@ const {
   handleToggleLike,
   handleToggleComments,
   handleSharePost,
-  handleShowPostOptions,
-} = usePostInteractions(posts)
+} = postInteractions
 
 const tabs = computed(() => [
   { id: 'posts', label: languageStore.t('posts') },
@@ -83,6 +86,59 @@ const fetchUserPosts = async (page = 1) => {
 
 const loadMorePosts = async () => {
   await fetchUserPosts(currentPage.value + 1)
+}
+
+const handleDeletePost = (postId: string | number) => {
+  // Remove the deleted post from the list
+  posts.value = posts.value.filter((p) => p.id !== postId)
+}
+
+// Post Options state
+const showPostOptions = ref(false)
+const optionsPost = ref<Post | null>(null)
+const optionsPosition = ref({ top: 0, left: 0 })
+const isOptionsOwner = computed(() => {
+  if (!optionsPost.value || !user.value) return false
+  console.log('Profile: Checking ownership', {
+    postAuthorId: optionsPost.value.author_id,
+    userId: user.value.id,
+    isOwner: optionsPost.value.author_id === user.value.id,
+  })
+  return optionsPost.value.author_id === user.value.id
+})
+
+const handleShowPostOptions = (post: Post, event?: MouseEvent) => {
+  optionsPost.value = post
+  showPostOptions.value = true
+
+  if (event) {
+    const rect = (event.target as HTMLElement).getBoundingClientRect()
+    optionsPosition.value = {
+      top: rect.bottom + 5,
+      left: rect.left,
+    }
+  }
+}
+
+const closePostOptions = () => {
+  showPostOptions.value = false
+  optionsPost.value = null
+}
+
+const handlePostDelete = (postId: string | number) => {
+  // Remove from posts array
+  posts.value = posts.value.filter((p) => p.id !== postId)
+  closePostOptions()
+}
+
+const handlePostEdit = (post: Post) => {
+  console.log('Edit post:', post.id)
+  // TODO: Implement edit functionality
+}
+
+const handlePostReport = (post: Post) => {
+  console.log('Report post:', post.id)
+  // TODO: Implement report functionality
 }
 </script>
 
@@ -144,6 +200,20 @@ const loadMorePosts = async () => {
       @toggleComments="handleToggleComments"
       @sharePost="handleSharePost"
       @showPostOptions="handleShowPostOptions"
+      @deletePost="handleDeletePost"
+    />
+
+    <!-- Post Options Menu -->
+    <PostOptions
+      :is-open="showPostOptions"
+      :post="optionsPost"
+      :position="optionsPosition"
+      :is-owner="isOptionsOwner"
+      :user-id="user?.id"
+      @close="closePostOptions"
+      @delete="handlePostDelete"
+      @edit="handlePostEdit"
+      @report="handlePostReport"
     />
   </div>
 </template>

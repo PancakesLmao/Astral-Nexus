@@ -32,10 +32,11 @@ export const useUserStore = defineStore('user', () => {
         return { isAuthenticated: false }
       }
 
-      // Convert Supabase user to our User type
       const supabaseUser = session.user
+
+      // Use Supabase ID directly as the user ID (no backend call needed)
       const userData: User = {
-        id: supabaseUser.id,
+        id: supabaseUser.id, // Supabase UUID is now the primary ID
         name: supabaseUser.user_metadata?.full_name ||
               supabaseUser.user_metadata?.name ||
               supabaseUser.user_metadata?.global_name ||
@@ -48,8 +49,11 @@ export const useUserStore = defineStore('user', () => {
                  `https://cdn.discordapp.com/embed/avatars/${(supabaseUser.user_metadata?.discriminator || 0) % 5}.png`
       }
 
+      console.log('User loaded:', {
+        supabaseId: supabaseUser.id,
+        email: userData.email,
+      })
       user.value = userData
-      console.log('User loaded from Supabase:', userData.name)
       return { isAuthenticated: true, user: userData }
 
     } catch (err) {
