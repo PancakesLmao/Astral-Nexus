@@ -7,7 +7,7 @@ const router = createRouter({
     // Root/Landing routes
     {
       path: '/',
-      name: 'Landing',
+      name: 'Landing Page',
       component: () => import('../root/views/LandingView.vue'),
     },
     {

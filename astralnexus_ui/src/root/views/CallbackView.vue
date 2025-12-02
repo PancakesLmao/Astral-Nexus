@@ -26,7 +26,7 @@ onMounted(async () => {
     // If no OAuth callback parameters, redirect to landing page
     if (!code && !error) {
       console.log('No OAuth callback detected, redirecting to landing page')
-      router.push('/landing')
+      router.push('/')
       return
     }
 

@@ -6,22 +6,10 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables. Please check your .env.local file.')
+  throw new Error('Missing Supabase environment variables. Please check your .env file.')
 }
 
 /**
- * Supabase Client Configuration with Chunked Cookie Storage
- *
- * This implementation uses cookies for cross-subdomain session sharing.
- *
- * Browser Storage Limitation:
- * - localStorage is scoped per origin (protocol + hostname + port)
- * - Subdomains are treated as separate origins (e.g., blog.localtest.me ≠ localtest.me)
- *
- * CRITICAL: Even though all localtest.me subdomains are served from the same Vite dev server,
- * the browser treats each subdomain as a separate origin for localStorage.
- * Therefore, we MUST use cookies with domain=.localtest.me to share sessions across subdomains.
- *
  * Cookie Chunking:
  * Supabase sessions (JWT + refresh token + metadata) can exceed 4KB browser cookie limit.
  * This implementation automatically splits large values into multiple cookies with sequential
@@ -163,7 +151,7 @@ export const signInWithDiscord = async () => {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'discord',
     options: {
-      redirectTo: `${getAppUrl()}/`,  // Redirect to root domain for OAuth callback handling
+      redirectTo: `${getAppUrl()}/callback`,  // Redirect to callback route for OAuth handling
       skipBrowserRedirect: false,
     },
   })

@@ -1,0 +1,45 @@
+# Root .dockerignore for multi-service build
+# This is used when build context is the root directory
+
+# Frontend files to ignore
+astralnexus_ui/node_modules
+astralnexus_ui/dist
+astralnexus_ui/.env.local
+astralnexus_ui/.env.development.local
+astralnexus_ui/.env.test.local
+astralnexus_ui/.env.production.local
+astralnexus_ui/*.local
+
+# Backend files to ignore
+astralnexus_be/node_modules
+astralnexus_be/dist
+astralnexus_be/.env.local
+astralnexus_be/.env.development.local
+astralnexus_be/.env.test.local
+astralnexus_be/.env.production.local
+astralnexus_be/*.local
+
+# Common files to ignore
+**/.git
+**/.gitignore
+**/.vscode
+**/.idea
+**/.DS_Store
+**/README.md
+**/node_modules
+**/*.log
+**/coverage
+**/.cache
+**/tmp
+**/temp
+
+# Documentation
+docs/
+logs/
+*.md
+!astralnexus_be/README.md
+!astralnexus_ui/README.md
+
+# Development files
+compose.yml
+docker-compose.yml

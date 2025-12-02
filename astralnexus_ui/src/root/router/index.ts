@@ -4,7 +4,7 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     {
-      path: '/',
+      path: '/callback',
       name: 'Callback',
       component: () => import('../views/CallbackView.vue'),
       meta: { requiresAuth: false }
@@ -16,7 +16,7 @@ const router = createRouter({
       meta: { requiresAuth: false }
     },
     {
-      path: '/landing',
+      path: '/',
       name: 'Landing',
       component: () => import('../views/LandingView.vue'),
       meta: { requiresAuth: false }

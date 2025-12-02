@@ -1,55 +1,52 @@
-name: astral-nexus-dev
+name: astral-nexus-prod
 
 services:
   astralnexus_ui:
     build:
       context: ./astralnexus_ui
       dockerfile: Dockerfile
-      target: build  # Use build stage for development
+      target: production  # Use production nginx stage
     ports:
-      - "3000:3000"
-      - "24678:24678"  # Vite HMR port
+      - "80:80"
     environment:
-      - NODE_ENV=${NODE_ENV:-development}
-      - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://api.localtest.me:3001}
-      - FRONTEND_SUCCESS_REDIRECT=${FRONTEND_SUCCESS_REDIRECT}
-      - FRONTEND_ERROR_REDIRECT=${FRONTEND_ERROR_REDIRECT}
-    volumes:
-      - ./astralnexus_ui:/usr/src/app
-      - /usr/src/app/node_modules
-    command: pnpm run dev
+      - NODE_ENV=production
     networks:
       - astral_network
     depends_on:
       - astralnexus_be
-    restart: unless-stopped
+    restart: always
     env_file:
       - .env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   astralnexus_be:
     build:
       context: ./astralnexus_be
       dockerfile: Dockerfile
+      # Uses multi-stage build with compiled binary
     ports:
       - "3001:3001"
     environment:
       - NODE_ENV=production
-      - PORT=${PORT:-3001}
-      - HOST=${HOST:-api.localtest.me}
+      - PORT=3001
+      - HOST=0.0.0.0
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@astralnexus_db:5432/${POSTGRES_DB}
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-      - SESSION_DOMAIN=${SESSION_DOMAIN:-localhost}
+      - SESSION_DOMAIN=${SESSION_DOMAIN}
       - CORS_ORIGIN=${CORS_ORIGIN}
-      - POSTGRES_LOG_STATEMENT=${POSTGRES_LOG_STATEMENT:-all}
-      - POSTGRES_INITDB_ARGS=${POSTGRES_INITDB_ARGS}
     networks:
       - astral_network
     depends_on:
       astralnexus_db:
         condition: service_healthy
-    restart: unless-stopped
+    restart: always
     env_file:
       - .env
 
@@ -61,22 +58,33 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_LOG_STATEMENT=${POSTGRES_LOG_STATEMENT:-all}
-      - POSTGRES_INITDB_ARGS=${POSTGRES_INITDB_ARGS}
+      - POSTGRES_INITDB_ARGS=${POSTGRES_INITDB_ARGS:-}
+      # Disable verbose logging in production
+      - POSTGRES_LOG_STATEMENT=mod
+      - POSTGRES_LOG_DURATION=on
     volumes:
       - astralnexus_db_data:/var/lib/postgresql/data
       - ./astralnexus_be/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
       - astral_network
-    restart: unless-stopped
+    restart: always
     env_file:
       - .env
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pancakes} -d ${POSTGRES_DB:-astralnexus}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 30s
+    # Add backup strategy
+    command:
+      - "postgres"
+      - "-c"
+      - "max_connections=200"
+      - "-c"
+      - "shared_buffers=256MB"
+      - "-c"
+      - "effective_cache_size=1GB"
 
 volumes:
   astralnexus_db_data:

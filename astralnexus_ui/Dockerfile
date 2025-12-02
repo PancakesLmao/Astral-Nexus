@@ -1,17 +1,29 @@
 FROM node:22-alpine AS build
 
-WORKDIR /usr/src/app
+WORKDIR /build
 
-# Copy package files
-COPY package*.json ./
-COPY pnpm-lock.yaml ./
+# Set CI environment for pnpm to avoid TTY issues
+ENV CI=true
 
 RUN npm install -g pnpm
 
-# Install dependencies
+# Copy package files first for better layer caching
+COPY package.json pnpm-lock.yaml ./
+
+# Install dependencies (cached if package files unchanged)
 RUN pnpm install --frozen-lockfile
 
-COPY . .
+# Copy production environment variables for build
+COPY .env.production ./
+
+# Copy necessary files for build
+COPY src ./src
+COPY public ./public
+COPY *.html ./
+COPY vite.config.ts ./
+COPY tsconfig*.json ./
+COPY env.d.ts ./
+COPY tailwind.config.js ./
 
 RUN pnpm run build
 
@@ -19,13 +31,17 @@ RUN pnpm run build
 FROM nginx:alpine AS production
 
 # Copy built assets from build stage
-COPY --from=build /usr/src/app/dist /usr/share/nginx/html
+COPY --from=build /build/dist /usr/share/nginx/html
+
+# Remove default nginx files
+RUN rm -f /usr/share/nginx/html/50x.html /usr/share/nginx/html/index.html
 
 # Copy custom nginx configuration for SPA routing and subdomains
 RUN rm /etc/nginx/conf.d/default.conf
-COPY nginx.conf /etc/nginx/conf.d/
+COPY nginx.prod.conf /etc/nginx/conf.d/nginx.conf
 
-EXPOSE 3000
+EXPOSE 80
 
 # Start nginx
 CMD ["nginx", "-g", "daemon off;"]
+

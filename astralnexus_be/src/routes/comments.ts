@@ -24,12 +24,12 @@ export const commentRoutes = new Elysia({ prefix: "/api/blog/comments" })
             u.email as author_email,
             u.picture as author_picture,
             CASE 
-              WHEN $2::uuid IS NOT NULL AND cl.user_id IS NOT NULL THEN true 
+              WHEN $2::text IS NOT NULL AND cl.user_id IS NOT NULL THEN true 
               ELSE false 
             END as is_liked
           FROM comments c
           JOIN users u ON c.author_id = u.id
-          LEFT JOIN comment_likes cl ON c.id = cl.comment_id AND cl.user_id = $2::uuid
+          LEFT JOIN comment_likes cl ON c.id = cl.comment_id AND cl.user_id = $2::text
           WHERE c.post_id = $1
           ORDER BY c.created_at DESC
         `;

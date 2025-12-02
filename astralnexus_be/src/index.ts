@@ -4,6 +4,29 @@ import { openapi } from "@elysiajs/openapi";
 import { swagger } from "@elysiajs/swagger";
 import { cookie } from "@elysiajs/cookie";
 
+// Validate required environment variables
+const requiredEnvVars = [
+  "SUPABASE_URL",
+  "SUPABASE_ANON_KEY",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "DATABASE_URL",
+  "SESSION_DOMAIN",
+  "CORS_ORIGIN",
+];
+
+const missingVars = requiredEnvVars.filter((key) => !process.env[key]);
+
+if (missingVars.length > 0) {
+  console.error("❌ ERROR: Missing required environment variables:");
+  missingVars.forEach((key) => console.error(`  - ${key}`));
+  console.error(
+    "\nPlease ensure all required environment variables are set in .env file"
+  );
+  process.exit(1);
+}
+
+console.log("✅ All required environment variables are set!");
+
 // Import configuration
 import { appConfig } from "./config/app";
 import { testConnection } from "./config/database";

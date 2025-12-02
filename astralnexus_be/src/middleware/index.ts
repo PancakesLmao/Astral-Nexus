@@ -7,7 +7,7 @@ export const corsMiddleware = new Elysia({ name: "cors" }).use(
   cors({
     origin: appConfig.cors.origin
       ? appConfig.cors.origin.split(",").map((origin) => origin.trim())
-      : ["http://localtest.me:3000", "http://blog.localtest.me:3000", "http://admin.localtest.me:3000", "http://api.localtest.me:3001"],
+      : [],
     credentials: appConfig.cors.credentials,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "Cookie", "X-Session-ID"],
