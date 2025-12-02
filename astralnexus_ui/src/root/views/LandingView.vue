@@ -25,53 +25,53 @@
           <div class="logo-gallery-track">
             <div class="logo-set">
               <img
-                src="@/shared/assets/4813560db5dc5c0f3785ddb4bc9ded45.png"
+                src="@/shared/assets/4813560db5dc5c0f3785ddb4bc9ded45.webp"
                 alt="Game Logo 1"
                 class="logo-item"
               />
               <img
-                src="@/shared/assets/6636876050dcade8ec8e3023b1afe9bc.png"
+                src="@/shared/assets/6636876050dcade8ec8e3023b1afe9bc.webp"
                 alt="Game Logo 2"
                 class="logo-item"
               />
               <img
-                src="@/shared/assets/8a42fb391ac55add6aac8811ffaea5f5.png"
+                src="@/shared/assets/8a42fb391ac55add6aac8811ffaea5f5.webp"
                 alt="Game Logo 3"
                 class="logo-item"
               />
               <img
-                src="@/shared/assets/fd278a8f5571d3db556bd83198beb09a.png"
+                src="@/shared/assets/fd278a8f5571d3db556bd83198beb09a.webp"
                 alt="Game Logo 4"
                 class="logo-item"
               />
               <img
-                src="@/shared/assets/4e0889bb750a24cc76c976b032b78f05.png"
+                src="@/shared/assets/4e0889bb750a24cc76c976b032b78f05.webp"
                 alt="Game Logo 5"
                 class="logo-item"
               />
               <!-- Duplicate set for infinite loop (Well not really, the loop stil break after 2 set)-->
               <img
-                src="@/shared/assets/4813560db5dc5c0f3785ddb4bc9ded45.png"
+                src="@/shared/assets/4813560db5dc5c0f3785ddb4bc9ded45.webp"
                 alt="Game Logo 1"
                 class="logo-item"
               />
               <img
-                src="@/shared/assets/6636876050dcade8ec8e3023b1afe9bc.png"
+                src="@/shared/assets/6636876050dcade8ec8e3023b1afe9bc.webp"
                 alt="Game Logo 2"
                 class="logo-item"
               />
               <img
-                src="@/shared/assets/8a42fb391ac55add6aac8811ffaea5f5.png"
+                src="@/shared/assets/8a42fb391ac55add6aac8811ffaea5f5.webp"
                 alt="Game Logo 3"
                 class="logo-item"
               />
               <img
-                src="@/shared/assets/fd278a8f5571d3db556bd83198beb09a.png"
+                src="@/shared/assets/fd278a8f5571d3db556bd83198beb09a.webp"
                 alt="Game Logo 4"
                 class="logo-item"
               />
               <img
-                src="@/shared/assets/4e0889bb750a24cc76c976b032b78f05.png"
+                src="@/shared/assets/4e0889bb750a24cc76c976b032b78f05.webp"
                 alt="Game Logo 5"
                 class="logo-item"
               />
@@ -100,7 +100,7 @@ onMounted(() => {
 
 <style scoped>
 .hero {
-  background-image: url('@/shared/assets/x62vjrpjghob1.png');
+  background-image: url('@/shared/assets/x62vjrpjghob1.webp');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;

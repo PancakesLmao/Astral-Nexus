@@ -1,4 +1,4 @@
-FROM node:22-alpine AS build
+FROM node:22-alpine@sha256:e986f0eae018fe28fcfb9564b2607212c9cd3fa771a26fecc96dcb8d8366477c AS build
 
 WORKDIR /build
 
@@ -28,7 +28,7 @@ COPY tailwind.config.js ./
 RUN pnpm run build
 
 # Production stage
-FROM nginx:alpine AS production
+FROM nginx:alpine@sha256:b3c656d55d7ad751196f21b7fd2e8d4da9cb430e32f646adcf92441b72f82b14 AS production
 
 # Copy built assets from build stage
 COPY --from=build /build/dist /usr/share/nginx/html
