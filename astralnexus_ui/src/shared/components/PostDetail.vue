@@ -131,25 +131,20 @@
               <!-- Post Actions -->
               <div class="flex items-center justify-between pt-4 border-t border-dark-700">
                 <div class="flex items-center gap-6">
-                  <button
-                    class="flex items-center gap-2 text-dark-400 hover:text-accent transition-colors"
+                  <PostCommentButton
+                    :commentsCount="post.comments_count"
+                    showLabel
+                    label="Comments"
                     @click="$emit('toggleComments', post)"
-                  >
-                    <MessageSquareMore class="w-5 h-5" />
-                    <span>{{ post.comments_count || 0 }} Comments</span>
-                  </button>
-                  <button
-                    class="flex items-center gap-2 transition-colors"
-                    :class="
-                      post.is_liked
-                        ? 'text-primary-400 hover:text-primary-300'
-                        : 'text-dark-400 hover:text-primary-400'
-                    "
-                    @click="handleToggleLike(post)"
-                  >
-                    <ThumbsUp class="w-5 h-5" :class="{ 'fill-current': post.is_liked }" />
-                    <span>{{ post.likes_count || 0 }} Likes</span>
-                  </button>
+                  />
+                  <PostLikeButton
+                    :postId="post.id"
+                    :isLiked="post.is_liked"
+                    :likesCount="post.likes_count"
+                    showLabel
+                    label="Likes"
+                    @update="handleLikeUpdate"
+                  />
                   <button
                     class="flex items-center gap-2 text-dark-400 hover:text-secondary-400 transition-colors"
                     @click="$emit('sharePost', post)"
@@ -162,93 +157,15 @@
             </article>
 
             <!-- Comments Section -->
-            <div class="bg-dark-800/30 border border-dark-700 rounded-lg p-6">
-              <h3 class="text-xs font-semibold text-foreground mb-4">Comments</h3>
-
-              <!-- Comment Form -->
-              <div class="mb-6" v-if="allowComments">
-                <div class="flex gap-3">
-                  <div
-                    class="w-10 h-10 bg-gradient-to-br from-accent to-accent-light rounded-full flex items-center justify-center text-dark-900 font-semibold"
-                  >
-                    {{ getAvatarInitial(currentUser?.name || 'U') }}
-                  </div>
-                  <div class="flex-1">
-                    <textarea
-                      v-model="newComment"
-                      class="w-full bg-dark-700 border border-dark-600 rounded-lg p-3 text-foreground placeholder-dark-400 focus:border-accent focus:outline-none resize-none"
-                      rows="3"
-                      placeholder="Write a comment..."
-                      :disabled="submittingComment"
-                    ></textarea>
-                    <div class="flex justify-end mt-2">
-                      <button
-                        class="px-4 py-2 bg-accent text-dark-900 rounded-lg hover:bg-accent-light transition-colors font-medium disabled:opacity-50"
-                        @click="submitComment"
-                        :disabled="!newComment.trim() || submittingComment"
-                      >
-                        {{ submittingComment ? 'Posting...' : 'Post Comment' }}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Comments List -->
-              <div class="space-y-4">
-                <div
-                  v-if="comments.length === 0 && !loadingComments"
-                  class="text-center py-4 text-dark-400"
-                >
-                  No comments yet. Be the first to comment!
-                </div>
-
-                <div v-if="loadingComments" class="text-center py-4 text-dark-400">
-                  Loading comments...
-                </div>
-
-                <!-- Comment Item -->
-                <div
-                  v-for="comment in comments"
-                  :key="comment.id"
-                  class="flex gap-3 p-4 bg-dark-700/50 rounded-lg"
-                >
-                  <div
-                    class="w-10 h-10 bg-gradient-to-br from-secondary-500 to-primary-500 rounded-full flex items-center justify-center text-white font-semibold"
-                  >
-                    {{ getAvatarInitial(comment.author?.name || 'C') }}
-                  </div>
-                  <div class="flex-1">
-                    <div class="flex items-center gap-2 mb-1">
-                      <span class="text-accent font-medium"
-                        >@{{ comment.author?.name || 'commenter' }}</span
-                      >
-                      <span class="text-dark-400 text-sm">{{
-                        formatTimeAgo(comment.created_at)
-                      }}</span>
-                    </div>
-                    <p class="text-dark-200 whitespace-pre-wrap">
-                      {{ comment.content }}
-                    </p>
-                    <div class="flex items-center gap-4 mt-2 text-sm text-dark-400">
-                      <button
-                        class="hover:text-accent transition-colors"
-                        @click="$emit('replyToComment', comment)"
-                      >
-                        Reply
-                      </button>
-                      <button
-                        class="flex items-center gap-1 hover:text-primary-400 transition-colors"
-                        @click="$emit('toggleCommentLike', comment)"
-                      >
-                        <ThumbsUp class="w-3 h-3" />
-                        <span>{{ comment.likes_count || 0 }}</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <PostCommentsSection
+              :postId="post.id"
+              :comments="comments"
+              :currentUser="currentUser"
+              :allowComments="allowComments"
+              :loading="loadingComments"
+              @submit="handleSubmitComment"
+              @reply="$emit('replyToComment', $event)"
+            />
           </div>
 
           <!-- Loading State -->
@@ -263,11 +180,13 @@
 
 <script lang="ts" setup>
 import { ref, watch, computed } from 'vue'
-import { MessageSquareMore, ThumbsUp, Ellipsis, Repeat2, X } from 'lucide-vue-next'
+import { Ellipsis, Repeat2, X } from 'lucide-vue-next'
 import type { Post, Comment, User } from '@/shared/types'
-import { usePostsStore } from '@/shared/stores/posts'
 import { useUserStore } from '@/shared/stores/user'
 import { apiClient } from '@/shared/api'
+import PostLikeButton from './PostLikeButton.vue'
+import PostCommentButton from './PostCommentButton.vue'
+import PostCommentsSection from './PostCommentsSection.vue'
 
 // Props
 interface Props {
@@ -299,15 +218,13 @@ const emit = defineEmits<{
   toggleCommentLike: [comment: Comment]
   deletePost: [postId: string | number]
   openPostOptions: []
+  likeUpdate: [postId: string, isLiked: boolean, likesCount: number]
 }>()
 
-const newComment = ref('')
-const submittingComment = ref(false)
 const showOptions = ref(false)
 const deleting = ref(false)
 
-// Use the posts store and user store
-const postsStore = usePostsStore()
+// Use the user store
 const userStore = useUserStore()
 
 // Check if current user is the post owner
@@ -332,11 +249,18 @@ const isPostOwner = computed(() => {
   return isOwner
 })
 
-const handleToggleLike = async (post: Post) => {
-  try {
-    await postsStore.likePost(post.id.toString())
-  } catch (error) {
-    console.error('Failed to like post:', error)
+// Handler for like button update from reusable component
+const handleLikeUpdate = (isLiked: boolean, likesCount: number) => {
+  // Emit event to parent to update the post data
+  if (props.post) {
+    emit('likeUpdate', props.post.id, isLiked, likesCount)
+  }
+}
+
+// Handler for comment submission from reusable component
+const handleSubmitComment = (content: string) => {
+  if (props.post) {
+    emit('submitComment', content, props.post.id)
   }
 }
 
@@ -356,8 +280,8 @@ const handleDeletePost = async () => {
     showOptions.value = false
     emit('deletePost', props.post.id)
     emit('close')
-  } catch (error) {
-    console.error('Failed to delete post:', error)
+  } catch (err) {
+    console.error('Failed to delete post:', err)
     alert('Failed to delete post. Please try again.')
   } finally {
     deleting.value = false
@@ -371,18 +295,6 @@ const handleBackdropClick = () => {
 
 const closeMenu = () => {
   showOptions.value = false
-}
-
-const submitComment = async () => {
-  if (!newComment.value.trim() || !props.post) return
-
-  submittingComment.value = true
-  try {
-    emit('submitComment', newComment.value.trim(), props.post.id)
-    newComment.value = ''
-  } finally {
-    submittingComment.value = false
-  }
 }
 
 const getAvatarInitial = (name: string): string => {
@@ -410,18 +322,16 @@ const formatTimeAgo = (dateString: string): string => {
     } else {
       return `${Math.floor(diffInSeconds / 86400)}d ago`
     }
-  } catch (error) {
+  } catch {
     return 'recently'
   }
 }
 
-// Watch for dialog close to reset form
+// Watch for dialog close to reset state
 watch(
   () => props.isOpen,
   (isOpen) => {
     if (!isOpen) {
-      newComment.value = ''
-      submittingComment.value = false
       showOptions.value = false
     }
   },

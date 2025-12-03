@@ -24,6 +24,7 @@
       @submit-comment="submitComment"
       @reply-to-comment="handleReply"
       @toggle-comment-like="handleCommentLike"
+      @like-update="handleLikeUpdateFromDetail"
     />
     <PostOptions
       :is-open="showPostOptions"
@@ -195,6 +196,15 @@ const handleCommentLike = async (comment: Comment) => {
     await postsStore.likeComment(comment.id.toString())
   } catch (error) {
     console.error('Failed to like comment:', error)
+  }
+}
+
+const handleLikeUpdateFromDetail = (postId: string, isLiked: boolean, likesCount: number) => {
+  // Update the post in the store
+  const post = postsStore.posts.find((p) => p.id === postId)
+  if (post) {
+    post.is_liked = isLiked
+    post.likes_count = likesCount
   }
 }
 

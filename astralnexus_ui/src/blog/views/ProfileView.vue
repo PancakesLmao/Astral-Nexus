@@ -9,10 +9,14 @@ import { apiClient } from '../../shared/api'
 import { useUser } from '../../shared/composables/useUser'
 import { usePostInteractions } from '../../shared/composables/usePostInteractions'
 import { useLanguageStore } from '../../shared/stores/language'
-import type { Post } from '../../shared/types'
+import { usePostsStore } from '../../shared/stores/posts'
+import type { Post, Comment } from '../../shared/types'
 
 // Language store
 const languageStore = useLanguageStore()
+
+// Posts store for comments
+const postsStore = usePostsStore()
 
 // User management
 const { user, loading, initializeUser } = useUser()
@@ -24,6 +28,10 @@ const loadingMorePosts = ref(false)
 const hasMorePosts = ref(true)
 const currentPage = ref(1)
 
+// Comments data
+const comments = ref<Comment[]>([])
+const loadingComments = ref(false)
+
 // Post interactions
 const postInteractions = usePostInteractions(posts)
 
@@ -31,12 +39,65 @@ const postInteractions = usePostInteractions(posts)
 const {
   selectedPost,
   showPostDetail,
-  handleSelectPost,
+  handleSelectPost: baseHandleSelectPost,
   handleClosePostDetail,
   handleToggleLike,
   handleToggleComments,
   handleSharePost,
 } = postInteractions
+
+// Override handleSelectPost to also load comments
+const handleSelectPost = async (post: Post) => {
+  baseHandleSelectPost(post)
+  // Load comments when post is opened
+  await loadCommentsForPost(post.id)
+}
+
+const loadCommentsForPost = async (postId: string) => {
+  loadingComments.value = true
+  try {
+    comments.value = await apiClient.fetchComments(postId)
+  } catch (error) {
+    console.error('Failed to load comments:', error)
+    comments.value = []
+  } finally {
+    loadingComments.value = false
+  }
+}
+
+const submitComment = async (content: string, postId: string | number) => {
+  try {
+    await postsStore.submitComment(content, postId)
+    // Reload comments after submission
+    await loadCommentsForPost(postId.toString())
+
+    // Update comment count in the post
+    const postIndex = posts.value.findIndex((p) => p.id === postId)
+    if (postIndex !== -1) {
+      posts.value[postIndex].comments_count = (posts.value[postIndex].comments_count || 0) + 1
+    }
+  } catch (error) {
+    console.error('Failed to submit comment:', error)
+  }
+}
+
+const handleReplyToComment = (comment: Comment) => {
+  console.log('Reply to comment:', comment.id)
+  // TODO: Implement reply functionality
+}
+
+const handleLikeUpdateFromDetail = (postId: string, isLiked: boolean, likesCount: number) => {
+  const postIndex = posts.value.findIndex((p) => p.id === postId)
+  if (postIndex !== -1) {
+    posts.value[postIndex].is_liked = isLiked
+    posts.value[postIndex].likes_count = likesCount
+  }
+  // Also update selectedPost if it's the same post
+  if (selectedPost.value && selectedPost.value.id === postId) {
+    selectedPost.value.is_liked = isLiked
+    selectedPost.value.likes_count = likesCount
+  }
+}
 
 const tabs = computed(() => [
   { id: 'posts', label: languageStore.t('posts') },
@@ -196,11 +257,17 @@ const handlePostReport = (post: Post) => {
     <PostDetail
       :isOpen="showPostDetail"
       :post="selectedPost"
+      :comments="comments"
+      :currentUser="user"
+      :loadingComments="loadingComments"
       @close="handleClosePostDetail"
       @toggleComments="handleToggleComments"
       @sharePost="handleSharePost"
       @showPostOptions="handleShowPostOptions"
       @deletePost="handleDeletePost"
+      @submitComment="submitComment"
+      @replyToComment="handleReplyToComment"
+      @likeUpdate="handleLikeUpdateFromDetail"
     />
 
     <!-- Post Options Menu -->

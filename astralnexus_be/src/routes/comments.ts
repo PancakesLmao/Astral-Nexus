@@ -2,9 +2,34 @@ import { Elysia, t } from "elysia";
 import { queryAll, queryOne, query } from "../utils/database";
 import { Schemas } from "../schemas";
 import { authGuard } from "../middleware/auth";
+import { verifySupabaseToken, extractBearerToken } from "../config/supabase";
 
 // Comment handler for Honkai Blog
 export const commentRoutes = new Elysia({ prefix: "/api/blog/comments" })
+  // Middleware to optionally extract user from token for GET route
+  .derive(async ({ headers, request }) => {
+    const path = new URL(request.url).pathname;
+    const authHeader = headers.authorization;
+    const token = extractBearerToken(authHeader);
+
+    if (!token) {
+      return { user: undefined };
+    }
+
+    const supabaseUser = await verifySupabaseToken(token);
+    if (supabaseUser) {
+      const user = {
+        id: supabaseUser.id,
+        email: supabaseUser.email || '',
+        name: supabaseUser.user_metadata?.full_name || supabaseUser.user_metadata?.name || '',
+        picture: supabaseUser.user_metadata?.avatar_url || '',
+        provider: supabaseUser.app_metadata?.provider || 'discord'
+      };
+      return { user };
+    }
+
+    return { user: undefined };
+  })
   // Get all comments for a specific post
   .get(
     "/:postId",
@@ -580,18 +605,24 @@ export const commentRoutes = new Elysia({ prefix: "/api/blog/comments" })
   .post(
     "/:id/like",
     async ({ params: { id }, set, user, headers }) => {
+      const requestId = Math.random().toString(36).slice(2, 9);
+      console.log(`[LIKE-${requestId}] POST /api/blog/comments/${id}/like START`);
+      
       try {
         // User is already authenticated by requireAuthMiddleware
         const currentUser = user;
         
         if (!currentUser) {
           set.status = 401;
+          console.log(`[LIKE-${requestId}] No user authenticated`);
           return {
             success: false,
             error: "Authentication required",
             message: "No valid authentication token",
           };
         }
+
+        console.log(`[LIKE-${requestId}] User: ${(currentUser as any).id}`);
 
         // Use Supabase UUID directly as user_id (no database lookup needed)
         const userId = currentUser.id;
@@ -630,16 +661,26 @@ export const commentRoutes = new Elysia({ prefix: "/api/blog/comments" })
 
         if (existingLike) {
           // Unlike the comment
+          console.log(`[LIKE-${requestId}] Unliking comment`);
+
           await queryOne(
             "DELETE FROM comment_likes WHERE comment_id = $1 AND user_id = $2",
             [id, userId]
           );
 
-          // Update likes count
-          await queryOne(
-            "UPDATE comments SET likes_count = likes_count - 1 WHERE id = $1",
+          // Get actual count from database
+          const actualCount = await queryOne(
+            "SELECT COUNT(*) as count FROM comment_likes WHERE comment_id = $1",
             [id]
           );
+
+          // Update likes count to match actual count
+          const result = await queryOne(
+            "UPDATE comments SET likes_count = $2 WHERE id = $1 RETURNING likes_count",
+            [id, parseInt(actualCount.count)]
+          );
+
+          console.log(`[LIKE-${requestId}] After unlike: likes_count=${result.likes_count}, actual_likes=${actualCount.count}`);
 
           return {
             success: true,
@@ -648,16 +689,31 @@ export const commentRoutes = new Elysia({ prefix: "/api/blog/comments" })
           };
         } else {
           // Like the comment
+          console.log(`[LIKE-${requestId}] Liking comment`);
+          const existingLikeCheck = await queryOne(
+            "SELECT COUNT(*) as count FROM comment_likes WHERE comment_id = $1 AND user_id = $2",
+            [id, userId]
+          );
+          console.log(`[LIKE-${requestId}] Before INSERT: count=${existingLikeCheck.count}`);
+
           await queryOne(
             "INSERT INTO comment_likes (comment_id, user_id) VALUES ($1, $2)",
             [id, userId]
           );
 
-          // Update likes count
-          await queryOne(
-            "UPDATE comments SET likes_count = likes_count + 1 WHERE id = $1",
+          // Get actual count from database
+          const actualCount = await queryOne(
+            "SELECT COUNT(*) as count FROM comment_likes WHERE comment_id = $1",
             [id]
           );
+
+          // Update likes count to match actual count
+          const result = await queryOne(
+            "UPDATE comments SET likes_count = $2 WHERE id = $1 RETURNING likes_count",
+            [id, parseInt(actualCount.count)]
+          );
+
+          console.log(`[LIKE-${requestId}] After like: likes_count=${result.likes_count}, actual_likes=${actualCount.count}`);
 
           return {
             success: true,
@@ -666,7 +722,7 @@ export const commentRoutes = new Elysia({ prefix: "/api/blog/comments" })
           };
         }
       } catch (error) {
-        console.error("Error liking/unliking comment:", error);
+        console.error(`[LIKE-${requestId}] Error liking/unliking comment:`, error);
         set.status = 500;
         return {
           success: false,
