@@ -45,18 +45,7 @@ export function setCookie(name: string, value: string, options: CookieOptions = 
     cookieString += `; HttpOnly`
   }
 
-  console.log(`[setCookie] Setting: ${name}`, { options, cookieString })
   document.cookie = cookieString
-
-  // Verify it was set
-  setTimeout(() => {
-    const cookieValue = getCookie(name)
-    if (cookieValue) {
-      console.log(`[setCookie] ✅ Successfully set ${name}`)
-    } else {
-      console.warn(`[setCookie] ❌ Failed to set ${name} - Browser rejected it`)
-    }
-  }, 100)
 }
 
 export function getCookie(name: string): string | null {
@@ -145,7 +134,6 @@ export function getAdminUrl(): string {
  */
 export function getSessionDomain(): string {
   const domain = import.meta.env.VITE_SESSION_DOMAIN
-  console.log(`[getSessionDomain] Using domain from env: ${domain}`)
 
   if (!domain) {
     console.warn('[getSessionDomain] VITE_SESSION_DOMAIN not set in env, falling back to .localtest.me')

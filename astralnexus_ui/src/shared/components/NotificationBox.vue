@@ -1,5 +1,5 @@
 <template>
-  <div class="notification-box bg-dark-200 rounded-lg border border-dark-300">
+  <div class="notification-box">
     <!-- Loading State -->
     <div v-if="loading" class="p-6 text-center">
       <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
@@ -37,117 +37,57 @@
       </p>
     </div>
 
-    <!-- Notifications List -->
+    <!-- Notifications List - Compact Card Design -->
     <div v-else>
-      <!-- Header with refresh button -->
-      <div class="p-4 border-b border-dark-300 flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <h3 class="text-sm font-medium text-foreground">Notifications</h3>
-          <div v-if="hasNewNotifications" class="flex items-center gap-1">
-            <div class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-            <span class="text-xs text-red-400">New</span>
-          </div>
-        </div>
-        <button
-          @click="refreshNotifications"
-          class="p-1 text-gray-400 hover:text-primary transition-colors"
-          title="Refresh notifications"
-        >
-          <RefreshCw class="w-4 h-4" />
-        </button>
+      <!-- New Indicator -->
+      <div v-if="hasNewNotifications" class="flex items-center gap-1 px-4 py-2">
+        <div class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+        <span class="text-xs text-red-400">New notifications</span>
       </div>
 
-      <div class="max-h-96 overflow-y-auto">
+      <!-- Notifications - scrollable list -->
+      <div class="space-y-3 max-h-[600px] overflow-y-auto px-4 py-4 notification-scroll">
         <div
           v-for="notification in notifications"
           :key="notification.id"
-          class="p-4 border-b border-dark-300 last:border-b-0 hover:bg-dark-100 transition-colors"
+          class="notification-item flex items-start gap-3 p-3 rounded-lg border border-[rgba(184,175,247,0.1)] bg-[rgba(39,12,59,0.2)] transition-all duration-200 cursor-pointer hover:bg-[rgba(39,12,59,0.4)]"
         >
-          <div class="flex items-start gap-3">
-            <!-- Notification Icon -->
-            <div class="flex-shrink-0 mt-1">
-              <div
-                class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium"
-                :class="getNotificationIconClass(notification.type)"
-              >
-                <component :is="getNotificationIcon(notification.type)" class="w-4 h-4" />
-              </div>
-            </div>
-
-            <!-- Notification Content -->
-            <div class="flex-1 min-w-0">
-              <div class="flex items-start justify-between gap-2">
-                <div class="flex-1">
-                  <h4 class="text-sm font-medium text-foreground">
-                    {{ notification.title }}
-                  </h4>
-                  <p class="text-sm text-gray-300 mt-1 line-clamp-2">
-                    {{ notification.message }}
-                  </p>
-
-                  <!-- Related Content Info -->
-                  <div v-if="notification.post_title || notification.comment_content" class="mt-2">
-                    <p v-if="notification.post_title" class="text-xs text-primary">
-                      {{ notification.post_title }}
-                    </p>
-                    <p v-if="notification.comment_content" class="text-xs text-blue-400 mt-1">
-                      {{ notification.comment_content.substring(0, 50)
-                      }}{{ notification.comment_content.length > 50 ? '...' : '' }}
-                    </p>
-                  </div>
-                </div>
-
-                <!-- Actions button -->
-                <div class="flex items-center gap-1">
-                  <button
-                    @click="deleteNotification(notification.id)"
-                    class="p-1 text-gray-400 hover:text-red-400 transition-colors"
-                    title="Delete"
-                  >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                      ></path>
-                    </svg>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Timestamp -->
-              <p class="text-xs text-gray-500 mt-2">
-                {{ formatRelativeTime(notification.created_at) }}
-              </p>
-            </div>
+          <!-- Compact Icon -->
+          <div class="flex-shrink-0 mt-0.5">
+            <component
+              :is="getNotificationIcon(notification.type)"
+              :size="16"
+              :class="getNotificationIconColor(notification.type)"
+            />
           </div>
+
+          <!-- Compact Content -->
+          <div class="flex-1 min-w-0">
+            <p class="text-sm text-gray-300 leading-tight line-clamp-2">
+              <span class="font-medium text-foreground">{{ notification.title }}</span> -
+              {{ notification.message }}
+            </p>
+            <p class="text-xs text-gray-600 mt-1">
+              {{ formatRelativeTime(notification.created_at) }}
+            </p>
+          </div>
+
+          <!-- Delete Button -->
+          <button
+            @click.stop="deleteNotification(notification.id)"
+            class="flex-shrink-0 p-1 text-gray-500 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+            title="Delete"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              ></path>
+            </svg>
+          </button>
         </div>
-      </div>
-    </div>
-
-    <!-- Pagination -->
-    <div v-if="pagination && pagination.totalPages > 1" class="p-4 border-t border-dark-300">
-      <div class="flex items-center justify-between">
-        <button
-          @click="loadPreviousPage"
-          :disabled="!pagination.hasPrev"
-          class="px-3 py-1 text-sm bg-dark-300 text-gray-300 rounded hover:bg-dark-400 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Previous
-        </button>
-
-        <span class="text-sm text-gray-400">
-          Page {{ pagination.page }} of {{ pagination.totalPages }}
-        </span>
-
-        <button
-          @click="loadNextPage"
-          :disabled="!pagination.hasNext"
-          class="px-3 py-1 text-sm bg-dark-300 text-gray-300 rounded hover:bg-dark-400 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Next
-        </button>
       </div>
     </div>
   </div>
@@ -155,7 +95,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { Heart, MessageCircle, UserPlus, AtSign, Info, RefreshCw } from 'lucide-vue-next'
+import { Heart, MessageCircle, UserPlus, AtSign, Info } from 'lucide-vue-next'
 import { useLanguageStore } from '@/shared/stores/language'
 import { useUserStore } from '@/shared/stores/user'
 import { apiClient } from '@/shared/api'
@@ -189,6 +129,23 @@ const getNotificationIcon = (type: Notification['type']) => {
       return Info
     default:
       return Info
+  }
+}
+
+const getNotificationIconColor = (type: Notification['type']) => {
+  switch (type) {
+    case 'like':
+      return 'text-red-400'
+    case 'comment':
+      return 'text-blue-400'
+    case 'follow':
+      return 'text-green-400'
+    case 'mention':
+      return 'text-yellow-400'
+    case 'system':
+      return 'text-[#b8aff7]'
+    default:
+      return 'text-gray-400'
   }
 }
 
@@ -266,16 +223,9 @@ const deleteNotification = async (notificationId: string) => {
   }
 }
 
-const loadNextPage = () => {
-  if (pagination.value?.hasNext) {
-    loadNotifications(currentPage.value + 1)
-  }
-}
-
-const loadPreviousPage = () => {
-  if (pagination.value?.hasPrev) {
-    loadNotifications(currentPage.value - 1)
-  }
+const refreshNotifications = () => {
+  hasNewNotifications.value = false
+  loadNotifications(1) // Reload from first page
 }
 
 const startPolling = () => {
@@ -318,11 +268,6 @@ const stopPolling = () => {
   }
 }
 
-const refreshNotifications = () => {
-  hasNewNotifications.value = false
-  loadNotifications(1) // Reload from first page
-}
-
 // Load notifications when component mounts
 onMounted(() => {
   if (currentUser.value?.id) {
@@ -350,5 +295,23 @@ onUnmounted(() => {
   box-shadow:
     0 4px 6px -1px rgba(0, 0, 0, 0.1),
     0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Custom scrollbar styling */
+.notification-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.notification-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.notification-scroll::-webkit-scrollbar-thumb {
+  background: rgba(184, 175, 247, 0.3);
+  border-radius: 3px;
+}
+
+.notification-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(184, 175, 247, 0.5);
 }
 </style>

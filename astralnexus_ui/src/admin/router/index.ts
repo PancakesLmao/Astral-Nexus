@@ -26,9 +26,20 @@ const router = createRouter({
   ],
 })
 
+// Track redirect attempts to prevent loops
+let redirectAttempts = 0
+const MAX_REDIRECT_ATTEMPTS = 3
+
 // Navigation guard to check admin authentication
 router.beforeEach(async (to, from, next) => {
   console.log('Admin router: Checking route:', to.path)
+
+  // Check for redirect loop
+  if (redirectAttempts >= MAX_REDIRECT_ATTEMPTS) {
+    redirectAttempts = 0
+    next()
+    return
+  }
 
   // Check if route requires authentication
   if (to.meta.requiresAuth) {
@@ -39,6 +50,7 @@ router.beforeEach(async (to, from, next) => {
 
     if (!session) {
       console.log('Admin router: No session, redirecting to root login')
+      redirectAttempts++
       window.location.href = getLoginUrl()
       return
     }
@@ -49,11 +61,13 @@ router.beforeEach(async (to, from, next) => {
 
     if (to.meta.requiresAdmin && !isAdmin) {
       console.log('Admin router: User is not admin, redirecting to blog')
+      redirectAttempts++
       window.location.href = getBlogUrl()
       return
     }
 
     console.log('Admin router: Admin authenticated, proceeding')
+    redirectAttempts = 0 // Reset on successful auth check
   }
 
   next()

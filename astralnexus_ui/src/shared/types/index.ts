@@ -122,13 +122,6 @@ export interface UserStats {
   followers: number
 }
 
-export interface Activity {
-  id: string
-  type: 'like' | 'comment' | 'post' | 'follow'
-  text: string
-  timestamp: string
-}
-
 export interface TrendingHashtag {
   id: number | string
   name: string

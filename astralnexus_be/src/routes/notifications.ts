@@ -146,19 +146,21 @@ export const notificationsRoutes = new Elysia({ prefix: "/api/blog/notifications
   .use(authGuard)
   .get(
     "/",
-    async ({ query, set }) => {
+    async ({ user, query, set }: any) => {
       try {
-        const { user_id, page = "1", limit = "10" } = query;
+        // Use authenticated user from context, fallback to query param if provided
+        const user_id = user?.id || query?.user_id;
 
         if (!user_id) {
           set.status = 400;
           return {
             success: false,
             message: "User ID is required",
-            error: "Missing user_id parameter",
+            error: "Missing user_id parameter or not authenticated",
           };
         }
 
+        const { page = "1", limit = "10" } = query;
         const pageNum = parseInt(page);
         const limitNum = parseInt(limit);
         const offset = (pageNum - 1) * limitNum;

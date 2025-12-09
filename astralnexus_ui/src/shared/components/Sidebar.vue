@@ -94,6 +94,12 @@
         Recent Activities
       </h4>
       <div class="activities-list space-y-3">
+        <div v-if="loadingActivities" class="text-center py-4">
+          <p class="text-xs text-gray-600">Loading...</p>
+        </div>
+        <div v-else-if="recentActivities.length === 0" class="text-center py-4">
+          <p class="text-xs text-gray-600">No recent activities</p>
+        </div>
         <div
           v-for="activity in recentActivities"
           :key="activity.id"
@@ -104,10 +110,10 @@
           </div>
           <div class="activity-content flex-1 min-w-0">
             <p class="activity-text text-sm text-gray-300 leading-tight">
-              {{ activity.text }}
+              {{ activity.title }}
             </p>
             <p class="activity-time text-xs text-gray-600 mt-1">
-              {{ formatTime(activity.timestamp) }}
+              {{ formatTime(activity.created_at) }}
             </p>
           </div>
         </div>
@@ -150,12 +156,13 @@ const emit = defineEmits<{
   'refresh-stats': []
 }>()
 
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { Plus, Heart, MessageCircle, BookOpen, Award } from 'lucide-vue-next'
 import { useLanguageStore } from '@/shared/stores/language'
 import { useUser } from '@/shared/composables/useUser'
-import { UserStats, Activity } from '../types'
+import { UserStats, Notification } from '../types'
+import { apiClient } from '@/shared/api'
 import NewPost from './NewPost.vue'
 import type { Post } from '@/shared/types'
 
@@ -164,33 +171,33 @@ const languageStore = useLanguageStore()
 const { user, initializeUser } = useUser()
 const isCreatePostDialogOpen = ref(false)
 
-// Mock recent activities
-const recentActivities = ref<Activity[]>([
-  {
-    id: '1',
-    type: 'like',
-    text: 'Liked a post about Genshin Impact',
-    timestamp: '2024-01-15T10:30:00Z',
-  },
-  {
-    id: '2',
-    type: 'comment',
-    text: 'Commented on "Best HSR Teams"',
-    timestamp: '2024-01-15T09:15:00Z',
-  },
-  {
-    id: '3',
-    type: 'post',
-    text: 'Posted about ZZZ beta experience',
-    timestamp: '2024-01-14T16:45:00Z',
-  },
-  {
-    id: '4',
-    type: 'follow',
-    text: 'Started following @genshin_master',
-    timestamp: '2024-01-14T14:20:00Z',
-  },
-])
+// Recent activities from API
+const recentActivities = ref<Notification[]>([])
+const loadingActivities = ref(false)
+
+const fetchRecentActivities = async () => {
+  if (!user.value?.id) {
+    console.warn('[Sidebar] No user ID available for fetching activities')
+    return
+  }
+
+  try {
+    console.log('[Sidebar] Fetching recent activities for user:', user.value.id)
+    loadingActivities.value = true
+    const result = await apiClient.fetchNotifications({
+      user_id: user.value.id,
+      page: 1,
+      limit: 4,
+    })
+    console.log('[Sidebar] Fetched activities:', result.notifications)
+    recentActivities.value = result.notifications || []
+  } catch (error) {
+    console.error('[Sidebar] Failed to fetch recent activities:', error)
+    recentActivities.value = []
+  } finally {
+    loadingActivities.value = false
+  }
+}
 
 languageStore.initializeLanguage()
 
@@ -204,6 +211,10 @@ const getActivityIcon = (type: string) => {
       return BookOpen
     case 'follow':
       return Award
+    case 'mention':
+      return MessageCircle
+    case 'system':
+      return BookOpen
     default:
       return BookOpen
   }
@@ -239,8 +250,22 @@ const handlePostCreated = async (post: unknown) => {
 }
 
 onMounted(async () => {
+  console.log('[Sidebar] Initializing user...')
   await initializeUser()
+  console.log('[Sidebar] User initialized:', user.value?.id)
+  await fetchRecentActivities()
 })
+
+// Watch for user changes and refetch activities
+watch(
+  () => user.value?.id,
+  async (newUserId) => {
+    if (newUserId && recentActivities.value.length === 0) {
+      console.log('[Sidebar] User ID changed, refetching activities')
+      await fetchRecentActivities()
+    }
+  },
+)
 </script>
 
 <style scoped>

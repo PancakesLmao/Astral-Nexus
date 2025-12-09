@@ -1,7 +1,5 @@
 <template>
-  <div id="notifications" class="px-5 py-0">
-    <h1 class="text-2xl font-bold text-foreground mb-6">{{ languageStore.t('notifications') }}</h1>
-
+  <div id="notifications" class="py-0">
     <NotificationBox />
   </div>
 </template>

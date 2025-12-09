@@ -14,6 +14,7 @@ export const useAuthStore = defineStore('auth', () => {
   const session = ref<Session | null>(null)
   const loading = ref(true)
   const error = ref<string | null>(null)
+  const authInitialized = ref(false)
 
   const isAuthenticated = computed(() => !!user.value && !!session.value)
   const isLoading = computed(() => loading.value)
@@ -37,6 +38,13 @@ export const useAuthStore = defineStore('auth', () => {
 
   // Initialize auth state
   const initAuth = async () => {
+    // Prevent duplicate initialization
+    if (authInitialized.value) {
+      console.log('[Auth] Already initialized, skipping...')
+      return
+    }
+    authInitialized.value = true
+
     try {
       loading.value = true
 

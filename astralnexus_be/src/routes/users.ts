@@ -655,5 +655,93 @@ export const userRoutes = new Elysia({ prefix: "/api/users" })
           "Delete a post created by the authenticated user. Users can only delete their own posts.",
       },
     }
+  )
+  .use(authGuard)
+  .get(
+    "/:userId/activities",
+    async ({ params: { userId }, query: { limit = "4" }, set }) => {
+      try {
+        const limitNum = Math.min(parseInt(limit as string) || 4, 20); // Max 20 items
+
+        // Fetch recent user activities from notifications table
+        // This gives us a comprehensive activity log
+        const query = `
+          SELECT 
+            id,
+            type,
+            title,
+            message,
+            created_at
+          FROM notifications
+          WHERE user_id = $1
+          ORDER BY created_at DESC
+          LIMIT $2
+        `;
+
+        const result = await db.query(query, [userId, limitNum]);
+
+        const activities = result.rows.map((row: any) => ({
+          id: row.id,
+          type: row.type,
+          text: row.message,
+          timestamp: row.created_at,
+        }));
+
+        return {
+          success: true,
+          data: {
+            activities,
+          },
+        };
+      } catch (error) {
+        console.error("Error fetching user activities:", error);
+        set.status = 500;
+        return {
+          success: false,
+          message: "Failed to fetch activities",
+          error: error instanceof Error ? error.message : "Unknown error",
+        };
+      }
+    },
+    {
+      params: t.Object({
+        userId: t.String(),
+      }),
+      query: t.Object({
+        limit: t.Optional(t.String()),
+      }),
+      response: {
+        200: t.Object({
+          success: t.Literal(true),
+          data: t.Object({
+            activities: t.Array(
+              t.Object({
+                id: t.String({ format: "uuid" }),
+                type: t.Union([
+                  t.Literal("like"),
+                  t.Literal("comment"),
+                  t.Literal("follow"),
+                  t.Literal("mention"),
+                  t.Literal("system"),
+                ]),
+                text: t.String(),
+                timestamp: t.String({ format: "date-time" }),
+              })
+            ),
+          }),
+        }),
+        500: t.Object({
+          success: t.Literal(false),
+          message: t.String(),
+          error: t.String(),
+        }),
+      },
+      detail: {
+        tags: ["Users"],
+        summary: "Get user recent activities",
+        description:
+          "Retrieve recent activities (notifications) for a user. Activities include likes, comments, follows, and system events.",
+      },
+    }
   );
 

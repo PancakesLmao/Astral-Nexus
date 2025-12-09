@@ -24,7 +24,6 @@ export const useLanguageStore = defineStore('language', () => {
     if (languages.some((lang) => lang.code === languageCode)) {
       currentLanguage.value = languageCode
       const domain = getSessionDomain()
-      console.log(`[Language Store] Setting language to ${languageCode}`, { domain, isProduction })
       // Save to cookie for cross-subdomain persistence
       setCookie('preferred-language', languageCode, {
         domain, // For cross-subdomain cookie sharing
