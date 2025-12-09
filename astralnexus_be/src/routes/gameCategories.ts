@@ -25,7 +25,7 @@ export const gameCategoriesRoutes = new Elysia({
       const transformedCategories = categories.map((category: any) => ({
         id: category.id,
         game_name: category.game_name,
-        createdAt: new Date(category.created_at).toISOString(),
+        created_at: new Date(category.created_at).toISOString(),
       }));
 
       return {

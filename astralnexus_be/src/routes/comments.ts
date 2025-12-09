@@ -67,7 +67,6 @@ export const commentRoutes = new Elysia({ prefix: "/api/blog/comments" })
           const updatedAtIso = new Date(comment.updated_at).toISOString();
           return {
             id: comment.id.toString(),
-            postId: comment.post_id.toString(),
             post_id: comment.post_id.toString(),
             author_id: comment.author_id.toString(),
             author: {
@@ -78,11 +77,9 @@ export const commentRoutes = new Elysia({ prefix: "/api/blog/comments" })
             },
             content: comment.content,
             likes_count: parseInt(comment.likes_count) || 0,
-            isLiked: comment.is_liked,
+            is_liked: comment.is_liked,
             created_at: createdAtIso,
-            createdAt: createdAtIso,
             updated_at: updatedAtIso,
-            updatedAt: updatedAtIso,
           };
         });
 
@@ -186,12 +183,12 @@ export const commentRoutes = new Elysia({ prefix: "/api/blog/comments" })
         }
 
         // Validate required fields
-        if (!body.postId || !body.content) {
+        if (!body.post_id || !body.content) {
           set.status = 400;
           return {
             success: false,
             error: "Missing required fields",
-            message: "postId and content are required",
+            message: "post_id and content are required",
           };
         }
 
@@ -203,7 +200,7 @@ export const commentRoutes = new Elysia({ prefix: "/api/blog/comments" })
         `;
 
         const result = await queryOne(insertQuery, [
-          body.postId,
+          body.post_id,
           authorId,
           body.content,
         ]);
@@ -211,8 +208,7 @@ export const commentRoutes = new Elysia({ prefix: "/api/blog/comments" })
         const createdAtIso = new Date(result.created_at).toISOString();
         const newComment = {
           id: result.id.toString(),
-          postId: body.postId,
-          post_id: body.postId,
+          post_id: body.post_id,
           author_id: authorId,
           author: {
             id: authorId,
@@ -222,11 +218,9 @@ export const commentRoutes = new Elysia({ prefix: "/api/blog/comments" })
           },
           content: body.content,
           likes_count: 0,
-          isLiked: false,
+          is_liked: false,
           created_at: createdAtIso,
-          createdAt: createdAtIso,
           updated_at: createdAtIso,
-          updatedAt: createdAtIso,
         };
 
         set.status = 201;
@@ -371,7 +365,6 @@ export const commentRoutes = new Elysia({ prefix: "/api/blog/comments" })
 
         const updatedComment = {
           id: result.id.toString(),
-          postId: result.post_id.toString(),
           post_id: result.post_id.toString(),
           author_id: dbUser.id.toString(),
           author: {
@@ -382,11 +375,9 @@ export const commentRoutes = new Elysia({ prefix: "/api/blog/comments" })
           },
           content: result.content,
           likes_count: 0,
-          isLiked: false,
+          is_liked: false,
           created_at: new Date(result.created_at).toISOString(),
-          createdAt: new Date(result.created_at).toISOString(),
           updated_at: new Date(result.updated_at).toISOString(),
-          updatedAt: new Date(result.updated_at).toISOString(),
         };
 
         set.status = 200;

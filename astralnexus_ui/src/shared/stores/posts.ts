@@ -325,7 +325,7 @@ export const usePostsStore = defineStore('posts', {
       try {
         // Create comment via API
         const newComment = await apiClient.createComment({
-          postId: postId.toString(),
+          post_id: postId.toString(),
           content: content.trim(),
         })
 

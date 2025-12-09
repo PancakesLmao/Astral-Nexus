@@ -393,7 +393,7 @@ export class ApiClient {
     }
   }
 
-  async createComment(commentData: { postId: string; content: string }): Promise<Comment> {
+  async createComment(commentData: { post_id: string; content: string }): Promise<Comment> {
     try {
       const response = await createAuthenticatedRequest(`${this.baseUrl}/api/blog/comments`, {
         method: 'POST',

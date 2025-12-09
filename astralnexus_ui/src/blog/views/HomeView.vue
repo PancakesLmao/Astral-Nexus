@@ -199,12 +199,12 @@ const handleCommentLike = async (comment: Comment) => {
   }
 }
 
-const handleLikeUpdateFromDetail = (postId: string, isLiked: boolean, likesCount: number) => {
+const handleLikeUpdateFromDetail = (postId: string, is_liked: boolean, likes_count: number) => {
   // Update the post in the store
   const post = postsStore.posts.find((p) => p.id === postId)
   if (post) {
-    post.is_liked = isLiked
-    post.likes_count = likesCount
+    post.is_liked = is_liked
+    post.likes_count = likes_count
   }
 }
 

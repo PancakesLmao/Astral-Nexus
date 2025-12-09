@@ -1,28 +1,3 @@
-export interface LegacyPost {
-  id: string
-  title: string
-  content: string
-  author: string
-  createdAt: Date
-  updatedAt: Date
-}
-
-export interface LegacyComment {
-  id: string
-  postId: string
-  content: string
-  author: string
-  createdAt: Date
-}
-
-export interface LegacyUser {
-  id: string
-  username: string
-  email: string
-  role: 'user' | 'admin'
-  createdAt: Date
-}
-
 export interface CookieOptions {
   domain?: string
   path?: string

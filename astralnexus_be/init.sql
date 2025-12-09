@@ -78,15 +78,16 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 
 -- Administrators table (for future admin panel - NOT used for OAuth)
-CREATE TABLE IF NOT EXISTS administrators (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    email VARCHAR(255) UNIQUE NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    role VARCHAR(50) DEFAULT 'admin' CHECK (role IN ('admin', 'super_admin', 'moderator')),
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+-- COMMENTED OUT - Admin functionality to be implemented later
+-- CREATE TABLE IF NOT EXISTS administrators (
+--     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+--     email VARCHAR(255) UNIQUE NOT NULL,
+--     name VARCHAR(255) NOT NULL,
+--     role VARCHAR(50) DEFAULT 'admin' CHECK (role IN ('admin', 'super_admin', 'moderator')),
+--     is_active BOOLEAN DEFAULT TRUE,
+--     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+--     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+-- );
 
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
@@ -111,8 +112,9 @@ CREATE INDEX IF NOT EXISTS idx_notifications_type ON notifications(type);
 CREATE INDEX IF NOT EXISTS idx_notifications_post_id ON notifications(post_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_comment_id ON notifications(comment_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at);
-CREATE INDEX IF NOT EXISTS idx_administrators_email ON administrators(email);
-CREATE INDEX IF NOT EXISTS idx_administrators_role ON administrators(role);
+-- COMMENTED OUT - Administrators table indexes (admin functionality to be implemented later)
+-- CREATE INDEX IF NOT EXISTS idx_administrators_email ON administrators(email);
+-- CREATE INDEX IF NOT EXISTS idx_administrators_role ON administrators(role);
 
 -- Update triggers for updated_at columns
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -172,7 +174,8 @@ $$ language 'plpgsql';
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_posts_updated_at BEFORE UPDATE ON posts FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_comments_updated_at BEFORE UPDATE ON comments FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_administrators_updated_at BEFORE UPDATE ON administrators FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+-- COMMENTED OUT - Administrators table trigger (admin functionality to be implemented later)
+-- CREATE TRIGGER update_administrators_updated_at BEFORE UPDATE ON administrators FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_post_likes_count_trigger AFTER INSERT OR DELETE ON post_likes FOR EACH ROW EXECUTE FUNCTION update_post_likes_count();
 CREATE TRIGGER update_post_comments_count_trigger AFTER INSERT OR DELETE ON comments FOR EACH ROW EXECUTE FUNCTION update_post_comments_count();
@@ -299,6 +302,7 @@ Let''s build an amazing gaming community together! 🎊',
 END $$;
 
 -- Insert default administrator account
-INSERT INTO administrators (email, name, role) 
-VALUES ('admin@astralnexus.com', 'AstralNexus Admin', 'super_admin')
-ON CONFLICT (email) DO NOTHING;
+-- COMMENTED OUT - Administrators table (admin functionality to be implemented later)
+-- INSERT INTO administrators (email, name, role) 
+-- VALUES ('admin@astralnexus.com', 'AstralNexus Admin', 'super_admin')
+-- ON CONFLICT (email) DO NOTHING;

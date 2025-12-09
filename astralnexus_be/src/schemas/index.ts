@@ -23,16 +23,18 @@ export const Schemas = {
           format: "uri",
         })
       ),
-      provider: t.String({
-        description: "Authentication provider (discord, google, github, etc.)",
-        minLength: 1,
-        maxLength: 50,
-      }),
-      createdAt: t.String({
+      provider: t.Optional(
+        t.String({
+          description: "Authentication provider (discord, google, github, etc.)",
+          minLength: 1,
+          maxLength: 50,
+        })
+      ),
+      created_at: t.String({
         description: "Account creation timestamp",
         format: "date-time",
       }),
-      updatedAt: t.String({
+      updated_at: t.String({
         description: "Last account update timestamp",
         format: "date-time",
       }),
@@ -75,7 +77,7 @@ export const Schemas = {
           maxLength: 500,
         })
       ),
-      createdAt: t.String({
+      created_at: t.String({
         description: "Author account creation timestamp",
         format: "date-time",
       }),
@@ -132,7 +134,7 @@ export const Schemas = {
             maxLength: 500,
           })
         ),
-        createdAt: t.String({
+        created_at: t.String({
           description: "Author account creation timestamp",
           format: "date-time",
         }),
@@ -184,7 +186,14 @@ export const Schemas = {
         minimum: 0,
         default: 0,
       }),
-      isLiked: t.Optional(
+      shares_count: t.Optional(
+        t.Number({
+          description: "Number of shares on the post",
+          minimum: 0,
+          default: 0,
+        })
+      ),
+      is_liked: t.Optional(
         t.Boolean({
           description: "Whether the current user has liked this post",
         })
@@ -193,15 +202,7 @@ export const Schemas = {
         description: "Post creation timestamp",
         format: "date-time",
       }),
-      createdAt: t.String({
-        description: "Post creation timestamp",
-        format: "date-time",
-      }),
       updated_at: t.String({
-        description: "Post last update timestamp",
-        format: "date-time",
-      }),
-      updatedAt: t.String({
         description: "Post last update timestamp",
         format: "date-time",
       }),
@@ -285,7 +286,7 @@ export const Schemas = {
         minimum: 0,
         default: 0,
       }),
-      isLiked: t.Optional(
+      is_liked: t.Optional(
         t.Boolean({
           description: "Whether the current user has liked this comment",
         })
@@ -294,15 +295,7 @@ export const Schemas = {
         description: "Comment creation timestamp",
         format: "date-time",
       }),
-      createdAt: t.String({
-        description: "Comment creation timestamp",
-        format: "date-time",
-      }),
       updated_at: t.String({
-        description: "Comment last update timestamp",
-        format: "date-time",
-      }),
-      updatedAt: t.String({
         description: "Comment last update timestamp",
         format: "date-time",
       }),
@@ -345,7 +338,7 @@ export const Schemas = {
         description: "Whether the notification has been read",
         default: false,
       }),
-      createdAt: t.String({
+      created_at: t.String({
         description: "Notification creation timestamp",
         format: "date-time",
       }),
@@ -367,7 +360,7 @@ export const Schemas = {
         minLength: 1,
         maxLength: 255,
       }),
-      createdAt: t.String({
+      created_at: t.String({
         description: "Category creation timestamp",
         format: "date-time",
       }),
@@ -498,7 +491,7 @@ export const Schemas = {
         minLength: 1,
         maxLength: 5000,
       }),
-      postId: t.String({
+      post_id: t.String({
         description: "ID of the post to comment on",
         format: "uuid",
       }),

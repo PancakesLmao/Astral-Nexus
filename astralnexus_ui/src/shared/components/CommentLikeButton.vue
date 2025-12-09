@@ -78,8 +78,8 @@ const handleClick = async () => {
     const updatedComment = comments.find((c) => c.id === props.commentId)
 
     if (updatedComment) {
-      // Update with server truth - backend uses camelCase 'isLiked'
-      localIsLiked.value = updatedComment.isLiked ?? false
+      // Update with server truth - backend uses snake_case 'is_liked'
+      localIsLiked.value = updatedComment.is_liked ?? false
       localLikesCount.value = updatedComment.likes_count || 0
 
       // Emit update to parent

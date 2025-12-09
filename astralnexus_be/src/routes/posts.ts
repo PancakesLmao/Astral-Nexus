@@ -193,7 +193,7 @@ export const postsRoutes = new Elysia({ prefix: "/api/blog/posts" })
               email: post.author_email || "",
               picture: post.author_picture || undefined,
               bio: "",
-              createdAt: createdAtISO,
+              created_at: createdAtISO,
             },
             author_id: post.author_id,
             game_id: post.game_id || undefined,
@@ -206,11 +206,8 @@ export const postsRoutes = new Elysia({ prefix: "/api/blog/posts" })
             comments_count: post.comments_count || 0,
             shares_count: post.shares_count || 0,
             is_liked: post.is_liked || false,
-            isLiked: post.is_liked || false,
             created_at: createdAtISO,
-            createdAt: createdAtISO,
             updated_at: updatedAtISO,
-            updatedAt: updatedAtISO,
           };
         });
 
@@ -396,7 +393,7 @@ export const postsRoutes = new Elysia({ prefix: "/api/blog/posts" })
             email: post.author_email || "",
             picture: post.author_picture || undefined,
             bio: "",
-            createdAt: new Date(post.created_at).toISOString(),
+            created_at: new Date(post.created_at).toISOString(),
           },
           author_id: post.author_id,
           game_id: post.game_id || undefined,
@@ -409,11 +406,8 @@ export const postsRoutes = new Elysia({ prefix: "/api/blog/posts" })
           comments_count: post.comments_count || 0,
           shares_count: post.shares_count || 0,
           is_liked: post.is_liked || false,
-          isLiked: post.is_liked || false,
           created_at: new Date(post.created_at).toISOString(),
-          createdAt: new Date(post.created_at).toISOString(),
           updated_at: new Date(post.updated_at).toISOString(),
-          updatedAt: new Date(post.updated_at).toISOString(),
         };
 
         return {

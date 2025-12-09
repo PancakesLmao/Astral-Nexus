@@ -10,8 +10,8 @@ const defaultSessionDomain = isDevelopment
   : process.env.SESSION_DOMAIN || ".domain.com";
 
 export const appConfig = {
-  port: process.env.PORT || defaultPort,
-  host: process.env.HOST || defaultHost,
+  port: defaultPort,
+  host: defaultHost,
   environment: process.env.NODE_ENV || "development",
 
   // API Configuration

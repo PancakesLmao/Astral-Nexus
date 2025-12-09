@@ -41,8 +41,8 @@ export const userRoutes = new Elysia({ prefix: "/api/users" })
             email: user.email,
             name: user.name,
             picture: user.picture,
-            createdAt: user.created_at,
-            updatedAt: user.updated_at,
+            created_at: user.created_at,
+            updated_at: user.updated_at,
           },
         };
       } catch (error) {
@@ -146,8 +146,8 @@ export const userRoutes = new Elysia({ prefix: "/api/users" })
               email: user.email,
               name: user.name,
               picture: user.picture,
-              createdAt: user.created_at,
-              updatedAt: user.updated_at,
+              created_at: user.created_at,
+              updated_at: user.updated_at,
             },
           },
         };
@@ -466,7 +466,7 @@ export const userRoutes = new Elysia({ prefix: "/api/users" })
               email: post.author_email || "",
               picture: post.author_picture || undefined,
               bio: "",
-              createdAt: createdAtISO,
+              created_at: createdAtISO,
             },
             author_id: post.author_id,
             game_id: post.game_id || undefined,
@@ -479,11 +479,8 @@ export const userRoutes = new Elysia({ prefix: "/api/users" })
             comments_count: post.comments_count || 0,
             shares_count: post.shares_count || 0,
             is_liked: post.is_liked || false,
-            isLiked: post.is_liked || false,
             created_at: createdAtISO,
-            createdAt: createdAtISO,
             updated_at: updatedAtISO,
-            updatedAt: updatedAtISO,
           };
         });
 

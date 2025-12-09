@@ -37,7 +37,6 @@ import {
   userRoutes,
   appRoutes,
   commentRoutes,
-  dbRoutes,
   postsRoutes,
   gameCategoriesRoutes,
   notificationsRoutes,
@@ -93,7 +92,7 @@ const getMethodColor = (method: string): string => {
   }
 };
 
-const app = new Elysia()
+let app: any = new Elysia()
   .onBeforeHandle(({ request, store }: any) => {
     // Store request info for logging
     const url = new URL(request.url);
@@ -128,11 +127,12 @@ const app = new Elysia()
   .use(loggerMiddleware)
   .use(corsMiddleware)
   .use(errorMiddleware)
-  .use(cookie())
-  .use(openapi())
+  .use(cookie());
 
-  // Swagger documentation
-  .use(
+// OpenAPI and Swagger documentation (development only)
+if (isDevelopment) {
+  app = app.use(openapi());
+  app = app.use(
     swagger({
       path: appConfig.api.swagger.path,
       documentation: {
@@ -162,21 +162,20 @@ const app = new Elysia()
             name: "Admin",
             description: "Admin endpoints for user/content management and analytics - requires admin role",
           },
-          {
-            name: "Database",
-            description: "Database testing and utility endpoints (development only)",
-          },
         ],
         servers: [
           {
             url: `http://${displayHostname}:${appConfig.port}`,
-            description: isDevelopment ? "Development server" : "Production server",
+            description: "Development server",
           },
         ],
       },
     })
-  )
+  );
+}
 
+// Register routes
+app = app
   .use(appRoutes)
   .use(authRoutes)
   .use(userRoutes)
@@ -184,22 +183,22 @@ const app = new Elysia()
   .use(postsRoutes)
   .use(gameCategoriesRoutes)
   .use(notificationsRoutes)
-  .use(adminRoutes)
-  // Unprotected database routes
-  .use(dbRoutes)
+  // .use(adminRoutes)
 
   .listen(
     {
       port: appConfig.port || 3001,
       hostname: "0.0.0.0", // Listen on all interfaces
     },
-    async ({ hostname, port }) => {
+    async ({ hostname, port }: any) => {
       const displayUrl = `http://${displayHostname}:${port}`
 
       console.log(`🦊 Elysia server is running at ${displayUrl}`)
-      console.log(
-        `📚 API Documentation: ${displayUrl}${appConfig.api.swagger.path}`
-      )
+      if (isDevelopment) {
+        console.log(
+          `📚 API Documentation: ${displayUrl}${appConfig.api.swagger.path}`
+        )
+      }
       console.log(`Server listening on: ${hostname}:${port} (all interfaces)`)
       console.log(`Environment: ${appConfig.environment}`)
 

@@ -11,6 +11,13 @@
     <img src="https://elysiajs.com/assets/elysia.svg" height="45" alt="elysia logo" />
 </div>
 
+## Documentation
+
+- **[API Routes Documentation](./docs/API_ROUTES.md)** - Complete API endpoint reference and route organization
+- **[Naming Conventions Guide](./docs/NAMING_CONVENTIONS.md)** - Comprehensive guide for naming standards across all layers (database, APIs, types, components)
+- **[Authentication Details](./docs/auth-detailed/README.md)** - In-depth authentication flows, PKCE implementation, session management
+- **[User Actions](./docs/user-action/README.md)** - Post creation, liking system, and comment workflows
+
 ## Getting Started
 
 ### Prerequisites
@@ -20,19 +27,17 @@
 - [Bun](https://bun.sh/) (for backend development)
 - [pnpm](https://pnpm.io/) (for frontend development)
 
-### Quick Start - Docker (Recommended)
-
-For Docker-based development (recommended), see [DOCKER_DEVELOPMENT.md](./DOCKER_DEVELOPMENT.md)
+### Quick Start
 
 ```bash
 # Start all services in production mode
 docker compose up --build -d
 
 # Access the application
-# Frontend: http://localtest.me:3000
-# Blog: http://blog.localtest.me:3000
-# Admin: http://admin.localtest.me:3000
-# Backend API: http://api.localtest.me:3001
+# Frontend: http://localtest.me
+# Blog: http://blog.localtest.me
+# Admin: http://admin.localtest.me
+# Backend API: http://api.localtest.me / http://localtest.me:3001
 ```
 
 ### Local Development Setup
@@ -83,7 +88,8 @@ bun start
 
 **Backend URL:**
 
-- API: http://api.localtest.me:3001
+- http://api.localtest.me:3001 / http://localtest.me:3001
+- API documentation will be available at `/swagger` endpoint when running in development mode.
 
 ### Important Notes
 
@@ -91,51 +97,54 @@ bun start
 
 This project uses subdomain routing. You must use the `.localtest.me` domains for proper functionality:
 
-- **Frontend Root**: `http://localtest.me:3000`
-- **Frontend Blog**: `http://blog.localtest.me:3000`
-- **Frontend Admin**: `http://admin.localtest.me:3000`
-- **Backend API**: `http://api.localtest.me:3001`
-
 ### Environment Configuration
 
-Create a `.env` file in the root directory with:
+Create a `.env` file in the backend root directory with:
 
 ```env
 # Application
 NODE_ENV=development
-PORT=3001
-VITE_API_BASE_URL=http://api.localtest.me:3001
 
 # Database
-POSTGRES_USER=admin
-POSTGRES_PASSWORD=admin
-POSTGRES_DB=astralnexus
+DATABASE_URL=postgresql://<username>:<password>@<db_endpoint>/<database_name>
+# PostgreSQL Configuration for Docker
+POSTGRES_LOG_STATEMENT=all
+POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
 
 # CORS
 CORS_ORIGIN=http://localtest.me:3000,http://blog.localtest.me:3000,http://admin.localtest.me:3000
 
 # Session
-SESSION_SECRET=your_super_secret_session_key_here
 SESSION_DOMAIN=.localtest.me
 
 # Supabase Authentication
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your_anon_key_here
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
-
-# OAuth (Legacy - keeping for reference)
-DISCORD_CLIENT_ID=your_discord_client_id
-DISCORD_CLIENT_SECRET=your_discord_client_secret
-DISCORD_REDIRECT_URI=http://api.localtest.me:3001/auth/discord/callback
 ```
+Create a .env.local file in the frontend root directory with:
 
-## Authentication Setup
+```env
+NODE_ENV=development
+# Supabase Configuration
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=supabase_anon_key_here
 
-This project uses **Supabase Auth** for authentication with Discord OAuth integration.
+VITE_APP_URL=http://localtest.me:3000
+VITE_BLOG_URL=http://blog.localtest.me:3000
+VITE_ADMIN_URL=http://admin.localtest.me:3000
+```
 
 ### Quick Setup:
 
 1. **Create Supabase Project**: Go to [supabase.com/dashboard](https://supabase.com/dashboard)
 2. **Configure Discord OAuth**: Enable Discord provider in Supabase Auth settings
 3. **Set Environment Variables**: Add Supabase keys to your `.env` files
-4. **Remove Old Edge Functions**: Clean up any existing authentication edge functions
+
+#### Authentication
+
+This project uses **Supabase Auth** for authentication with Discord OAuth integration.
+1. Go to your Supabase project dashboard
+2. Navigate to "Authentication" > "Providers"
+3. Enable "Discord" and provide your Discord OAuth credentials
+4. Go to Discord Developer Portal > Create an application > OAuth2.0 and set the redirect URI to `https://your-project.supabase.co/auth/v1/callback`
