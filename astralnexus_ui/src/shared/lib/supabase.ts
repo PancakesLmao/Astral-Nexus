@@ -4,6 +4,7 @@ import { getSessionDomain, getAppUrl } from '../utils'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+const isProduction = import.meta.env.NODE_ENV === 'production'
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables. Please check your .env file.')
@@ -67,7 +68,8 @@ const cookieStorage = {
     try {
       const domain = getSessionDomain()
       const maxAge = 60 * 60 * 24 * 7 // 7 days
-      const cookieAttributes = `; path=/; domain=${domain}; max-age=${maxAge}; SameSite=Lax`
+      const secureFlag = isProduction ? '; Secure' : ''
+      const cookieAttributes = `; path=/; domain=${domain}; max-age=${maxAge}; SameSite=Lax${secureFlag}`
 
       // Clear any existing chunked cookies for this key
       cookieStorage.removeItem(key)

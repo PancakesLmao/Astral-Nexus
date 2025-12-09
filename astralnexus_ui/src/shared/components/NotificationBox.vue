@@ -38,69 +38,89 @@
     </div>
 
     <!-- Notifications List -->
-    <div v-else class="max-h-96 overflow-y-auto">
-      <div
-        v-for="notification in notifications"
-        :key="notification.id"
-        class="p-4 border-b border-dark-300 last:border-b-0 hover:bg-dark-100 transition-colors"
-      >
-        <div class="flex items-start gap-3">
-          <!-- Notification Icon -->
-          <div class="flex-shrink-0 mt-1">
-            <div
-              class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium"
-              :class="getNotificationIconClass(notification.type)"
-            >
-              <component :is="getNotificationIcon(notification.type)" class="w-4 h-4" />
-            </div>
+    <div v-else>
+      <!-- Header with refresh button -->
+      <div class="p-4 border-b border-dark-300 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <h3 class="text-sm font-medium text-foreground">Notifications</h3>
+          <div v-if="hasNewNotifications" class="flex items-center gap-1">
+            <div class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+            <span class="text-xs text-red-400">New</span>
           </div>
+        </div>
+        <button
+          @click="refreshNotifications"
+          class="p-1 text-gray-400 hover:text-primary transition-colors"
+          title="Refresh notifications"
+        >
+          <RefreshCw class="w-4 h-4" />
+        </button>
+      </div>
 
-          <!-- Notification Content -->
-          <div class="flex-1 min-w-0">
-            <div class="flex items-start justify-between gap-2">
-              <div class="flex-1">
-                <h4 class="text-sm font-medium text-foreground">
-                  {{ notification.title }}
-                </h4>
-                <p class="text-sm text-gray-300 mt-1 line-clamp-2">
-                  {{ notification.message }}
-                </p>
+      <div class="max-h-96 overflow-y-auto">
+        <div
+          v-for="notification in notifications"
+          :key="notification.id"
+          class="p-4 border-b border-dark-300 last:border-b-0 hover:bg-dark-100 transition-colors"
+        >
+          <div class="flex items-start gap-3">
+            <!-- Notification Icon -->
+            <div class="flex-shrink-0 mt-1">
+              <div
+                class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium"
+                :class="getNotificationIconClass(notification.type)"
+              >
+                <component :is="getNotificationIcon(notification.type)" class="w-4 h-4" />
+              </div>
+            </div>
 
-                <!-- Related Content Info -->
-                <div v-if="notification.post_title || notification.comment_content" class="mt-2">
-                  <p v-if="notification.post_title" class="text-xs text-primary">
-                    {{ notification.post_title }}
+            <!-- Notification Content -->
+            <div class="flex-1 min-w-0">
+              <div class="flex items-start justify-between gap-2">
+                <div class="flex-1">
+                  <h4 class="text-sm font-medium text-foreground">
+                    {{ notification.title }}
+                  </h4>
+                  <p class="text-sm text-gray-300 mt-1 line-clamp-2">
+                    {{ notification.message }}
                   </p>
-                  <p v-if="notification.comment_content" class="text-xs text-blue-400 mt-1">
-                    {{ notification.comment_content.substring(0, 50)
-                    }}{{ notification.comment_content.length > 50 ? '...' : '' }}
-                  </p>
+
+                  <!-- Related Content Info -->
+                  <div v-if="notification.post_title || notification.comment_content" class="mt-2">
+                    <p v-if="notification.post_title" class="text-xs text-primary">
+                      {{ notification.post_title }}
+                    </p>
+                    <p v-if="notification.comment_content" class="text-xs text-blue-400 mt-1">
+                      {{ notification.comment_content.substring(0, 50)
+                      }}{{ notification.comment_content.length > 50 ? '...' : '' }}
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Actions button -->
+                <div class="flex items-center gap-1">
+                  <button
+                    @click="deleteNotification(notification.id)"
+                    class="p-1 text-gray-400 hover:text-red-400 transition-colors"
+                    title="Delete"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      ></path>
+                    </svg>
+                  </button>
                 </div>
               </div>
 
-              <!-- Actions button -->
-              <div class="flex items-center gap-1">
-                <button
-                  @click="deleteNotification(notification.id)"
-                  class="p-1 text-gray-400 hover:text-red-400 transition-colors"
-                  title="Delete"
-                >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                    ></path>
-                  </svg>
-                </button>
-              </div>
+              <!-- Timestamp -->
+              <p class="text-xs text-gray-500 mt-2">
+                {{ formatRelativeTime(notification.created_at) }}
+              </p>
             </div>
-
-            <!-- Timestamp -->
-            <p class="text-xs text-gray-500 mt-2">
-              {{ formatRelativeTime(notification.created_at) }}
-            </p>
           </div>
         </div>
       </div>
@@ -134,7 +154,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, h } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { Heart, MessageCircle, UserPlus, AtSign, Info, RefreshCw } from 'lucide-vue-next'
 import { useLanguageStore } from '@/shared/stores/language'
 import { useUserStore } from '@/shared/stores/user'
 import { apiClient } from '@/shared/api'
@@ -148,6 +169,8 @@ const pagination = ref<PaginationInfo | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
 const currentPage = ref(1)
+const hasNewNotifications = ref(false)
+const pollingInterval = ref<NodeJS.Timeout | null>(null)
 
 const currentUser = computed(() => userStore.user)
 
@@ -155,56 +178,17 @@ const currentUser = computed(() => userStore.user)
 const getNotificationIcon = (type: Notification['type']) => {
   switch (type) {
     case 'like':
-      return h('svg', { fill: 'currentColor', viewBox: '0 0 24 24' }, [
-        h('path', {
-          d: 'M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z',
-        }),
-      ])
+      return Heart
     case 'comment':
-      return h('svg', { fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24' }, [
-        h('path', {
-          'stroke-linecap': 'round',
-          'stroke-linejoin': 'round',
-          'stroke-width': '2',
-          d: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z',
-        }),
-      ])
+      return MessageCircle
     case 'follow':
-      return h('svg', { fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24' }, [
-        h('path', {
-          'stroke-linecap': 'round',
-          'stroke-linejoin': 'round',
-          'stroke-width': '2',
-          d: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
-        }),
-      ])
+      return UserPlus
     case 'mention':
-      return h('svg', { fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24' }, [
-        h('path', {
-          'stroke-linecap': 'round',
-          'stroke-linejoin': 'round',
-          'stroke-width': '2',
-          d: 'M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z',
-        }),
-      ])
+      return AtSign
     case 'system':
-      return h('svg', { fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24' }, [
-        h('path', {
-          'stroke-linecap': 'round',
-          'stroke-linejoin': 'round',
-          'stroke-width': '2',
-          d: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
-        }),
-      ])
+      return Info
     default:
-      return h('svg', { fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24' }, [
-        h('path', {
-          'stroke-linecap': 'round',
-          'stroke-linejoin': 'round',
-          'stroke-width': '2',
-          d: 'M15 17h5l-5 5v-5z',
-        }),
-      ])
+      return Info
   }
 }
 
@@ -294,11 +278,62 @@ const loadPreviousPage = () => {
   }
 }
 
+const startPolling = () => {
+  if (pollingInterval.value) {
+    clearInterval(pollingInterval.value)
+  }
+
+  // Poll every 30 seconds for new notifications
+  pollingInterval.value = setInterval(async () => {
+    if (!currentUser.value?.id) return
+
+    try {
+      const result = await apiClient.fetchNotifications({
+        user_id: currentUser.value.id,
+        page: 1,
+        limit: 1, // Just check if there are any new notifications
+      })
+
+      // Check if there are unread notifications (notifications that are newer than what we have)
+      if (result.notifications.length > 0 && notifications.value.length > 0) {
+        const latestNotification = result.notifications[0]
+        const currentLatest = notifications.value[0]
+
+        if (latestNotification.created_at > currentLatest.created_at) {
+          hasNewNotifications.value = true
+        }
+      } else if (result.notifications.length > 0 && notifications.value.length === 0) {
+        hasNewNotifications.value = true
+      }
+    } catch (err) {
+      console.error('Failed to poll notifications:', err)
+    }
+  }, 30000) // 30 seconds
+}
+
+const stopPolling = () => {
+  if (pollingInterval.value) {
+    clearInterval(pollingInterval.value)
+    pollingInterval.value = null
+  }
+}
+
+const refreshNotifications = () => {
+  hasNewNotifications.value = false
+  loadNotifications(1) // Reload from first page
+}
+
 // Load notifications when component mounts
 onMounted(() => {
   if (currentUser.value?.id) {
     loadNotifications()
+    startPolling()
   }
+})
+
+// Stop polling when component unmounts
+onUnmounted(() => {
+  stopPolling()
 })
 </script>
 

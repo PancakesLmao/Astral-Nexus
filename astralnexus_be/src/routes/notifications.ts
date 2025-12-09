@@ -44,6 +44,104 @@ export async function createWelcomeNotification(userId: string) {
   }
 }
 
+// Utility function to create notification when a post is liked
+export async function createPostLikeNotification(likerId: string, postId: string) {
+  try {
+    // Get post author and liker info
+    const postQuery = `
+      SELECT p.author_id, p.title, u.name as liker_name
+      FROM posts p
+      JOIN users u ON u.id = $1
+      WHERE p.id = $2
+    `;
+    const postResult = await db.query(postQuery, [likerId, postId]);
+
+    if (postResult.rows.length === 0) {
+      console.error("Post or liker not found");
+      return null;
+    }
+
+    const { author_id, title, liker_name } = postResult.rows[0];
+
+    // Don't create notification if user likes their own post
+    if (author_id === likerId) {
+      return null;
+    }
+
+    const insertQuery = `
+      INSERT INTO notifications (user_id, type, title, message, post_id)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *
+    `;
+
+    const result = await db.query(insertQuery, [
+      author_id,
+      "like",
+      "Someone liked your post!",
+      `${liker_name} liked your post "${title}"`,
+      postId,
+    ]);
+
+    console.log(`Like notification created for post ${postId}`);
+    return result.rows[0];
+  } catch (error) {
+    console.error("Error creating post like notification:", error);
+    return null;
+  }
+}
+
+// Utility function to create notification when a comment is added
+export async function createCommentNotification(commenterId: string, postId: string, commentId: string, commentContent: string) {
+  try {
+    // Get post author and commenter info
+    const postQuery = `
+      SELECT p.author_id, p.title, u.name as commenter_name
+      FROM posts p
+      JOIN users u ON u.id = $1
+      WHERE p.id = $2
+    `;
+    const postResult = await db.query(postQuery, [commenterId, postId]);
+
+    if (postResult.rows.length === 0) {
+      console.error("Post or commenter not found");
+      return null;
+    }
+
+    const { author_id, title, commenter_name } = postResult.rows[0];
+
+    // Don't create notification if user comments on their own post
+    if (author_id === commenterId) {
+      return null;
+    }
+
+    // Truncate comment content for notification
+    const truncatedComment = commentContent.length > 100
+      ? commentContent.substring(0, 100) + "..."
+      : commentContent;
+
+    const insertQuery = `
+      INSERT INTO notifications (user_id, type, title, message, post_id, comment_id)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING *
+    `;
+
+    const result = await db.query(insertQuery, [
+      author_id,
+      "comment",
+      "New comment on your post!",
+      `${commenter_name} commented: "${truncatedComment}"`,
+      postId,
+      commentId,
+    ]);
+
+    console.log(`Comment notification created for post ${postId}`);
+    return result.rows[0];
+  } catch (error) {
+    console.error("Error creating comment notification:", error);
+    return null;
+  }
+}
+
 export const notificationsRoutes = new Elysia({ prefix: "/api/blog/notifications" })
   .use(authGuard)
   .get(

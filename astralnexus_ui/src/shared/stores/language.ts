@@ -4,6 +4,9 @@ import { getSessionDomain } from '../utils'
 import { translations, languages, type TranslationKey } from '@/shared/utils/languages'
 import { setCookie, getCookie } from '@/shared/utils'
 
+// Determine if we're in production based on environment
+const isProduction = import.meta.env.NODE_ENV === 'production'
+
 export const useLanguageStore = defineStore('language', () => {
   const currentLanguage = ref<string>('en')
 
@@ -20,12 +23,15 @@ export const useLanguageStore = defineStore('language', () => {
   const setLanguage = (languageCode: string) => {
     if (languages.some((lang) => lang.code === languageCode)) {
       currentLanguage.value = languageCode
+      const domain = getSessionDomain()
+      console.log(`[Language Store] Setting language to ${languageCode}`, { domain, isProduction })
       // Save to cookie for cross-subdomain persistence
       setCookie('preferred-language', languageCode, {
-        domain: getSessionDomain(), // For cross-subdomain cookie sharing
+        domain, // For cross-subdomain cookie sharing
         path: '/',
         maxAge: 365 * 24 * 60 * 60, // 1 year in seconds
         sameSite: 'Lax',
+        secure: isProduction, // Only secure in production (HTTPS)
       })
     }
   }
@@ -47,6 +53,7 @@ export const useLanguageStore = defineStore('language', () => {
         path: '/',
         maxAge: 365 * 24 * 60 * 60, // 1 year
         sameSite: 'Lax',
+        secure: isProduction, // Only secure in production (HTTPS)
       })
       localStorage.removeItem('preferred-language')
       return
@@ -62,6 +69,7 @@ export const useLanguageStore = defineStore('language', () => {
         path: '/',
         maxAge: 365 * 24 * 60 * 60, // 1 year
         sameSite: 'Lax',
+        secure: isProduction, // Only secure in production (HTTPS)
       })
     }
   }

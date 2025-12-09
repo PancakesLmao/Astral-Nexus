@@ -2,6 +2,7 @@ import { Elysia, t } from "elysia";
 import { queryAll, queryOne, query, exists, count } from "../utils/database";
 import { Schemas } from "../schemas";
 import { authGuard } from "../middleware/auth";
+import { createPostLikeNotification } from "./notifications";
 
 // Posts API routes
 export const postsRoutes = new Elysia({ prefix: "/api/blog/posts" })
@@ -991,6 +992,11 @@ export const postsRoutes = new Elysia({ prefix: "/api/blog/posts" })
             "INSERT INTO post_likes (post_id, user_id) VALUES ($1, $2)",
             [id, userId]
           );
+
+          // Create notification for post author (async, don't wait)
+          createPostLikeNotification(userId, id).catch((error) => {
+            console.error("Failed to create like notification:", error);
+          });
 
           return {
             success: true,

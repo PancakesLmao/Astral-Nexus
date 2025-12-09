@@ -3,6 +3,7 @@ import { queryAll, queryOne, query } from "../utils/database";
 import { Schemas } from "../schemas";
 import { authGuard } from "../middleware/auth";
 import { verifySupabaseToken, extractBearerToken } from "../config/supabase";
+import { createCommentNotification } from "./notifications";
 
 // Comment handler for Honkai Blog
 export const commentRoutes = new Elysia({ prefix: "/api/blog/comments" })
@@ -204,6 +205,11 @@ export const commentRoutes = new Elysia({ prefix: "/api/blog/comments" })
           authorId,
           body.content,
         ]);
+
+        // Create notification for post author (async, don't wait)
+        createCommentNotification(authorId, body.post_id, result.id.toString(), body.content).catch((error) => {
+          console.error("Failed to create comment notification:", error);
+        });
 
         const createdAtIso = new Date(result.created_at).toISOString();
         const newComment = {
