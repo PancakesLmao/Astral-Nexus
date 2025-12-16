@@ -1,5 +1,5 @@
 <template>
-  <div id="home" class="px-5 py-0">
+  <div id="home" class="px-3 py-0">
     <!-- Content list -->
     <PostList
       :posts="posts"
